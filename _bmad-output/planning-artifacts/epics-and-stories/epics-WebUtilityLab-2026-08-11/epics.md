@@ -21,18 +21,23 @@ sources:
 
 **Acceptance test for any epic to ship:**
 
-1. **Source grep:** `grep -r 'fetch\|XMLHttpRequest\|navigator.sendBeacon' src/` returns no production matches.
-2. **dist grep:** `grep -rE 'fetch|XMLHttpRequest|sendBeacon|google-analytics|gtag|googletagmanager|hotjar|mixpanel|sentry|fullstory|plausible|cloudflareinsights|@font-face|fonts\.googleapis|fonts\.gstatic' dist/` returns no matches.
-3. **dist color-literal grep:** `grep -rE '#[0-9a-fA-F]{3,8}\b' dist/**/*.css` returns no hex literals; all colors must resolve to CSS variables defined in `src/styles/tokens.css`.
-4. **DevTools behavioral check** (Puppeteer/Playwright in CI): drive an interaction sequence — load → empty state visible → drop a 5 KB fixture CSV → results page visible → open cleaning modal → close. Assert **zero requests** across the full sequence, not just `networkidle`.
-5. **Transitive dep audit:** `npm ls --all` output reviewed; no package known to phone home. Updated `SECURITY.md` per epic landing.
-6. **AD enforcement:** the AD(s) named under "Anchors" are observably enforced.
-7. **Vitest coverage** on the unit under test.
-8. **a11y scan** (for epics with rendered UI — E02, E03, E04, E10, E11, E12): `axe-core` returns zero serious/critical violations.
-9. **Bundle budget:** `dist/` total transfer size (gzipped) ≤ 200 KB. Blocking CI check (defined in SOLUTION-DESIGN.md §"What ships").
-10. **No CSV injection in cleaned output:** when E11 lands, golden test downloads the cleaned file and `grep -E '^[=+\-@\t\r]' cleaned.csv` returns no rows whose first cell begins with a formula trigger.
-11. **PII regex safety:** every pattern in `src/lib/pii-patterns.json` passes a ReDoS check (no nested quantifiers, no overlapping alternations, backtracking bounded). CI runs the check on every commit.
-12. **Worker abort:** the `abort` envelope phase exists and the worker checks an abort flag inside its tight loops; cancel-from-processing terminates the worker cleanly within 100 ms (test in E05).
+1. **Source grep:** `grep -rE 'fetch|XMLHttpRequest|navigator\.sendBeacon|new Image\(\)|EventSource|preconnect|prefetch|a ping=|dns-prefetch|document\.createElement\(.script.\)' src/` returns no production matches. The grep covers the full set of side-channel vectors identified in the privacy review (H1, H4) — not only `fetch`.
+2. **dist grep:** `grep -rE 'fetch|XMLHttpRequest|sendBeacon|google-analytics|gtag|googletagmanager|hotjar|mixpanel|sentry|fullstory|plausible|cloudflareinsights|@font-face|fonts\.googleapis|fonts\.gstatic' dist/` returns no matches. Also greps `<img src>`, `<a ping>`, `<source src>`, `<video poster>`, `<meta http-equiv="refresh">` for any non-self origin.
+3. **dist color-literal grep:** `grep -rE '#[0-9a-fA-F]{3,8}\b' dist/**/*.css` returns no hex literals outside `:root` / `.dark` token blocks; all component CSS must consume `var(--*)` tokens.
+4. **DevTools behavioral check** (Puppeteer/Playwright in CI): drive an interaction sequence — load → empty state visible → drop a 5 KB fixture CSV → results page visible → open cleaning modal → close. Assert **zero requests** across the full sequence, not just `networkidle`. Includes an assertion that `navigator.serviceWorker.getRegistrations()` returns empty.
+5. **Hardening headers check** (per-PR gate, E13): `curl -sI https://<host>/` must include `content-security-policy: ... connect-src 'none' ...`, `x-content-type-options: nosniff`, `referrer-policy: no-referrer`, `permissions-policy: camera=(), microphone=(), ...`, `cross-origin-opener-policy: same-origin`, `cross-origin-embedder-policy: require-corp`, `cross-origin-resource-policy: same-origin`. Missing or weakened headers block the PR. The CSP source string itself lives at `infra/csp.txt` and is deployed verbatim — not free-text in a story.
+6. **Transitive denylist:** `npm ls --all --json` is diffed against `scripts/known-telemetry-deps.json` (denylist of known phone-home packages: `@sentry/*`, `@fullstory/*`, `@hotjar/*`, `posthog-js`, `@datadog/*`, etc.). Any package in the denylist blocks the PR.
+7. **Reproducible build + manifest:** each `/v1/{path}` release ships with `dist-manifest.json` listing the Git SHA, build timestamp, and SHA-256 of every asset in `dist/`. `git checkout <sha>; npm ci; npm run build; sha256sum dist/*` must reproduce the manifest hashes. Verified on every release.
+8. **R2 config audit:** the deployed bucket's access-log setting is verified off. The dashboard snapshot is committed at `audit/r2-config.json` with a timestamp + SHA, regenerated on every release. The "R2 default" claim is retired in favor of this published artifact.
+9. **AD enforcement:** the AD(s) named under "Anchors" are observably enforced.
+10. **Vitest coverage** on the unit under test.
+11. **a11y scan** (for epics with rendered UI — E02, E03, E04, E10, E11, E12): `axe-core` returns zero serious/critical violations.
+12. **Bundle budget:** `dist/` total transfer size (gzipped) ≤ 200 KB. Blocking CI check (defined in SOLUTION-DESIGN.md §"What ships").
+13. **No CSV injection in cleaned output:** when E11 lands, golden test downloads the cleaned file and `grep -E '^[=+\-@\t\r]' cleaned.csv` returns no rows whose first cell begins with a formula trigger.
+14. **PII regex safety:** every pattern in `src/lib/pii-patterns.json` passes a ReDoS check (no nested quantifiers, no overlapping alternations, backtracking bounded). CI runs the check on every commit.
+15. **Worker abort:** the `abort` envelope phase exists and the worker checks an abort flag inside its tight loops; cancel-from-processing terminates the worker cleanly within 100 ms (test in E05).
+16. **Tab-close lifecycle:** `dist/` ships no service worker, no `IndexedDB` usage, no `Cache API` usage, no `sessionStorage` usage outside theme. Theme (`wul-theme` key in `localStorage`) is the only persisted state. Verified by source grep + `navigator.serviceWorker.getRegistrations()` empty assertion.
+17. **CSP `style-src` hardening** (when E02 lands): `'unsafe-inline'` on style-src is replaced with `'sha256-<base64>'` hashes computed at build time from Svelte's inline `<style>` blocks. The hash list is committed at `infra/style-hashes.txt` and re-verified on every build. The "audit confirms no dynamic CSS injection" prose is replaced by this CI gate.
 
 ---
 
@@ -91,7 +96,7 @@ sources:
 - **S03.5** Empty-state copy from EXPERIENCE.md (locked): "Drop a CSV to find out what's wrong with it. Files up to 50 MB, UTF-8, with or without a BOM. We don't upload — this happens in your browser. [Try the example] · [Browse files]". Privacy signal visible at the dropzone (FR-9). Editorial voice bound: curly quotes, spaced em-dashes, mono for data.
 - **S03.6** Three teaching cards below the drop ("What we detect" / "What we show you" / "What you can do"). Copy authored in `src/lib/copy/teaching-cards.ts`; bound to EXPERIENCE.md editorial voice (curly quotes, spaced em-dashes, mono for data), **not** lifted verbatim from the PRD.
 - **S03.7** Accept path emits a `File` reference (no read yet) to the reducer. Actual reading + BOM detection happens in E06. The dropzone story here is purely the gesture; the worker side lands later.
-- **S03.8** Example CSV: `public/examples/sample.csv` is a local asset (already in the source tree at this point — fixture lives in E08's fixture set). The "Try the example" button reads it via `fetch('/examples/sample.csv')` — which is a local same-origin request, not a network call, and is captured by the dist-grep audit (the file ships in `dist/`, not from a CDN).
+- **S03.8** Example CSV: the "Try the example" path is **zero-network**. The fixture CSV is inlined at build time into the JS bundle as a string constant, and a `File` is constructed in-memory via `new File([csvString], 'sample.csv', { type: 'text/csv' })`. The fixture source still lives at `public/examples/sample.csv` for E08's fixture set and for offline review; the build step (`scripts/inline-example.mjs`) reads it once at build time and embeds it into a generated module. This satisfies the source-grep (no `fetch` anywhere) and the dist-grep (no `examples/sample.csv` reference in the deployed HTML). The user-visible button label stays "Try the example"; the deployed HTML no longer carries a fetch path.
 - **S03.9** Strict-brief error path: over-50 MB rejection uses the shared `formatStrictBrief()` from `src/lib/strict-brief.ts` (owned by E05). E03 imports the formatter; it does not author its own.
 
 **Privacy gate:** Zero requests. DevTools confirms only local file read on accept.
@@ -289,11 +294,13 @@ sources:
 **Stories**
 
 - **S13.1** Transitive dependency audit: every direct dep's transitive tree reviewed. No phone-home. Documented in `SECURITY.md`.
-- **S13.2** R2 bucket setup: logging disabled, public-read on objects only, Cloudflare Web Analytics NOT enabled. Audit checklist from SOLUTION-DESIGN.md §"Build-time calls (resolved)" verified.
-- **S13.3** `npm run build` produces `dist/`; `dist/` is uploaded to R2. Custom domain or R2 subdomain (deferred decision).
-- **S13.4** Playwright/Puppeteer smoke test against the deployed URL: load → empty state visible → drop a 5 KB fixture CSV → results page visible → 8 detection categories trigger correctly.
+- **S13.2** R2 bucket setup: logging disabled, public-read on objects only, Cloudflare Web Analytics NOT enabled. Audit checklist from SOLUTION-DESIGN.md §"Build-time calls (resolved)" verified. **The dashboard snapshot of the bucket settings is committed at `audit/r2-config.json`** with a timestamp + SHA and re-verified on every release. The "R2 default" prose claim is retired in favor of this published artifact.
+- **S13.2a** **R2 access-policy artifact:** `audit/r2-config.json` records: bucket name, region, access-log state (off), Web Analytics state (off), public-read policy (objects only), allowed CORS origins (self only), and the SHA-256 of the dashboard screenshot if one is captured. JSON schema is locked; adding a field requires a doc update.
+- **S13.3** `npm run build` produces `dist/`; `dist/` is uploaded to R2 at `/v1/{path}` (immutable URL pattern, per S13.13). Custom domain or R2 subdomain (deferred decision). **`dist-manifest.json` is generated at build time** listing the Git SHA, build timestamp, and SHA-256 of every asset. The manifest is uploaded alongside `dist/` and is the cross-check artifact a stranger uses to verify the deployed bundle matches the published source.
+- **S13.3a** **Reproducible build guide:** `docs/reproducible-build.md` walks a stranger from `git checkout <sha>` through `npm ci`, `npm run build`, and `sha256sum dist/*` to the manifest hashes. The build script uses `npm ci` (not `npm install`), exact version pinning in `package.json`, and `hidden-source-map` so maps never reach the deployed site. Any non-reproducible build fails the CI gate.
+- **S13.4** Playwright/Puppeteer smoke test against the deployed URL: load → empty state visible → drop a 5 KB fixture CSV → results page visible → 8 detection categories trigger correctly. The smoke test also asserts `navigator.serviceWorker.getRegistrations()` returns empty and that `curl -I` against the deployed URL returns the hardening headers from S13.11.
 - **S13.5** Lighthouse audit: contrast 4.5:1 body / 3:1 large; focus rings visible; skip-link reachable; no console errors.
-- **S13.6** DevTools verification script in CI: loads the deployed page; asserts zero requests after page load.
+- **S13.6** DevTools verification script in CI: loads the deployed page; asserts zero requests after page load. The script lives at `scripts/audit-privacy.mjs` and is the canonical artifact the README points at.
 - **S13.7** CHANGELOG.md (initial entry: MVP launch).
 - **S13.8** Postmortems section: empty for now; placeholder file `postmortems/README.md`.
 - **S13.9** README refresh: the current README is planning-focused. Replace with a deploy-time README that describes the live product, the privacy claim, the verifiable DevTools test, the license, and a short "how to use" guide. The `_bmad-output/` planning artifacts move into a `docs/planning/` section.

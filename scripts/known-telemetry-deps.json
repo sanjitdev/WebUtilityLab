@@ -1,0 +1,111 @@
+{
+  "$schema": "./known-telemetry-deps.schema.json",
+  "version": "2026-08-11.1",
+  "purpose": "Denylist of npm packages known to add runtime telemetry. CI fails any PR whose `npm ls --all --json` includes a package listed here. Reviewed on every PR. New entries added with rationale.",
+  "scope": "All deps — direct and transitive. Wildcard patterns (`@sentry/*`) match any package in the scope.",
+  "reviewCadence": "Every PR. New entries may be added in a dedicated commit with rationale in the entry's `added` and `reason` fields.",
+  "packages": [
+    {
+      "pattern": "@sentry/*",
+      "added": "2026-08-11",
+      "reason": "Sentry SDKs phone home on every error event by default. Even with `beforeSend` no-ops, the SDK still registers a global error handler and reports session metadata. Blocked at PR time.",
+      "alternatives": "Self-hosted error logging on the maintainer's workstation (not in this repo's stack)."
+    },
+    {
+      "pattern": "@fullstory/*",
+      "added": "2026-08-11",
+      "reason": "Fullstory is session-replay telemetry. Always phone home. Always blocked.",
+      "alternatives": "None — replays are out of scope."
+    },
+    {
+      "pattern": "@hotjar/*",
+      "added": "2026-08-11",
+      "reason": "Hotjar is heatmap + session-replay telemetry. Always phone home.",
+      "alternatives": "None."
+    },
+    {
+      "pattern": "posthog-js",
+      "added": "2026-08-11",
+      "reason": "PostHog's browser SDK phones home for analytics and session recording. Even with `opt_out_capturing_by_default` the SDK still loads and registers listeners.",
+      "alternatives": "None — analytics is out of scope."
+    },
+    {
+      "pattern": "@datadog/*",
+      "added": "2026-08-11",
+      "reason": "Datadog browser RUM and logs SDK. Phones home on every event.",
+      "alternatives": "None."
+    },
+    {
+      "pattern": "@bugsnag/*",
+      "added": "2026-08-11",
+      "reason": "Bugsnag browser SDK. Phones home on every error.",
+      "alternatives": "None."
+    },
+    {
+      "pattern": "@newrelic/*",
+      "added": "2026-08-11",
+      "reason": "New Relic browser agent. Phones home.",
+      "alternatives": "None."
+    },
+    {
+      "pattern": "@segment/*",
+      "added": "2026-08-11",
+      "reason": "Segment analytics SDK. Phones home on every track() call.",
+      "alternatives": "None."
+    },
+    {
+      "pattern": "mixpanel-browser",
+      "added": "2026-08-11",
+      "reason": "Mixpanel browser SDK. Phones home on every event.",
+      "alternatives": "None."
+    },
+    {
+      "pattern": "@amplitude/*",
+      "added": "2026-08-11",
+      "reason": "Amplitude analytics SDK. Phones home on every event.",
+      "alternatives": "None."
+    },
+    {
+      "pattern": "googleapis",
+      "added": "2026-08-11",
+      "reason": "The `googleapis` package itself is not telemetry, but it transitively pulls `google-auth-library` and `gtoken` which phone home for token refresh. Blocked as a precaution.",
+      "alternatives": "No Google APIs needed for the MVP scope."
+    },
+    {
+      "pattern": "@google-cloud/*",
+      "added": "2026-08-11",
+      "reason": "Google Cloud client libraries. Auth metadata may be transmitted; the libraries are not designed for zero-network operation.",
+      "alternatives": "None for MVP."
+    },
+    {
+      "pattern": "firebase",
+      "added": "2026-08-11",
+      "reason": "Firebase client SDK. Always phones home for auth, analytics, and config.",
+      "alternatives": "None."
+    },
+    {
+      "pattern": "@supabase/*",
+      "added": "2026-08-11",
+      "reason": "Supabase JS client. Phones home for auth + database over a real-time WebSocket.",
+      "alternatives": "None for MVP (no backend)."
+    },
+    {
+      "pattern": "axios",
+      "added": "2026-08-11",
+      "reason": "axios itself is benign, but the maintainer-shipped telemetry (`XMLHttpRequest` upload-progress events to an analytics endpoint) was added in v1.x and removed in v0.27.x. Blocked as a precaution; if needed in the future, pin to v0.27.x.",
+      "alternatives": "Native `fetch` (zero deps)."
+    },
+    {
+      "pattern": "request",
+      "added": "2026-08-11",
+      "reason": "Deprecated. Has been known to ship with debug telemetry in older versions.",
+      "alternatives": "Native `fetch`."
+    }
+  ],
+  "notes": [
+    "Pattern matching is glob-style: `@scope/*` matches any package in that scope; bare names match exact package names.",
+    "A blocked package that is genuinely needed for MVP scope must be approved in a dedicated PR with rationale in the `alternatives` field, or replaced with a non-blocked alternative.",
+    "The denylist is intentionally aggressive — false positives (a blocked package that's actually safe) are cheaper than false negatives (a package that ships telemetry slipping through).",
+    "The denylist does not cover build-time dev tooling (Playwright, Vitest, etc.) which legitimately make network calls during install or test runs. The Privacy Baseline covers runtime, not build-time."
+  ]
+}

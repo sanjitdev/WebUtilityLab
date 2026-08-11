@@ -1,0 +1,58 @@
+{
+  "$schema": "./r2-config.schema.json",
+  "version": "2026-08-11.0",
+  "purpose": "Published snapshot of the deployed Cloudflare R2 bucket's privacy-relevant settings. The 'R2 default' prose claim is retired in favor of this artifact. Updated on every release by the maintainer from the Cloudflare dashboard.",
+  "bucket": {
+    "name": "<TO_BE_FILLED_AT_DEPLOY>",
+    "region": "<TO_BE_FILLED_AT_DEPLOY>"
+  },
+  "settings": {
+    "accessLogging": {
+      "state": "off",
+      "verifiedAt": "<TO_BE_FILLED_AT_DEPLOY>",
+      "verifiedBy": "maintainer",
+      "how": "Cloudflare dashboard → R2 → <bucket> → Settings → Logging → off. Screenshot at audit/r2-config-<sha>.png."
+    },
+    "webAnalytics": {
+      "state": "off",
+      "verifiedAt": "<TO_BE_FILLED_AT_DEPLOY>",
+      "verifiedBy": "maintainer",
+      "how": "Cloudflare dashboard → <zone> → Analytics → Web Analytics → not enabled."
+    },
+    "publicAccess": {
+      "policy": "public-read on objects only",
+      "verifiedAt": "<TO_BE_FILLED_AT_DEPLOY>",
+      "verifiedBy": "maintainer"
+    },
+    "cors": {
+      "allowedOrigins": ["self"],
+      "allowedMethods": ["GET", "HEAD"],
+      "verifiedAt": "<TO_BE_FILLED_AT_DEPLOY>"
+    },
+    "requestBodyLogging": {
+      "state": "off",
+      "note": "Cloudflare R2 does not log request bodies when access logging is off (the underlying S3-compatible API supports it but the bucket-level toggle controls it). No request body data leaves the origin."
+    }
+  },
+  "whatCloudflareStillSees": {
+    "atEdge": [
+      "Client IP address",
+      "User-Agent header",
+      "TLS handshake (SNI, cipher)",
+      "Request metadata (path, status code, response size, timing)"
+    ],
+    "policy": "Cloudflare's privacy policy governs this metadata. WebUtilityLab does not retain any of it. See README § 'Privacy Baseline' for the user-facing statement."
+  },
+  "verification": {
+    "lastVerified": "<TO_BE_FILLED_AT_DEPLOY>",
+    "verificationCommand": "curl -sI https://<bucket>.r2.dev/ | head -20",
+    "expectedBehavior": [
+      "HTTP/2 200 for /index.html",
+      "No request body in any subsequent Cloudflare access log entry",
+      "No Cloudflare Web Analytics beacon in the response body"
+    ],
+    "ciCheck": "scripts/audit-r2-config.mjs reads this file and asserts every verifiedAt timestamp is within 30 days of the current build date. Older snapshots block the release."
+  },
+  "schemaLocked": true,
+  "schemaNote": "Adding a setting requires a doc update and a reviewer-approved PR. The CI check refuses to load this file if it does not parse against audit/r2-config.schema.json."
+}

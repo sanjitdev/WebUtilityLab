@@ -10,12 +10,35 @@ This repository currently holds the planning artifacts produced by a BMad planni
 
 ## Privacy Baseline (ship gate)
 
-CSV Rescue makes zero network calls after page load. Verifiable with DevTools open. This is the architectural contract, not a discipline:
+CSV Rescue's privacy posture is enforced by CI, not by maintainer discipline. The headline claim:
 
-- No analytics. No error reporters. No web fonts.
-- No CDN with request-body logging. Static assets only.
-- Every transitive dependency is audited before each release.
-- The repository is open source from day 1 — anyone can audit the privacy claim by reading the code.
+> **After the page's `load` event fires, the Network tab remains empty until you click an external link. Verified by opening DevTools → Network → "Disable cache" → reload.**
+
+The claim excludes clicks on `<a href>` and `mailto:` links rendered in the footer (e.g. "Report a problem"). It covers the lifecycle between `load` event and tab close.
+
+**How the claim is enforced:**
+
+- No analytics. No error reporters. No web fonts. No service worker.
+- Hosted on Cloudflare R2 with bucket-level access logging disabled. The dashboard snapshot of the bucket settings is committed at `audit/r2-config.json` and re-verified on every release.
+- Cloudflare sees request metadata (IP, UA, TLS handshake) at the edge; access logs at the bucket level are off. The Cloudflare Privacy Policy applies to that metadata. WebUtilityLab does not retain request metadata.
+- Every transitive dependency is checked against `scripts/known-telemetry-deps.json` on every PR. The denylist is reviewed on every change.
+- The deployed `dist/` ships with CSP `connect-src 'none'` (the load-bearing line: blocks `fetch`, `XMLHttpRequest`, `WebSocket`, `EventSource`, `sendBeacon`, and WebRTC data channels even if the source regressed). Response headers (`Content-Security-Policy`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: no-referrer`, `Permissions-Policy` disabling camera/mic/geolocation/etc., `Cross-Origin-Opener-Policy: same-origin`, `Cross-Origin-Embedder-Policy: require-corp`, `Cross-Origin-Resource-Policy: same-origin`) are verified on every PR via `curl -I` against the deployed URL.
+- The repository is open source from day 1. Each `/v1/{path}` release ships with `dist-manifest.json` listing the Git SHA, build timestamp, and SHA-256 of each asset. A stranger can cross-check the deployed bundle against the published source: `git checkout <sha>; npm ci; npm run build; sha256sum dist/*` must reproduce the manifest hashes.
+
+**What the privacy claim covers:**
+
+- File lifecycle: your file stays in this tab's memory. Closing the tab discards it. WebUtilityLab does not write it to disk, IndexedDB, localStorage, or any cache. Theme preference (light/dark) is the only thing saved between visits.
+- No telemetry. No pixel tracking. No DNS prefetch. No service worker registration. No preconnect.
+- The "Try the example" button reads a small CSV bundled with the app — zero network.
+- No third-party origins in any `<script src>`, `<link href>`, `<img src>`, `<a href>`, `<source>`, `<video poster>`, or `<meta>` in the deployed HTML.
+
+**What it does not cover:**
+
+- Clicks on `<a href>` (the GitHub link) — those navigate away from the origin and the destination's privacy policy applies.
+- Clicks on `mailto:` links (the "Report a problem" footer link) — those open the user's mail app; the message goes through the user's mail provider, not WebUtilityLab.
+- The privacy posture in this README applies to CSV Rescue, the only shipping tool. Each future tool ships its own privacy posture as a separate ADR.
+
+The behavioral check lives at `scripts/audit-privacy.mjs` (Puppeteer; loads the page, drops a fixture CSV, asserts zero requests). The verification checklist lives at `epics.md` § "Acceptance test for any epic to ship".
 
 ## What's in this repository
 
@@ -73,7 +96,7 @@ Full text and module boundaries in `SOLUTION-DESIGN.md`.
 
 - **License:** MIT.
 - **Test framework:** Vitest.
-- **Source maps:** `hidden-source-map` in production; maps uploaded separately to a private store on the user-triggered "Report a problem" path.
+- **Source maps:** `hidden-source-map` in production. The deployed `dist/` contains no `.map` files. Source maps live only on the maintainer's workstation and in a private GitHub gist that is created only when the maintainer investigates a user-reported issue; they are never auto-uploaded, never reach a third-party error tracker, and never reach the deployed site. The source-map store is named in `SECURITY.md` §"Source map policy" and is bound to a single maintainer account.
 - **CDN / static hosting:** Cloudflare R2 with request-body logging disabled (R2 default).
 
 ## What doesn't ship (yet)
@@ -84,7 +107,12 @@ Full text and module boundaries in `SOLUTION-DESIGN.md`.
 
 ## Contributing
 
-Not yet open for contributions — the implementation hasn't started. When it does, the privacy posture above is the contribution bar: a PR that adds analytics, error reporters, fonts, or remote calls at runtime will be closed without review.
+Not yet open for contributions — the implementation hasn't started. When it does, the privacy posture above is the contribution bar: a PR that adds analytics, error reporters, fonts, or remote runtime calls **fails the required `npm run audit:privacy` CI check before review** (see `epics.md` § "Acceptance test for any epic to ship", items 1–4). The four greps that gate this:
+
+1. Source grep: `grep -rE 'fetch|XMLHttpRequest|navigator\.sendBeacon|new Image\(\)|EventSource|preconnect|prefetch|a ping=|dns-prefetch' src/` → no production matches.
+2. dist grep: `grep -rE 'fetch|XMLHttpRequest|sendBeacon|google-analytics|gtag|googletagmanager|hotjar|mixpanel|sentry|fullstory|plausible|cloudflareinsights|@font-face|fonts\.googleapis|fonts\.gstatic' dist/` → no matches.
+3. dist color-literal grep: `grep -rE '#[0-9a-fA-F]{3,8}\b' dist/**/*.css` returns no hex literals outside the `:root` / `.dark` token blocks; all component CSS must consume `var(--*)` tokens.
+4. DevTools behavioral check (Puppeteer/Playwright in CI): drive an interaction sequence, assert zero requests across the full sequence, not just `networkidle`.
 
 ## License
 
