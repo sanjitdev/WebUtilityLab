@@ -1,0 +1,2075 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WebAnvil — Pre-development Brainstorm · 2026-08-11</title>
+<style>
+/* ============================================================
+   WebAnvil Brainstorm — forge-themed, browser-first, no externals
+   ============================================================ */
+:root{
+  --bg:#0c0a08;
+  --bg-2:#14110d;
+  --bg-3:#1c1812;
+  --bg-4:#26201a;
+  --ink:#f4ead8;
+  --ink-2:#cfc2a4;
+  --ink-3:#8a7e63;
+  --rule:#3a2f22;
+  --ember:#ff6a1f;
+  --ember-2:#ffb056;
+  --spark:#ffd76b;
+  --iron:#5b4a39;
+  --iron-2:#8a7558;
+  --coal:#0a0807;
+  --rust:#b04a1d;
+  --steel:#c9d2d9;
+  --gold:#d9b35d;
+  --hat-blue:#1e4a7a;
+  --hat-red:#a83232;
+  --hat-black:#2a2a2a;
+  --hat-yellow:#c89c2a;
+  --hat-green:#3a7a4a;
+  --hat-white:#d8d4ca;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--coal);color:var(--ink);font-family:Georgia,'Iowan Old Style','Palatino Linotype',serif;line-height:1.55;-webkit-font-smoothing:antialiased}
+body{
+  background:
+    radial-gradient(ellipse at top, #1a130b 0%, #0a0807 60%),
+    repeating-linear-gradient(0deg, transparent 0 38px, rgba(255,106,31,.025) 38px 39px);
+  min-height:100vh;
+}
+a{color:var(--ember-2)}
+.wrap{max-width:1180px;margin:0 auto;padding:0 28px}
+section{padding:72px 0;border-bottom:1px solid var(--rule)}
+h1,h2,h3,h4{font-weight:normal;letter-spacing:.01em;margin:0}
+
+/* ---------- HEADER / FORGE TOP ---------- */
+.forge-top{
+  position:relative;
+  padding:96px 0 64px;
+  background:
+    linear-gradient(180deg, rgba(0,0,0,.4), transparent 80%),
+    repeating-linear-gradient(90deg, transparent 0 6px, rgba(255,255,255,.012) 6px 7px);
+  border-bottom:2px solid var(--rule);
+  overflow:hidden;
+}
+.forge-top::before{
+  content:"";
+  position:absolute;inset:0;
+  background:radial-gradient(circle at 50% 90%, rgba(255,106,31,.18), transparent 55%);
+  pointer-events:none;
+}
+.anvil-mark{
+  display:flex;align-items:center;gap:18px;
+  font-family:'Courier New',monospace;
+  font-size:11px;letter-spacing:.32em;text-transform:uppercase;
+  color:var(--ink-3);
+  margin-bottom:24px;
+}
+.anvil-mark .spark{
+  width:10px;height:10px;border-radius:50%;
+  background:var(--ember);
+  box-shadow:0 0 18px var(--ember), 0 0 6px var(--ember-2);
+  animation:spark 2.4s ease-in-out infinite;
+}
+@keyframes spark{0%,100%{transform:scale(1);opacity:.95}50%{transform:scale(1.4);opacity:.6}}
+.title{
+  font-size:clamp(40px, 6.4vw, 76px);
+  line-height:1.04;
+  color:var(--ink);
+  max-width:880px;
+  font-weight:normal;
+}
+.title .accent{color:var(--ember-2);font-style:italic}
+.subtitle{
+  margin-top:22px;
+  font-size:18px;color:var(--ink-2);
+  max-width:680px;font-style:italic;
+}
+.meta-row{
+  margin-top:36px;
+  display:flex;flex-wrap:wrap;gap:32px;
+  font-family:'Courier New',monospace;
+  font-size:11px;letter-spacing:.22em;text-transform:uppercase;
+  color:var(--ink-3);
+}
+.meta-row b{color:var(--ember-2);font-weight:normal;margin-left:8px}
+.thesis-bar{
+  margin-top:56px;padding:20px 24px;
+  border-left:3px solid var(--ember);
+  background:rgba(255,106,31,.05);
+  font-size:15px;color:var(--ink-2);
+  max-width:760px;
+}
+.thesis-bar b{color:var(--ink)}
+
+/* ---------- TECHNIQUE NAV ---------- */
+.toc{
+  padding:28px 0;
+  border-bottom:1px solid var(--rule);
+  background:rgba(0,0,0,.2);
+}
+.toc-list{
+  display:flex;flex-wrap:wrap;gap:8px 14px;
+  font-family:'Courier New',monospace;
+  font-size:11px;letter-spacing:.18em;text-transform:uppercase;
+  list-style:none;margin:0;padding:0;
+}
+.toc-list a{
+  color:var(--ink-3);text-decoration:none;
+  padding:6px 10px;border:1px solid var(--rule);
+}
+.toc-list a:hover{color:var(--ember-2);border-color:var(--ember-2)}
+
+/* ---------- SECTION HEADER ---------- */
+.sec-head{
+  display:flex;align-items:baseline;gap:18px;
+  margin-bottom:36px;flex-wrap:wrap;
+}
+.sec-num{
+  font-family:'Courier New',monospace;
+  font-size:11px;letter-spacing:.3em;
+  color:var(--ember);text-transform:uppercase;
+}
+.sec-head h2{
+  font-size:clamp(28px, 3.4vw, 42px);
+  color:var(--ink);
+}
+.sec-head .rule{flex:1;height:1px;background:var(--rule);min-width:60px}
+.sec-head .count{
+  font-family:'Courier New',monospace;
+  font-size:11px;letter-spacing:.22em;color:var(--ink-3);
+  text-transform:uppercase;
+}
+.section-blurb{color:var(--ink-2);font-style:italic;max-width:760px;margin-bottom:36px}
+
+/* ============================================================
+   T1 — FIRST PRINCIPLES: VERTICAL DRILL-DOWN
+   ============================================================ */
+.drill{
+  display:grid;
+  grid-template-columns:1fr;
+  gap:0;
+  position:relative;
+}
+.drill-layer{
+  position:relative;
+  padding:34px 0 34px 56px;
+  border-top:1px solid var(--rule);
+}
+.drill-layer:first-child{border-top:0;padding-top:0}
+.drill-layer::before{
+  content:"";position:absolute;left:18px;top:0;bottom:0;
+  width:2px;background:linear-gradient(180deg, transparent, var(--ember-2) 20%, var(--ember-2) 80%, transparent);
+  opacity:.5;
+}
+.drill-depth{
+  position:absolute;left:0;top:34px;
+  width:36px;height:36px;border-radius:50%;
+  background:var(--coal);border:2px solid var(--ember-2);
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Courier New',monospace;font-size:11px;
+  color:var(--ember-2);letter-spacing:.1em;
+}
+.drill-layer:first-child .drill-depth{top:0}
+.drill-layer h3{
+  font-size:20px;color:var(--ink);margin-bottom:6px;
+  font-style:italic;
+}
+.drill-layer .depth-label{
+  font-family:'Courier New',monospace;font-size:10px;
+  letter-spacing:.28em;text-transform:uppercase;color:var(--ink-3);
+  margin-bottom:14px;
+}
+.drill-quote{
+  font-size:18px;color:var(--ink-2);font-style:italic;
+  border-left:2px solid var(--ember);
+  padding:8px 0 8px 18px;margin:18px 0;
+  max-width:760px;
+}
+.drill-idea{
+  background:var(--bg-2);
+  border:1px solid var(--rule);
+  padding:18px 22px;
+  margin:12px 0;
+  max-width:820px;
+}
+.drill-idea .src{
+  font-family:'Courier New',monospace;font-size:10px;
+  letter-spacing:.22em;text-transform:uppercase;
+  color:var(--ember);margin-bottom:8px;
+}
+.drill-idea p{margin:0;color:var(--ink)}
+.bedrock-flag{
+  display:inline-block;
+  font-family:'Courier New',monospace;font-size:10px;
+  letter-spacing:.22em;text-transform:uppercase;
+  color:var(--coal);background:var(--ember-2);
+  padding:3px 10px;margin-bottom:12px;
+}
+
+/* ============================================================
+   T2 — REVERSE BRAINSTORMING: FAILURE GALLERY
+   ============================================================ */
+.fail-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill, minmax(280px, 1fr));
+  gap:14px;
+}
+.fail-card{
+  background:var(--bg-2);
+  border:1px solid var(--rule);
+  padding:22px;
+  position:relative;
+  transition:transform .2s ease;
+}
+.fail-card:hover{transform:translateY(-2px);border-color:var(--ember)}
+.fail-card::before{
+  content:"F" counter(fail);
+  counter-increment:fail;
+  position:absolute;top:-10px;right:14px;
+  font-family:'Courier New',monospace;
+  background:var(--rust);color:var(--coal);
+  padding:3px 9px;font-size:10px;letter-spacing:.18em;
+}
+.fail-grid{counter-reset:fail}
+.fail-card h4{
+  font-size:16px;color:var(--ember-2);
+  margin:8px 0 6px;font-style:italic;
+}
+.fail-card p{color:var(--ink-2);margin:0;font-size:14.5px}
+.fail-card .fmeta{
+  font-family:'Courier New',monospace;font-size:10px;
+  letter-spacing:.2em;color:var(--ink-3);
+  text-transform:uppercase;margin-bottom:4px;
+}
+.inversion-link{
+  margin-top:14px;padding-top:12px;
+  border-top:1px dashed var(--rule);
+  font-size:13px;color:var(--ink);
+}
+.inversion-link .label{
+  font-family:'Courier New',monospace;font-size:10px;
+  letter-spacing:.22em;text-transform:uppercase;
+  color:var(--ember);display:block;margin-bottom:4px;
+}
+.fail-card.adopted{border-color:var(--gold);background:linear-gradient(180deg, rgba(217,179,93,.08), transparent)}
+.fail-card.rejected{border-color:var(--rust);opacity:.85}
+.fail-card.deferred{border-color:var(--steel);opacity:.9}
+
+/* ============================================================
+   T3 — QUESTION STORMING: CONSTELLATION
+   ============================================================ */
+.constellation{
+  position:relative;
+  min-height:680px;
+  padding:20px;
+  background:radial-gradient(ellipse at center, rgba(255,106,31,.04), transparent 70%);
+  border:1px solid var(--rule);
+}
+.q-star{
+  position:absolute;
+  background:var(--bg-3);
+  border:1px solid var(--rule);
+  padding:14px 16px;
+  max-width:260px;
+  font-size:14px;color:var(--ink-2);
+  line-height:1.45;
+  border-radius:2px;
+  transition:transform .2s ease, border-color .2s ease;
+}
+.q-star:hover{
+  transform:scale(1.04);border-color:var(--ember-2);z-index:10;
+}
+.q-star .qlabel{
+  font-family:'Courier New',monospace;font-size:9.5px;
+  letter-spacing:.24em;color:var(--ember);
+  text-transform:uppercase;margin-bottom:6px;display:block;
+}
+.q-star.heavy{
+  background:linear-gradient(180deg, rgba(255,106,31,.12), var(--bg-3));
+  border-color:var(--ember);
+  box-shadow:0 0 24px rgba(255,106,31,.18);
+}
+.q-star.heavy::after{
+  content:"★";position:absolute;top:-10px;right:-8px;
+  color:var(--ember);font-size:18px;
+}
+.q-s1{top:4%;left:5%}
+.q-s2{top:2%;left:48%;max-width:300px}
+.q-s3{top:18%;left:78%}
+.q-s4{top:34%;left:14%}
+.q-s5{top:38%;left:55%}
+.q-s6{top:60%;left:6%;max-width:290px}
+.q-s7{top:62%;left:42%;max-width:290px}
+.q-s8{top:78%;left:70%}
+.q-s9{top:8%;left:26%}
+.q-s10{top:54%;left:80%}
+.q-s11{top:84%;left:30%}
+.q-s12{top:24%;left:62%}
+.legend{
+  margin-top:14px;font-family:'Courier New',monospace;
+  font-size:10px;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--ink-3);
+}
+.legend .dot{display:inline-block;width:9px;height:9px;background:var(--ember);margin-right:6px;vertical-align:middle}
+
+/* ============================================================
+   T4 — SIX THINKING HATS — BLUE HAT HERO
+   ============================================================ */
+.hats-frame{
+  display:grid;
+  grid-template-columns:1.4fr 1fr 1fr;
+  grid-template-rows:1fr 1fr 1fr;
+  gap:14px;
+  min-height:560px;
+}
+.hat-cell{
+  background:var(--bg-2);
+  border:1px solid var(--rule);
+  padding:22px;
+  position:relative;
+  overflow:hidden;
+}
+.hat-cell::before{
+  content:"";position:absolute;inset:0;
+  background:radial-gradient(circle at top right, currentColor, transparent 65%);
+  opacity:.15;pointer-events:none;
+}
+.hat-label{
+  font-family:'Courier New',monospace;font-size:10px;
+  letter-spacing:.28em;text-transform:uppercase;
+  margin-bottom:6px;display:block;
+}
+.hat-name{
+  font-size:18px;font-style:italic;margin-bottom:14px;
+  color:var(--ink);
+}
+.hat-cell p{margin:6px 0;color:var(--ink-2);font-size:14px}
+.hat-blue{
+  grid-row:span 3;
+  background:linear-gradient(180deg, rgba(30,74,122,.35), var(--bg-2));
+  border:2px solid var(--ember-2);
+  color:#cfe1f5;
+  box-shadow:0 0 40px rgba(255,176,86,.12);
+}
+.hat-blue .hat-label{color:var(--ember-2)}
+.hat-blue::after{
+  content:"HERO";
+  position:absolute;top:18px;right:18px;
+  font-family:'Courier New',monospace;font-size:10px;
+  letter-spacing:.3em;color:var(--ember-2);
+  border:1px solid var(--ember-2);padding:3px 8px;
+}
+.hat-blue h3{font-size:22px;color:#fff;margin-bottom:6px;font-style:italic}
+.hat-blue .who{font-size:12px;color:var(--ink-3);font-style:italic;margin-bottom:18px}
+.hat-blue .decision-block{
+  background:rgba(0,0,0,.35);border:1px solid rgba(255,176,86,.4);
+  padding:14px 16px;margin-top:14px;
+}
+.hat-blue .decision-block .dlabel{
+  font-family:'Courier New',monospace;font-size:10px;
+  letter-spacing:.24em;color:var(--ember-2);
+  text-transform:uppercase;margin-bottom:8px;display:block;
+}
+.hat-red{color:#e08a8a}.hat-red .hat-label{color:#e08a8a}
+.hat-yellow{color:#e8c878}.hat-yellow .hat-label{color:#e8c878}
+.hat-black{color:#a8a8a8}.hat-black .hat-label{color:#a8a8a8}
+.hat-green{color:#8ac8a4}.hat-green .hat-label{color:#8ac8a4}
+.hat-white{color:#dad6cc}.hat-white .hat-label{color:#dad6cc}
+
+/* ============================================================
+   T5 — JOB TO BE DONE — USER HIRES THE TOOL
+   ============================================================ */
+.hire-scene{
+  background:var(--bg-2);
+  border:1px solid var(--rule);
+  padding:36px;
+  position:relative;
+  overflow:hidden;
+}
+.hire-scene::before{
+  content:"\"";
+  position:absolute;top:-30px;left:20px;
+  font-size:240px;color:var(--ember);
+  opacity:.18;font-family:Georgia,serif;line-height:1;
+}
+.scene-grid{
+  display:grid;
+  grid-template-columns:1fr auto 1fr;
+  gap:24px;align-items:start;
+  position:relative;z-index:1;
+}
+.scene-side{
+  background:rgba(0,0,0,.3);
+  border:1px solid var(--rule);
+  padding:20px;
+}
+.scene-side .side-label{
+  font-family:'Courier New',monospace;font-size:10px;
+  letter-spacing:.28em;color:var(--ember-2);
+  text-transform:uppercase;margin-bottom:12px;display:block;
+}
+.scene-side p{margin:0 0 10px;color:var(--ink-2);font-size:15px;font-style:italic}
+.scene-side .metric{
+  font-family:'Courier New',monospace;font-size:11px;
+  letter-spacing:.18em;color:var(--ink);
+  background:rgba(255,106,31,.08);
+  padding:8px 10px;border-left:2px solid var(--ember);
+  margin-top:12px;
+}
+.scene-arrow{
+  align-self:center;
+  font-family:'Courier New',monospace;font-size:11px;
+  letter-spacing:.3em;color:var(--ember-2);
+  text-transform:uppercase;text-align:center;
+}
+.scene-arrow .big{
+  display:block;font-size:42px;color:var(--ember);
+  font-family:Georgia,serif;line-height:1;margin-bottom:8px;
+}
+.job-line{
+  margin-top:28px;
+  padding:22px 24px;
+  border:1px dashed var(--ember-2);
+  text-align:center;
+  font-size:18px;color:var(--ink);
+  font-style:italic;
+}
+.job-line b{color:var(--ember-2);font-style:normal;font-family:'Courier New',monospace;font-size:13px;letter-spacing:.18em}
+
+/* ============================================================
+   T6 — SKEPTIC'S VISIT — THREE VOICES
+   ============================================================ */
+.skeptic-row{
+  display:grid;
+  grid-template-columns:repeat(3, 1fr);
+  gap:18px;
+}
+.skeptic{
+  background:var(--bg-2);
+  border-top:3px solid var(--rule);
+  padding:26px 22px;
+  display:flex;flex-direction:column;
+  position:relative;
+}
+.skeptic.picked{background:linear-gradient(180deg, rgba(255,106,31,.06), var(--bg-2));border-top-color:var(--ember-2)}
+.skeptic.picked::after{
+  content:"MOST SCARY / LANDED";
+  position:absolute;top:-1px;right:14px;
+  font-family:'Courier New',monospace;font-size:9.5px;
+  letter-spacing:.24em;background:var(--ember-2);color:var(--coal);
+  padding:3px 8px;
+}
+.skeptic .who{
+  font-family:'Courier New',monospace;font-size:10px;
+  letter-spacing:.24em;color:var(--ink-3);
+  text-transform:uppercase;margin-bottom:6px;
+}
+.skeptic .name{
+  font-size:18px;color:var(--ink);font-style:italic;
+  margin-bottom:14px;
+}
+.skeptic .voice{
+  font-size:16px;color:var(--ink-2);
+  font-style:italic;line-height:1.5;
+  border-left:2px solid var(--ember);
+  padding-left:14px;margin-bottom:14px;
+}
+.skeptic .response{
+  font-size:13px;color:var(--ink-3);
+  margin-top:auto;padding-top:14px;
+  border-top:1px dashed var(--rule);
+}
+.skeptic .response b{
+  color:var(--ember-2);font-family:'Courier New',monospace;
+  font-size:10px;letter-spacing:.2em;text-transform:uppercase;
+  display:block;margin-bottom:4px;
+}
+
+/* ============================================================
+   T7 — EMPTY WORKSHOP — ARCHIVAL FADED
+   ============================================================ */
+.empty-room{
+  background:
+    linear-gradient(180deg, rgba(0,0,0,.4), rgba(0,0,0,.7)),
+    repeating-linear-gradient(90deg, transparent 0 80px, rgba(255,255,255,.02) 80px 81px);
+  border:1px solid var(--rule);
+  padding:48px 36px;
+  color:var(--ink-3);
+  font-style:italic;
+  position:relative;
+}
+.empty-room::before{
+  content:"THE EMPTY WORKSHOP";
+  position:absolute;top:14px;left:18px;
+  font-family:'Courier New',monospace;font-size:10px;
+  letter-spacing:.34em;color:var(--iron);
+}
+.empty-room .dust{
+  font-size:13px;letter-spacing:.04em;line-height:1.9;
+  color:var(--ink-3);
+  max-width:780px;margin:18px auto 0;
+  text-align:center;
+}
+.empty-room .dust span{
+  color:var(--ink-2);font-style:normal;
+}
+.future-proof{
+  margin-top:36px;
+  background:rgba(255,255,255,.02);
+  border:1px dashed var(--iron-2);
+  padding:24px;
+  font-style:normal;
+  color:var(--ink-2);
+}
+.future-proof .fp-label{
+  font-family:'Courier New',monospace;font-size:10px;
+  letter-spacing:.28em;color:var(--ember-2);
+  text-transform:uppercase;margin-bottom:12px;display:block;
+}
+.future-proof ul{
+  margin:8px 0 0;padding-left:18px;
+}
+.future-proof li{margin-bottom:6px;color:var(--ink-2);font-size:14.5px}
+
+/* ============================================================
+   T8 — PRE-MORTEM — TIMELINE OF FAILURE
+   ============================================================ */
+.mortem-timeline{
+  position:relative;
+  padding:10px 0 10px 60px;
+}
+.mortem-timeline::before{
+  content:"";position:absolute;
+  left:24px;top:0;bottom:0;width:2px;
+  background:linear-gradient(180deg, transparent, var(--rust) 10%, var(--rust) 90%, transparent);
+}
+.pm-moment{
+  position:relative;
+  padding:18px 22px;
+  margin-bottom:18px;
+  background:var(--bg-2);
+  border:1px solid var(--rule);
+  border-left:3px solid var(--rust);
+}
+.pm-moment::before{
+  content:"";position:absolute;
+  left:-44px;top:24px;
+  width:14px;height:14px;border-radius:50%;
+  background:var(--rust);border:3px solid var(--coal);
+  box-shadow:0 0 12px rgba(176,74,29,.6);
+}
+.pm-moment .pm-id{
+  font-family:'Courier New',monospace;font-size:10px;
+  letter-spacing:.24em;color:var(--rust);
+  text-transform:uppercase;margin-bottom:6px;display:block;
+}
+.pm-moment h4{
+  font-size:16px;color:var(--ink);
+  font-style:italic;margin-bottom:8px;
+}
+.pm-moment .what{
+  font-size:14px;color:var(--ink-2);
+  margin-bottom:10px;
+}
+.pm-moment .prev{
+  font-size:13px;color:var(--ink-3);
+  padding-top:10px;border-top:1px dashed var(--rule);
+}
+.pm-moment .prev b{
+  color:var(--ember-2);font-family:'Courier New',monospace;
+  font-size:10px;letter-spacing:.2em;text-transform:uppercase;
+  display:block;margin-bottom:4px;
+}
+
+/* ============================================================
+   T9 — INVERSION — ANTI-PRODUCT VS REAL
+   ============================================================ */
+.inv-row{
+  display:grid;
+  grid-template-columns:1fr auto 1fr;
+  gap:16px;margin-bottom:18px;align-items:stretch;
+}
+.inv-cell{
+  background:var(--bg-2);
+  border:1px solid var(--rule);
+  padding:22px;
+  position:relative;
+}
+.inv-cell.anti{
+  background:linear-gradient(180deg, rgba(176,74,29,.12), var(--bg-2));
+  border-color:var(--rust);
+}
+.inv-cell.real{
+  background:linear-gradient(180deg, rgba(58,122,74,.12), var(--bg-2));
+  border-color:#3a7a4a;
+}
+.inv-cell .cell-tag{
+  font-family:'Courier New',monospace;font-size:10px;
+  letter-spacing:.28em;text-transform:uppercase;
+  margin-bottom:10px;display:block;
+}
+.inv-cell.anti .cell-tag{color:var(--rust)}
+.inv-cell.real .cell-tag{color:#8ac8a4}
+.inv-cell h4{
+  font-size:15px;color:var(--ink);font-style:italic;
+  margin:0 0 10px;
+}
+.inv-arrow{
+  align-self:center;
+  font-family:'Courier New',monospace;font-size:11px;
+  letter-spacing:.3em;color:var(--ember-2);
+  text-transform:uppercase;text-align:center;
+}
+.inv-arrow .big{
+  display:block;font-size:32px;color:var(--ember-2);
+  font-family:Georgia,serif;line-height:1;margin-bottom:6px;
+}
+.inv-row .salvage{
+  margin-top:10px;padding:10px 12px;
+  background:rgba(255,106,31,.06);
+  border-left:2px solid var(--ember);
+  font-size:13px;color:var(--ink-2);
+}
+.inv-row .salvage b{
+  color:var(--ember-2);font-family:'Courier New',monospace;
+  font-size:10px;letter-spacing:.2em;text-transform:uppercase;
+  display:block;margin-bottom:4px;
+}
+
+/* ============================================================
+   SYNTHESIS — THE CLIMAX
+   ============================================================ */
+.synth{
+  background:
+    radial-gradient(ellipse at top, rgba(255,106,31,.08), transparent 70%),
+    linear-gradient(180deg, var(--bg), var(--coal));
+  padding:96px 0;
+  border-bottom:1px solid var(--rule);
+  border-top:2px solid var(--ember);
+}
+.synth .synth-intro{
+  font-size:20px;color:var(--ink-2);
+  font-style:italic;max-width:780px;margin:0 auto 56px;
+  text-align:center;line-height:1.6;
+}
+.synth .synth-intro b{color:var(--ember-2);font-style:normal}
+
+.decision-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill, minmax(340px, 1fr));
+  gap:16px;
+  margin-bottom:64px;
+}
+.decision{
+  background:var(--bg-2);
+  border:1px solid var(--rule);
+  border-top:3px solid var(--ember-2);
+  padding:22px 24px;
+  position:relative;
+}
+.decision .d-num{
+  font-family:'Courier New',monospace;font-size:10px;
+  letter-spacing:.28em;color:var(--ember);
+  text-transform:uppercase;margin-bottom:8px;display:block;
+}
+.decision h3{
+  font-size:17px;color:var(--ink);
+  margin:0 0 10px;font-style:italic;
+  line-height:1.35;
+}
+.decision p{margin:0;color:var(--ink-2);font-size:14.5px}
+.decision .tag{
+  display:inline-block;
+  font-family:'Courier New',monospace;font-size:9.5px;
+  letter-spacing:.24em;text-transform:uppercase;
+  padding:3px 8px;margin-top:12px;
+}
+.tag.adopted{background:var(--gold);color:var(--coal)}
+.tag.deferred{background:var(--steel);color:var(--coal)}
+.tag.rejected{background:var(--rust);color:var(--ink)}
+.tag.risk{background:var(--ember-2);color:var(--coal)}
+
+.doc-revisions{
+  background:var(--bg-2);
+  border:2px solid var(--ember);
+  padding:36px;
+  margin-bottom:64px;
+  position:relative;
+}
+.doc-revisions::before{
+  content:"DOC EDITS — 9 CHANGES BEFORE CODE";
+  position:absolute;top:-12px;left:24px;
+  background:var(--ember);color:var(--coal);
+  font-family:'Courier New',monospace;font-size:11px;
+  letter-spacing:.3em;padding:4px 12px;
+}
+.rev-list{
+  list-style:none;margin:18px 0 0;padding:0;
+  display:grid;grid-template-columns:1fr 1fr;gap:10px 28px;
+}
+.rev-list li{
+  padding:12px 0 12px 28px;
+  border-bottom:1px dashed var(--rule);
+  position:relative;color:var(--ink-2);font-size:14.5px;
+}
+.rev-list li::before{
+  content:counter(rev, decimal-leading-zero);
+  counter-increment:rev;
+  position:absolute;left:0;top:12px;
+  font-family:'Courier New',monospace;font-size:11px;
+  color:var(--ember-2);letter-spacing:.1em;
+}
+.rev-list{counter-reset:rev}
+
+.craft-box{
+  background:var(--bg-3);
+  border:1px solid var(--gold);
+  padding:36px;
+  margin-bottom:48px;
+}
+.craft-box h3{
+  font-size:22px;color:var(--gold);
+  font-style:italic;margin-bottom:8px;
+}
+.craft-box .craft-sub{
+  font-size:14px;color:var(--ink-3);font-style:italic;
+  margin-bottom:24px;
+}
+.craft-list{
+  list-style:none;margin:0;padding:0;
+  display:grid;grid-template-columns:repeat(auto-fill, minmax(280px, 1fr));
+  gap:8px;
+}
+.craft-list li{
+  padding:10px 12px;
+  background:rgba(217,179,93,.05);
+  border-left:2px solid var(--gold);
+  font-size:14px;color:var(--ink-2);
+  counter-increment:craft;
+  position:relative;
+}
+.craft-list li::before{
+  content:"CRAFT-" counter(craft);
+  position:absolute;top:10px;right:10px;
+  font-family:'Courier New',monospace;font-size:9.5px;
+  color:var(--gold);letter-spacing:.18em;
+}
+.craft-list{counter-reset:craft}
+
+.loadbearing{
+  margin-top:48px;
+  text-align:center;
+  padding:32px;
+  background:rgba(255,106,31,.05);
+  border-top:1px solid var(--ember);
+  border-bottom:1px solid var(--ember);
+}
+.loadbearing .lb-label{
+  font-family:'Courier New',monospace;font-size:10px;
+  letter-spacing:.32em;color:var(--ember);
+  text-transform:uppercase;margin-bottom:12px;display:block;
+}
+.loadbearing p{
+  margin:0;color:var(--ink);font-size:18px;
+  font-style:italic;max-width:760px;margin:0 auto;
+}
+.loadbearing p b{color:var(--ember-2);font-style:normal}
+
+/* ============================================================
+   DEFERRED / OPEN QUESTIONS
+   ============================================================ */
+.deferred-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill, minmax(320px, 1fr));
+  gap:14px;
+}
+.deferred{
+  background:var(--bg-2);
+  border:1px solid var(--rule);
+  border-left:3px solid var(--steel);
+  padding:20px;
+}
+.deferred .d-tag{
+  font-family:'Courier New',monospace;font-size:10px;
+  letter-spacing:.24em;color:var(--steel);
+  text-transform:uppercase;margin-bottom:8px;display:block;
+}
+.deferred p{margin:0;color:var(--ink-2);font-size:14.5px;font-style:italic}
+
+/* ============================================================
+   FOOTER
+   ============================================================ */
+footer{
+  padding:48px 0 64px;
+  background:var(--coal);
+  font-family:'Courier New',monospace;
+  font-size:11px;letter-spacing:.18em;
+  color:var(--ink-3);
+  text-align:center;
+  line-height:1.8;
+}
+footer .ft-mark{
+  color:var(--ember-2);font-size:13px;letter-spacing:.3em;
+  margin-bottom:14px;display:block;
+}
+footer .ft-path{
+  color:var(--ink-2);
+  word-break:break-all;max-width:840px;margin:14px auto;
+  line-height:1.6;
+}
+footer .ft-note{
+  font-style:italic;color:var(--ink-3);
+  font-family:Georgia,serif;font-size:13px;letter-spacing:0;
+  margin-top:18px;
+}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+@media (max-width: 880px){
+  section{padding:56px 0}
+  .forge-top{padding:72px 0 48px}
+  .hats-frame{grid-template-columns:1fr;grid-template-rows:auto}
+  .hat-blue{grid-row:auto}
+  .scene-grid{grid-template-columns:1fr;gap:14px}
+  .scene-arrow{transform:rotate(90deg)}
+  .inv-row{grid-template-columns:1fr}
+  .inv-arrow{transform:rotate(90deg);padding:8px 0}
+  .skeptic-row{grid-template-columns:1fr}
+  .q-star{position:static;margin-bottom:12px;max-width:100%}
+  .constellation{display:flex;flex-direction:column;min-height:0}
+  .rev-list{grid-template-columns:1fr}
+}
+@media (max-width: 540px){
+  .wrap{padding:0 18px}
+  .forge-top{padding:60px 0 36px}
+  .synth{padding:64px 0}
+  .doc-revisions{padding:24px 18px}
+}
+</style>
+</head>
+<body>
+
+<!-- ====================== HEADER / FORGE TOP ====================== -->
+<header class="forge-top">
+  <div class="wrap">
+    <div class="anvil-mark">
+      <span class="spark"></span>
+      <span>WebAnvil · Brainstorm Forge · Pre-development</span>
+    </div>
+    <h1 class="title">
+      Raw idea, <span class="accent">forged</span> through nine fires.
+    </h1>
+    <p class="subtitle">
+      A pre-development critique and idea-generation session for WebAnvil —
+      a browser-first, privacy-first utility platform. We surfaced caveats,
+      weak assumptions, and the un-copyable differentiators before a line of code.
+    </p>
+    <div class="meta-row">
+      <span>Topic <b>WebAnvil / Pre-development</b></span>
+      <span>Date <b>2026-08-11</b></span>
+      <span>Mode <b>Autonomous</b></span>
+      <span>Status <b>Complete</b></span>
+    </div>
+    <div class="thesis-bar">
+      <b>The question we kept asking:</b> What useful work can the browser do
+      without needing a server — and what are we wrong about, or missing, before we build it?
+    </div>
+  </div>
+</header>
+
+<!-- TOC -->
+<nav class="toc">
+  <div class="wrap">
+    <ol class="toc-list">
+      <li><a href="#t1">T1 First Principles</a></li>
+      <li><a href="#t2">T2 Reverse Brainstorming</a></li>
+      <li><a href="#t3">T3 Question Storming</a></li>
+      <li><a href="#t4">T4 Six Thinking Hats — Blue</a></li>
+      <li><a href="#t5">T5 Job to Be Done</a></li>
+      <li><a href="#t6">T6 Skeptic's Visit</a></li>
+      <li><a href="#t7">T7 Empty Workshop</a></li>
+      <li><a href="#t8">T8 Pre-mortem</a></li>
+      <li><a href="#t9">T9 Inversion</a></li>
+      <li><a href="#synth">Synthesis</a></li>
+      <li><a href="#deferred">Deferred</a></li>
+    </ol>
+  </div>
+</nav>
+
+<!-- ====================== T1 — FIRST PRINCIPLES ====================== -->
+<section id="t1">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="sec-num">Technique 01</span>
+      <h2>First Principles</h2>
+      <span class="rule"></span>
+      <span class="count">Drill · Bedrock</span>
+    </div>
+    <p class="section-blurb">
+      We kept going down. Each layer answered one more "but why?" until we hit
+      something the user could falsify. The user reframed the early questions
+      fast — they trust the browser-can-do-anything claim — so the real bedrock
+      turned out to be about <em>tolerable latency</em>, not capability.
+    </p>
+
+    <div class="drill">
+      <div class="drill-layer">
+        <div class="drill-depth">L1</div>
+        <div class="depth-label">Surface question</div>
+        <h3>"Can the browser do anything a computer can?"</h3>
+        <div class="drill-quote">
+          The user closes this immediately: Photopea, Photoshop-on-Web, and Figma
+          settle the capability question. We are not contesting it.
+        </div>
+      </div>
+
+      <div class="drill-layer">
+        <div class="drill-depth">L2</div>
+        <div class="depth-label">Closer to bedrock</div>
+        <h3>"But is the privacy claim verifiable?"</h3>
+        <div class="drill-quote">
+          Yes — the user can open DevTools, watch the Network tab, and see no
+          API calls. The structural promise is honest if the discipline holds.
+        </div>
+      </div>
+
+      <div class="drill-layer">
+        <div class="drill-depth">L3</div>
+        <div class="depth-label">Bedrock</div>
+        <h3>"What does the user actually need to perceive?"</h3>
+        <div class="drill-idea">
+          <span class="src">Coach · reframing</span>
+          <p>The bedrock isn't a capability claim, it's a <em>latency-tolerance</em>
+          claim: the browser must do in tolerable time what a backend would have done.
+          The doc is silent on first-10-second experience.</p>
+        </div>
+        <div class="drill-idea">
+          <span class="src">User · falsifiable anchor</span>
+          <p>10s acceptable, 10min not. Sets a falsifiable, user-perceived
+          bedrock instead of a developer-intuition one.</p>
+        </div>
+      </div>
+
+      <div class="drill-layer">
+        <div class="drill-depth">L4</div>
+        <div class="depth-label">Operational rule (ship rule)</div>
+        <div class="bedrock-flag">A Ship Rule</div>
+        <h3>5s-to-meaningful-result, with honest estimates above it.</h3>
+        <div class="drill-idea">
+          <span class="src">Coach · operationalization</span>
+          <p>Every tool shows a meaningful result by 5s. Operations &gt;5s are
+          progressive/async. This would naturally disqualify Local LLM tools,
+          slow crawlers, and full ZIP scans from the MVP.</p>
+        </div>
+        <div class="drill-idea">
+          <span class="src">User · refinement</span>
+          <p>Estimates from data size <em>before</em> processing. Show a band
+          ("~10s ±30%"), not a fixed number. Refuse jobs whose upper bound
+          exceeds threshold. Margin of error is acceptable; deception is not.</p>
+        </div>
+      </div>
+
+      <div class="drill-layer">
+        <div class="drill-depth">L5</div>
+        <div class="depth-label">Structural bedrock</div>
+        <h3>"Is the platform actually stateless?"</h3>
+        <div class="drill-idea">
+          <span class="src">User · reframing MVP</span>
+          <p>Stateless one-shot transformations are the goal — not a stepping stone.
+          Upload → process → download → leave. Like a screwdriver. SaaS features
+          (history, accounts, sync) are explicitly out of scope and <em>not a loss</em>.</p>
+        </div>
+        <div class="drill-idea">
+          <span class="src">Coach · brand asset</span>
+          <p>"It costs you nothing because it doesn't remember you."
+          Stateless isn't a constraint; it's the brand.</p>
+        </div>
+      </div>
+
+      <div class="drill-layer">
+        <div class="drill-depth">L6</div>
+        <div class="depth-label">Hidden risk the doc underweights</div>
+        <h3>"Where is the privacy risk actually located?"</h3>
+        <div class="drill-idea">
+          <span class="src">Coach · diagnosis</span>
+          <p>The privacy risk lives in the surrounding 30% — analytics, error
+          reporters, fonts, CDN logs, transitive deps. Local-first is architecture,
+          not discipline. The two are not the same thing.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ====================== T2 — REVERSE BRAINSTORMING ====================== -->
+<section id="t2">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="sec-num">Technique 02</span>
+      <h2>Reverse Brainstorming</h2>
+      <span class="rule"></span>
+      <span class="count">Failure Gallery</span>
+    </div>
+    <p class="section-blurb">
+      How could WebAnvil fail? Each card is a failure mode we named. The user
+      picked the scariest ones as the "positioning invisible to the user"
+      failures — the kind that lose before the product gets a fair hearing.
+      Coach surfaced one the user didn't list, and the cross-link idea
+      became the headline salvage.
+    </p>
+
+    <div class="fail-grid">
+
+      <div class="fail-card adopted">
+        <div class="fmeta">F5 · Adopted</div>
+        <h4>Workflow tools that look like single-purpose tools</h4>
+        <p>Users have a workflow, not a tool in mind. MVP's 5 separate tools
+        = 5 Google searches = 5 competitors.</p>
+        <div class="inversion-link">
+          <span class="label">Salvage → Mechanism A + B</span>
+          File-in-hand handoff (file metadata, day 1) and result-page "next,
+          you might want to..." links (day 1, all tools, trivial cost).
+        </div>
+      </div>
+
+      <div class="fail-card adopted">
+        <div class="fmeta">F8 · Adopted</div>
+        <h4>MVP indistinguishable from 100-tool sites</h4>
+        <p>No visible "this is faster than the alternative" promise, no side-by-side,
+        no depth affordance. Tab-comparison kills the product.</p>
+        <div class="inversion-link">
+          <span class="label">Salvage → visible proof</span>
+          A "Compare" page for deep tools: same dataset, same operation,
+          our result vs. theirs. Visible proof, not claims.
+        </div>
+      </div>
+
+      <div class="fail-card">
+        <div class="fmeta">F5b</div>
+        <h4>No "show me the depth" affordance</h4>
+        <p>Depth visible only after first use — which is the moment we lose the user.
+        The landing experience must show depth on first interaction, not in a docs page.</p>
+      </div>
+
+      <div class="fail-card">
+        <div class="fmeta">F8a</div>
+        <h4>No "faster than the alternative" promise</h4>
+        <p>Performance is invisible in tab-comparison. The user can't perceive
+        the difference until they upload their file — and by then they've already
+        bounced.</p>
+      </div>
+
+      <div class="fail-card">
+        <div class="fmeta">F8b</div>
+        <h4>No side-by-side with competitors</h4>
+        <p>Without a side-by-side proof point, the user picks the tool they know.
+        Same data, same operation, our result vs. theirs.</p>
+      </div>
+
+      <div class="fail-card adopted">
+        <div class="fmeta">F9 (Coach) · Adopted</div>
+        <h4>Tools fail in isolation</h4>
+        <p>User has a workflow, not a tool in mind. MVP's 5 separate tools = 5
+        Google searches = 5 competitors. The product loses before the workflow
+        gets assembled.</p>
+        <div class="inversion-link">
+          <span class="label">Salvage → Cross-link at result level</span>
+          "Next, you might want to..." static links at the result page. Stateless,
+          fits the screwdriver model, zero new infrastructure.
+        </div>
+      </div>
+
+      <div class="fail-card deferred">
+        <div class="fmeta">Mechanism D · Deferred</div>
+        <h4>PWA-as-persistent-environment</h4>
+        <p>IndexedDB recent-files, "last 5 tools" sidebar, persistent shell.
+        Useful, but breaks the stateless principle and adds maintenance.</p>
+        <div class="inversion-link">
+          <span class="label">Salvage → Post-MVP</span>
+          After 5 stateless tools are validated. Not day-1.
+        </div>
+      </div>
+
+      <div class="fail-card rejected">
+        <div class="fmeta">Mechanism C · Rejected</div>
+        <h4>Same-tab sessionStorage handoff</h4>
+        <p>Could carry state across tools, but breaks expected "open in new tab"
+        UX and undermines Mechanism D's coherence if D ships later.</p>
+        <div class="inversion-link">
+          <span class="label">Salvage → Reject</span>
+          Don't ship a half-step toward a model we're not committing to.
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ====================== T3 — QUESTION STORMING ====================== -->
+<section id="t3">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="sec-num">Technique 03</span>
+      <h2>Question Storming</h2>
+      <span class="rule"></span>
+      <span class="count">12 questions · 2 heavy</span>
+    </div>
+    <p class="section-blurb">
+      Twelve questions, no easy answers. The user then singled out the
+      <em>heavy</em> ones — the questions hiding the real problem.
+      Two glow: Q2 (repeat-visit / brand memory) and Q6 (why does this exist
+      when competitors already have these tools?). The answer turned out to
+      be one word that had to be operationalized: <em>craft</em>.
+    </p>
+
+    <div class="constellation">
+
+      <div class="q-star q-s1">
+        <span class="qlabel">Q1</span>
+        Who is the user when they arrive? (User persona not defined.)
+      </div>
+
+      <div class="q-star q-s2 heavy">
+        <span class="qlabel">Q2 · Heavy</span>
+        Why would a user prefer WebAnvil on a <em>second</em> visit? Brand
+        memory and repeat-visit reason are not defined.
+      </div>
+
+      <div class="q-star q-s3">
+        <span class="qlabel">Q3</span>
+        What does "done" look like for the user, not the platform?
+      </div>
+
+      <div class="q-star q-s4">
+        <span class="qlabel">Q4</span>
+        What does the user have to believe about WebAnvil before uploading their file?
+      </div>
+
+      <div class="q-star q-s5">
+        <span class="qlabel">Q5</span>
+        What is the second thing the user does? (Real measure of stickiness.)
+      </div>
+
+      <div class="q-star q-s6 heavy">
+        <span class="qlabel">Q6 · Heavy</span>
+        Why does WebAnvil exist when iLovePDF / FreeLabTools already have
+        these tools? The hardest, most honest question.
+      </div>
+
+      <div class="q-star q-s7">
+        <span class="qlabel">Q7</span>
+        What will the doc NOT mention that would be obvious in a year?
+      </div>
+
+      <div class="q-star q-s8">
+        <span class="qlabel">Q8</span>
+        What user need is WebAnvil's LEAST attentive to? What is absent from the doc?
+      </div>
+
+      <div class="q-star q-s9">
+        <span class="qlabel">Q9</span>
+        What is the doc's MOST undefended claim?
+      </div>
+
+      <div class="q-star q-s10">
+        <span class="qlabel">Q10</span>
+        Who would HATE WebAnvil, and why?
+      </div>
+
+      <div class="q-star q-s11">
+        <span class="qlabel">Q11</span>
+        What is the first thing the user sees, and what does it make them feel?
+      </div>
+
+      <div class="q-star q-s12">
+        <span class="qlabel">Q12</span>
+        If only ONE tool could be shipped, which one, and why?
+      </div>
+
+    </div>
+
+    <p class="legend">
+      <span class="dot"></span> ★ heavy questions — hiding the real problem
+    </p>
+
+    <div class="drill-idea" style="margin-top:28px;max-width:none">
+      <span class="src">User · the heavy questions</span>
+      <p>The user picks Q2 + Q6 as the load-bearing pair. Q2: why a second visit.
+      Q6: why exist at all when competitors already have these tools.</p>
+    </div>
+    <div class="drill-idea" style="max-width:none">
+      <span class="src">Coach · the operational answer</span>
+      <p>The un-copyable thing isn't "love" — it's the operationalization of
+      love as craft practices: kind error messages, graceful edge cases,
+      teaching empty states, refusing bad jobs, honest changelogs, visible
+      trust signals, public postmortems.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ====================== T4 — SIX THINKING HATS ====================== -->
+<section id="t4">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="sec-num">Technique 04</span>
+      <h2>Six Thinking Hats — Blue Mined</h2>
+      <span class="rule"></span>
+      <span class="count">Process decides</span>
+    </div>
+    <p class="section-blurb">
+      The user picked Blue from the six. Blue decides what we actually do —
+      not what we feel, what we fear, or what we hope. The other five hats
+      hang around it as witnesses.
+    </p>
+
+    <div class="hats-frame">
+
+      <div class="hat-cell hat-blue">
+        <span class="hat-label">Blue · Process · The Hero</span>
+        <h3>What we actually do.</h3>
+        <div class="who">Process control · where decisions are made.</div>
+
+        <div class="decision-block">
+          <span class="dlabel">Decision · The 1</span>
+          <p><strong>JSON Surgeon</strong> is the first tool to build.
+          Rationale: developer-frequency. Implicit signal: WebAnvil's market
+          is developers, not casual users. Doc MVP reframed: 1 tool at a time,
+          5 tools only if the first validates.</p>
+        </div>
+
+        <div class="decision-block">
+          <span class="dlabel">Decision · Definition of Done (7 items, all falsifiable)</span>
+          <p style="margin:0">
+            (1) edge-case test suite green incl. BOM/NaN/BigInt/deep/50MB,
+            (2) privacy audit clean — no network calls, analytics, fonts, CDN,
+            transitive-dep leaks,
+            (3) three outside users use it on real work files without surprise,
+            (4) honest changelog written <em>before</em> bug,
+            (5) solo half-day "try to break it" finds no crash,
+            (6) empty state teaches,
+            (7) every error msg has explanation + next-step.
+          </p>
+          <p style="margin:10px 0 0;color:var(--ember-2);font-style:italic;font-size:13px">
+            Applies to EVERY tool, not just "the 1."
+          </p>
+        </div>
+      </div>
+
+      <div class="hat-cell hat-red">
+        <span class="hat-label">Red · Emotions</span>
+        <div class="hat-name">Gut · Intuition</div>
+        <p>Quality-over-speed landed here first. The fear of being "another
+        100-tool site" was visceral. The user wanted to <em>not</em> ship
+        fast — wanted to ship excellent.</p>
+      </div>
+
+      <div class="hat-cell hat-black">
+        <span class="hat-label">Black · Caution</span>
+        <div class="hat-name">Risk · Judgment</div>
+        <p>Solo-dev maintenance is fiction. Cadence promises are fantasies.
+        Privacy claim is one forgotten dependency away from a brand-destroying
+        lie. The privacy risk lives in the surrounding 30%, not the core feature.</p>
+      </div>
+
+      <div class="hat-cell hat-yellow">
+        <span class="hat-label">Yellow · Optimism</span>
+        <div class="hat-name">Hope · Value</div>
+        <p>Real market: not "free tools fans" but people <em>forbidden from uploading</em> —
+        gov, healthcare, legal, journalists, security. The whole positioning
+        reframes around who is currently <em>blocked</em> by the existing options.</p>
+      </div>
+
+      <div class="hat-cell hat-green">
+        <span class="hat-label">Green · Creativity</span>
+        <div class="hat-name">Alternatives · Possibilities</div>
+        <p>"Every tool publishes a 'features this tool will never have' list.
+        Disarm by absence." The creative move: the things you don't do are
+        the brand.</p>
+      </div>
+
+      <div class="hat-cell hat-white">
+        <span class="hat-label">White · Information</span>
+        <div class="hat-name">Facts · Gaps</div>
+        <p>The doc is silent on first-10-second experience. No user persona
+        defined. No privacy-baseline rules beyond "no API calls in core." No
+        discoverability / SEO plan. No Definition of Done.</p>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ====================== T5 — JOB TO BE DONE ====================== -->
+<section id="t5">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="sec-num">Technique 05</span>
+      <h2>Job to Be Done</h2>
+      <span class="rule"></span>
+      <span class="count">User hires the tool</span>
+    </div>
+    <p class="section-blurb">
+      A user "hires" JSON Surgeon for a specific job. The first-visit job
+      is the priority. The right success metric is not parse success or
+      feature count — it's time-to-competence: the moment the user says
+      "I have my answer and trust the answer."
+    </p>
+
+    <div class="hire-scene">
+      <div class="scene-grid">
+
+        <div class="scene-side">
+          <span class="side-label">The User's job</span>
+          <p>"I have an API response I don't trust. Make me confident it's
+          what I think it is, and let me see what to do with it."</p>
+          <p style="font-size:13px;color:var(--ink-3)">First-visit job, chosen
+          by the user as priority for JSON Surgeon.</p>
+          <div class="metric">
+            SUCCESS METRIC<br>
+            Time-to-competence<br>
+            <span style="color:var(--ink-3)">page load → "I have my answer and trust the answer"</span>
+          </div>
+        </div>
+
+        <div class="scene-arrow">
+          <span class="big">→</span>
+          HIRES
+        </div>
+
+        <div class="scene-side">
+          <span class="side-label">JSON Surgeon · the hire</span>
+          <p>Surface the one worry: <em>what's wrong with this response, and
+          what does the developer need next.</em></p>
+          <p>Three-pane framing: <em>input · diagnosis · next step.</em>
+          User called this "alright — fits without dominating." Not a pushback,
+          not a strong endorsement. Keep, but don't center on it.</p>
+          <div class="metric">
+            ANTI-METRICS<br>
+            feature count, parse success rate
+          </div>
+        </div>
+
+      </div>
+
+      <div class="job-line">
+        <b>JOB STATEMENT</b><br>
+        When I have a messy API response, I want to <em>see and trust the
+        diagnosis</em>, so I can <em>decide what to do next</em> without
+        shipping a tool, paying for a service, or waiting on someone else.
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ====================== T6 — SKEPTIC'S VISIT ====================== -->
+<section id="t6">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="sec-num">Technique 06 · Invented</span>
+      <h2>The Skeptic's Visit</h2>
+      <span class="rule"></span>
+      <span class="count">Three critics · in their own voice</span>
+    </div>
+    <p class="section-blurb">
+      Invented for this session. Before any decision is made, the strongest
+      real critic gets to speak in their own voice. Three voices. The user
+      picked Skeptic 3 (the competitor) as the one that landed — the most
+      scary because it is the most honest.
+    </p>
+
+    <div class="skeptic-row">
+
+      <div class="skeptic">
+        <span class="who">Skeptic 1</span>
+        <div class="name">Privacy researcher</div>
+        <div class="voice">
+          "Your privacy claim is unfalsifiable in your favor, falsifiable
+          against you. You're one forgotten transitive dependency away from
+          a brand-destroying lie."
+        </div>
+        <div class="response">
+          <b>What we owe them</b>
+          Privacy baseline: no analytics, no fonts, no CDN, transitive deps
+          audited on every release, audit reproducible by a stranger.
+        </div>
+      </div>
+
+      <div class="skeptic">
+        <span class="who">Skeptic 2</span>
+        <div class="name">Solo developer</div>
+        <div class="voice">
+          "Craft-over-speed plus solo developer equals zero shipped tools
+          by year two. Maintenance budget is fiction; cadence promises are
+          fantasies."
+        </div>
+        <div class="response">
+          <b>What we owe them</b>
+          Public repo from day 1. Architecture that doesn't require the
+          original author. A 1-paragraph "why this exists" someone new
+          can read and own.
+        </div>
+      </div>
+
+      <div class="skeptic picked">
+        <span class="who">Skeptic 3 · picked by user</span>
+        <div class="name">The competitor</div>
+        <div class="voice">
+          "You're describing me with extra steps. Local-first doesn't
+          matter when I'm already fast and free. Your craft is invisible
+          in tab-comparison; your absent-features framing is marketing."
+        </div>
+        <div class="response">
+          <b>What we owe them</b>
+          The user's accepted diagnosis: <em>deep vs shallow</em> is the
+          right axis. Of the 5 MVP tools, only CSV Rescue + API Response
+          Diff are clearly deep. JSON Surgeon is mixed. Screenshot→Color
+          and File Metadata Cleaner are shallow. "The 1" may need re-evaluation.
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ====================== T7 — EMPTY WORKSHOP ====================== -->
+<section id="t7">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="sec-num">Technique 07 · Invented</span>
+      <h2>The Empty Workshop</h2>
+      <span class="rule"></span>
+      <span class="count">Past tense · future-proofing</span>
+    </div>
+    <p class="section-blurb">
+      Invented for this session. Imagine the workshop after the project
+      ends. The user reacted: <em>"I should make it future-proof."</em>
+      Vague but important. Had to be operationalized before it dissolved
+      into a feeling. The empty workshop is mostly quiet, except for the
+      things we left for the next person to find.
+    </p>
+
+    <div class="empty-room">
+      <p class="dust">
+        <span>The lights are off.</span> The forge is cool.<br>
+        The README is short, and the architecture is documented.<br>
+        The repo is public. The commit history is honest.<br>
+        A contributor guide exists, written for a stranger.<br>
+        A new maintainer can read a one-paragraph <em>why</em> and own it.<br>
+        Nothing here requires the original author.<br>
+        <span>WebAnvil outlives you.</span>
+      </p>
+
+      <div class="future-proof">
+        <span class="fp-label">Future-proofing, operationalized</span>
+        <p style="margin:0 0 10px;color:var(--ink-2);font-style:italic">
+          The user's reaction — "I should make it future-proof" — distilled
+          into practices that survive the project:
+        </p>
+        <ul>
+          <li>Public repo from day 1. Not when it's ready.</li>
+          <li>Contributor guide exists before the first outside contribution is needed.</li>
+          <li>Architecture documented such that the original author is replaceable.</li>
+          <li>Comments explain WHY, not WHAT.</li>
+          <li>A 1-paragraph <em>why this exists</em> that someone new can read and own.</li>
+          <li>Honest changelogs. Public postmortems. No history erased.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ====================== T8 — PRE-MORTEM ====================== -->
+<section id="t8">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="sec-num">Technique 08</span>
+      <h2>Pre-mortem</h2>
+      <span class="rule"></span>
+      <span class="count">12 failure moments · a year from now</span>
+    </div>
+    <p class="section-blurb">
+      It's 12 months from now. WebAnvil failed. We walk backwards from the
+      obituary. Each moment names the failure and the prevention. The
+      privacy-death moments (PM-3, PM-10) and the discoverability moment
+      (PM-6) deserve the most weight — they're the brand-killers.
+    </p>
+
+    <div class="mortem-timeline">
+
+      <div class="pm-moment">
+        <span class="pm-id">PM-1</span>
+        <h4>The depth never lands.</h4>
+        <p class="what">First-time user opens JSON Surgeon, sees a blank textarea
+        and a "Format" button. Never realizes the tool can do 11 things. Thinks
+        "another JSON formatter" and leaves.</p>
+        <p class="prev"><b>Prevention</b>Landing experience must show the depth on
+        first interaction, not in a docs page.</p>
+      </div>
+
+      <div class="pm-moment">
+        <span class="pm-id">PM-2</span>
+        <h4>The error message is the brand.</h4>
+        <p class="what">User pastes a JSON file with a trailing comma. Tool says
+        "Invalid JSON." No explanation of which line, what the rule is, how to fix.
+        User assumes the tool is buggy, switches to a competitor with kinder errors.</p>
+        <p class="prev"><b>Prevention</b>Every error has explanation + next-step (DoD item 7).</p>
+      </div>
+
+      <div class="pm-moment">
+        <span class="pm-id">PM-3</span>
+        <h4>The transitive dependency phones home.</h4>
+        <p class="what">6 months in, a transitive npm dependency ships a version
+        that phones home. WebAnvil is now uploading data it promised not to.
+        Privacy researcher tweets the network capture. Brand is over.</p>
+        <p class="prev"><b>Prevention</b>The cheap privacy baseline: no analytics,
+        no fonts, no CDN, no transitive deps with side-effects, dependency-audited
+        on every release.</p>
+      </div>
+
+      <div class="pm-moment">
+        <span class="pm-id">PM-4</span>
+        <h4>50MB JSON hangs the tab.</h4>
+        <p class="what">User has a 50MB JSON file. Tool hangs the tab for 40s.
+        User closes the tab, writes a Reddit post: "WebAnvil is unusable on real data."</p>
+        <p class="prev"><b>Prevention</b>Pre-flight estimation says "this is too big
+        for your browser" and suggests sampling, not processing.</p>
+      </div>
+
+      <div class="pm-moment">
+        <span class="pm-id">PM-5</span>
+        <h4>The solo maintainer disappears.</h4>
+        <p class="what">Project's only contributor gets a new job in month 8.
+        Repo is private, code is uncommented, architecture is in one head.
+        Project goes dark for 2 months, then archived.</p>
+        <p class="prev"><b>Prevention</b>Code is readable, comments explain WHY,
+        contributor guide exists, repo is public from day 1.</p>
+      </div>
+
+      <div class="pm-moment">
+        <span class="pm-id">PM-6</span>
+        <h4>The second visit never comes.</h4>
+        <p class="what">User has a great experience, returns 3 weeks later.
+        Searches "WebAnvil." Can't find the tool. Goes to JSON formatter on
+        the first result. Never comes back.</p>
+        <p class="prev"><b>Prevention</b>The brand is SEO-tested before launch.
+        Tool URLs are stable, named, and linkable.</p>
+      </div>
+
+      <div class="pm-moment">
+        <span class="pm-id">PM-7</span>
+        <h4>The 2019 MacBook Air can't load it.</h4>
+        <p class="what">User on a 2019 MacBook Air opens WebAnvil. JSON Surgeon
+        takes 12s to load (WebAssembly module). User has been on a competitor
+        site for 2s. Even with all the differentiation, perceived speed kills
+        the first impression.</p>
+        <p class="prev"><b>Prevention</b>Progressive enhancement — show the input
+        immediately, lazy-load WASM. The user's first byte is fast even if
+        the work isn't.</p>
+      </div>
+
+      <div class="pm-moment">
+        <span class="pm-id">PM-8</span>
+        <h4>The page describes features, not jobs.</h4>
+        <p class="what">Landing page describes what each tool does ("Format,
+        validate, transform JSON") instead of what the user is hiring it to do.
+        The user never makes the leap from "I have a problem" to "this tool is mine."</p>
+        <p class="prev"><b>Prevention</b>Every tool page leads with the job, not
+        the feature list.</p>
+      </div>
+
+      <div class="pm-moment">
+        <span class="pm-id">PM-9</span>
+        <h4>Tab-comparison loses.</h4>
+        <p class="what">MVP tools compete directly with Photopea, jsonformatter.org,
+        DiffChecker. A user comparing tabs sees WebAnvil's CSV Rescue next to
+        Papa Parse. Without a side-by-side proof point, the user picks the tool
+        they know.</p>
+        <p class="prev"><b>Prevention</b>Build a "Compare" page for the deep tools —
+        same dataset, same operation, our result vs. theirs. Visible proof, not claims.</p>
+      </div>
+
+      <div class="pm-moment">
+        <span class="pm-id">PM-10</span>
+        <h4>DevTools proves the lie.</h4>
+        <p class="what">User opens DevTools, sees a Sentry error reporter making
+        a network call. The privacy claim is a lie, in the DevTools, in 30 seconds.
+        User screenshots, posts to HN. The brand dies in 24 hours.</p>
+        <p class="prev"><b>Prevention</b>Privacy audit is reproducible by a stranger.
+        Open the source. Show your work.</p>
+      </div>
+
+      <div class="pm-moment">
+        <span class="pm-id">PM-11</span>
+        <h4>No way back.</h4>
+        <p class="what">User uses the tool. It works. The user is amazed. They
+        want to use it again. They have no way to save the result, no way to come
+        back to the tool, no way to share the URL with a state. Each visit is
+        fresh friction.</p>
+        <p class="prev"><b>Prevention</b>The "next, you might want to..." link
+        is the brand's handoff. Not state — invitation.</p>
+      </div>
+
+      <div class="pm-moment">
+        <span class="pm-id">PM-12</span>
+        <h4>The success kills it.</h4>
+        <p class="what">The project succeeds. 50 tools, real users, real traction.
+        The maintainer burns out. There is no successor. The site goes dark. The
+        repo is archived.</p>
+        <p class="prev"><b>Prevention</b>Design from day 1 for a successor —
+        public repo, contributor docs, architecture that doesn't require the
+        original author, and a 1-paragraph "why this exists" that someone new
+        can read and own.</p>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ====================== T9 — INVERSION ====================== -->
+<section id="t9">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="sec-num">Technique 09</span>
+      <h2>Inversion</h2>
+      <span class="rule"></span>
+      <span class="count">Anti-WebAnvil · 10 contrasts</span>
+    </div>
+    <p class="section-blurb">
+      Build the worst version of WebAnvil. Then look at it and ask: what
+      do we keep, what do we throw away? Each row names the failure-mode
+      (the <em>anti</em>), and the salvaged principle (the <em>real</em>).
+    </p>
+
+    <div class="inv-row">
+      <div class="inv-cell anti">
+        <span class="cell-tag">Anti · INV-1</span>
+        <h4>Uploads every file to a server to "process it better."</h4>
+        <p>"We never store your data" — but you do, for 30 days, on a shared server.</p>
+      </div>
+      <div class="inv-arrow"><span class="big">→</span>SALVAGE</div>
+      <div class="inv-cell real">
+        <span class="cell-tag">Real · WebAnvil</span>
+        <h4>Privacy claim must be falsifiable by the user, not aspirational.</h4>
+        <p>The user must be able to prove it. Open DevTools. See zero network calls.</p>
+        <div class="salvage"><b>Salvage</b>Trust by demonstration, not assertion.</div>
+      </div>
+    </div>
+
+    <div class="inv-row">
+      <div class="inv-cell anti">
+        <span class="cell-tag">Anti · INV-2</span>
+        <h4>500 shallow single-purpose tools identical to competitors.</h4>
+        <p>Marketing: "500 free online tools."</p>
+      </div>
+      <div class="inv-arrow"><span class="big">→</span>SALVAGE</div>
+      <div class="inv-cell real">
+        <span class="cell-tag">Real · WebAnvil</span>
+        <h4>Depth over breadth.</h4>
+        <p>Do less, do it deeper — that's the version competitors can't replicate.</p>
+        <div class="salvage"><b>Salvage</b>Deep vs shallow is the right axis for MVP tools.</div>
+      </div>
+    </div>
+
+    <div class="inv-row">
+      <div class="inv-cell anti">
+        <span class="cell-tag">Anti · INV-3</span>
+        <h4>Signup for the deep operations.</h4>
+        <p>Free tier: 3 ops per day. Pro: $9.99/month.</p>
+      </div>
+      <div class="inv-arrow"><span class="big">→</span>SALVAGE</div>
+      <div class="inv-cell real">
+        <span class="cell-tag">Real · WebAnvil</span>
+        <h4>No-signup is more valuable than any monetization from gating.</h4>
+        <p>Trust is built in the first 30 seconds by NOT asking for anything.</p>
+        <div class="salvage"><b>Salvage</b>Friction-free first interaction is itself a differentiator.</div>
+      </div>
+    </div>
+
+    <div class="inv-row">
+      <div class="inv-cell anti">
+        <span class="cell-tag">Anti · INV-4</span>
+        <h4>Errors are technical and unhelpful.</h4>
+        <p>"Unexpected token at position 4235." User feels stupid, leaves.</p>
+      </div>
+      <div class="inv-arrow"><span class="big">→</span>SALVAGE</div>
+      <div class="inv-cell real">
+        <span class="cell-tag">Real · WebAnvil</span>
+        <h4>Every error is a teaching moment.</h4>
+        <p>Errors build or break trust. DoD item 7: explanation + next-step.</p>
+        <div class="salvage"><b>Salvage</b>Kind errors are a feature, not a nicety.</div>
+      </div>
+    </div>
+
+    <div class="inv-row">
+      <div class="inv-cell anti">
+        <span class="cell-tag">Anti · INV-5</span>
+        <h4>Optimizes for landing-page conversion.</h4>
+        <p>Big "Try Pro Free" button. Email pop-up before the tool runs.</p>
+      </div>
+      <div class="inv-arrow"><span class="big">→</span>SALVAGE</div>
+      <div class="inv-cell real">
+        <span class="cell-tag">Real · WebAnvil</span>
+        <h4>Friction-free first interaction.</h4>
+        <p>Trust is built in the first 30 seconds by NOT asking for anything.</p>
+        <div class="salvage"><b>Salvage</b>The absence of friction is itself the brand.</div>
+      </div>
+    </div>
+
+    <div class="inv-row">
+      <div class="inv-cell anti">
+        <span class="cell-tag">Anti · INV-6</span>
+        <h4>Analytics everywhere.</h4>
+        <p>Hotjar replays, GA, Mixpanel. "Privacy" is in the footer.</p>
+      </div>
+      <div class="inv-arrow"><span class="big">→</span>SALVAGE</div>
+      <div class="inv-cell real">
+        <span class="cell-tag">Real · WebAnvil</span>
+        <h4>Privacy is a visible feature at the moment of trust.</h4>
+        <p>Not a privacy-policy page — a visible signal where the user hesitates.</p>
+        <div class="salvage"><b>Salvage</b>Show your work. The audit is reproducible.</div>
+      </div>
+    </div>
+
+    <div class="inv-row">
+      <div class="inv-cell anti">
+        <span class="cell-tag">Anti · INV-7</span>
+        <h4>SEO-stuffs every page.</h4>
+        <p>"free JSON formatter online no signup no ads no login" × 30.</p>
+      </div>
+      <div class="inv-arrow"><span class="big">→</span>SALVAGE</div>
+      <div class="inv-cell real">
+        <span class="cell-tag">Real · WebAnvil</span>
+        <h4>SEO without compromise.</h4>
+        <p>The page is honest because the product is honest.</p>
+        <div class="salvage"><b>Salvage</b>Search ranking follows substance, not stuffing.</div>
+      </div>
+    </div>
+
+    <div class="inv-row">
+      <div class="inv-cell anti">
+        <span class="cell-tag">Anti · INV-8</span>
+        <h4>Tools are wrappers around libraries.</h4>
+        <p>JSON Surgeon is json-formatter-js in a div. CSV Rescue is Papa Parse with a button.</p>
+      </div>
+      <div class="inv-arrow"><span class="big">→</span>SALVAGE</div>
+      <div class="inv-cell real">
+        <span class="cell-tag">Real · WebAnvil</span>
+        <h4>Depth means adding behavior the library does not have.</h4>
+        <p>The library is the floor, not the ceiling.</p>
+        <div class="salvage"><b>Salvage</b>If it's a wrapper, it's not WebAnvil.</div>
+      </div>
+    </div>
+
+    <div class="inv-row">
+      <div class="inv-cell anti">
+        <span class="cell-tag">Anti · INV-9</span>
+        <h4>Built on a 100MB JS framework.</h4>
+        <p>8s to first interaction, animations everywhere.</p>
+      </div>
+      <div class="inv-arrow"><span class="big">→</span>SALVAGE</div>
+      <div class="inv-cell real">
+        <span class="cell-tag">Real · WebAnvil</span>
+        <h4>The 10s budget is sacred.</h4>
+        <p>Performance is a feature, not a metric.</p>
+        <div class="salvage"><b>Salvage</b>Progressive enhancement. Show input first. Lazy-load WASM.</div>
+      </div>
+    </div>
+
+    <div class="inv-row">
+      <div class="inv-cell anti">
+        <span class="cell-tag">Anti · INV-10</span>
+        <h4>Makes claims unverifiable.</h4>
+        <p>"Local-first" is marketing, not proof. "Privacy-first" is a slogan.</p>
+      </div>
+      <div class="inv-arrow"><span class="big">→</span>SALVAGE</div>
+      <div class="inv-cell real">
+        <span class="cell-tag">Real · WebAnvil</span>
+        <h4>Every claim has a demonstrable proof.</h4>
+        <p>Open DevTools, see zero network calls. Here, we recorded ourselves doing it.</p>
+        <div class="salvage"><b>Salvage</b>Trust by demonstration, not assertion.</div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ====================== SYNTHESIS — CLIMAX ====================== -->
+<section id="synth" class="synth">
+  <div class="wrap">
+
+    <div class="sec-head">
+      <span class="sec-num">The Load-bearing Part</span>
+      <h2>Synthesis · Decisions &amp; Doc Edits</h2>
+      <span class="rule"></span>
+      <span class="count">9 decisions · 9 edits</span>
+    </div>
+
+    <p class="synth-intro">
+      The doc's idea is <em>sound but underspecified</em> on its own
+      differentiators. Below: every decision the session produced, every
+      doc revision the session requires before code starts, and the
+      seven craft practices that operationalize the project's un-copyable
+      differentiator.
+    </p>
+
+    <h3 style="font-size:18px;color:var(--ember-2);letter-spacing:.18em;text-transform:uppercase;font-family:'Courier New',monospace;margin-bottom:20px">9 Decisions</h3>
+
+    <div class="decision-grid">
+
+      <div class="decision">
+        <span class="d-num">D-01 · Adopted</span>
+        <h3>Stateless is the goal, not a stepping stone.</h3>
+        <p>Platform = collection of stateless screwdrivers. Section 13
+        "chainable workflows" contradicted and should be removed or
+        relegated to "future possibility, not goal."</p>
+        <span class="tag adopted">Adopted</span>
+      </div>
+
+      <div class="decision">
+        <span class="d-num">D-02 · Adopted</span>
+        <h3>5s-to-meaningful-result with pre-flight time-estimation.</h3>
+        <p>Estimate from data size + complexity sample. Show a band
+        ("~10s ±30%"), not a fixed number. Refuse jobs whose upper bound
+        exceeds threshold.</p>
+        <span class="tag adopted">Adopted</span>
+      </div>
+
+      <div class="decision">
+        <span class="d-num">D-03 · Risk-accepted</span>
+        <h3>Behavioral correctness #1; privacy rigor deferred to post-MVP.</h3>
+        <p>Risk-accepted against coach recommendation. "No API calls in
+        core" treated as structurally sufficient. Caveats logged:
+        analytics, fonts, CDN logs, transitive deps are NOT covered. If a
+        privacy leak happens, the brand is unrecoverable.</p>
+        <span class="tag risk">Risk-Accepted</span>
+      </div>
+
+      <div class="decision">
+        <span class="d-num">D-04 · Adopted day-1</span>
+        <h3>Mechanism A: file-in-hand handoff via file metadata.</h3>
+        <p>Day 1, all tools. The cross-link that defeats F9 (tools fail in
+        isolation). Stateless, fits the model.</p>
+        <span class="tag adopted">Adopted</span>
+      </div>
+
+      <div class="decision">
+        <span class="d-num">D-05 · Adopted day-1</span>
+        <h3>Mechanism B: result-page "next, you might want to..." links.</h3>
+        <p>Day 1, all tools. Trivial cost. Defeats the "5 Google searches"
+        failure mode without adding infrastructure.</p>
+        <span class="tag adopted">Adopted</span>
+      </div>
+
+      <div class="decision">
+        <span class="d-num">D-06 · Rejected</span>
+        <h3>Mechanism C: same-tab sessionStorage handoff.</h3>
+        <p>Rejected. Breaks expected "open in new tab" UX and undermines
+        Mechanism D's coherence if D ships later.</p>
+        <span class="tag rejected">Rejected</span>
+      </div>
+
+      <div class="decision">
+        <span class="d-num">D-07 · Deferred</span>
+        <h3>Mechanism D: PWA-as-persistent-environment.</h3>
+        <p>IndexedDB recent-files, "last 5 tools" sidebar. Deferred
+        post-MVP, after 5 stateless tools validated. Not day-1.</p>
+        <span class="tag deferred">Deferred</span>
+      </div>
+
+      <div class="decision">
+        <span class="d-num">D-08 · Adopted</span>
+        <h3>JSON Surgeon as "the 1" — with depth re-evaluation open.</h3>
+        <p>First tool to build. Rationale: developer-frequency. Implicit
+        signal: WebAnvil's market is developers, not casual users. Mixed
+        depth — re-evaluation on the deep-vs-shallow axis is required.</p>
+        <span class="tag adopted">Adopted</span>
+      </div>
+
+      <div class="decision">
+        <span class="d-num">D-09 · Adopted</span>
+        <h3>7-item Definition of Done, applied to every tool.</h3>
+        <p>Edge-case tests, privacy audit, 3 outside users, honest
+        changelog, solo try-to-break-it, teaching empty state, kind
+        error messages. Falsifiable, not aspirational.</p>
+        <span class="tag adopted">Adopted</span>
+      </div>
+
+    </div>
+
+    <h3 style="font-size:18px;color:var(--ember-2);letter-spacing:.18em;text-transform:uppercase;font-family:'Courier New',monospace;margin-bottom:20px">9 Doc Revisions Needed Before Code</h3>
+
+    <div class="doc-revisions">
+      <ol class="rev-list">
+        <li>Edit pass to remove Section 13 contradiction with stateless principle.</li>
+        <li>User persona section (currently absent) — who is forbidden from uploading.</li>
+        <li>Explicit privacy-baseline rules: no analytics, no fonts, no CDN, transitive-dep audit on every release.</li>
+        <li>New "Craft Practices" section — the seven practices that operationalize the un-copyable differentiator.</li>
+        <li>Re-evaluation of the 5 MVP tools on the deep-vs-shallow axis.</li>
+        <li>Definition of Done section — the 7-item falsifiable list, applied to every tool.</li>
+        <li>Naming check — domain and trademark availability independently verified for WebAnvil.</li>
+        <li>Discovery / SEO plan — brand tested before launch, URLs stable and linkable.</li>
+        <li>Public repo from day 1 — contributor guide and architecture documented for successor.</li>
+      </ol>
+    </div>
+
+    <h3 style="font-size:18px;color:var(--ember-2);letter-spacing:.18em;text-transform:uppercase;font-family:'Courier New',monospace;margin-bottom:20px">Craft · The Un-copyable Differentiator</h3>
+
+    <div class="craft-box">
+      <h3>"Craft" — operationalized, not just claimed.</h3>
+      <p class="craft-sub">The seven practices that turn "we care" into something competitors can't copy.</p>
+      <ol class="craft-list">
+        <li>Kind error messages — explanation + next-step on every error.</li>
+        <li>Graceful edge-case handling — BOM, NaN, BigInt, deep structures, 50MB files.</li>
+        <li>Teaching empty states — first-time users learn the tool, not just see it.</li>
+        <li>Refuse jobs that can't be done well — pre-flight estimation, honest "this is too big."</li>
+        <li>Honest changelogs written before the bug, not after.</li>
+        <li>Visible-at-moment-of-trust privacy signal — not a privacy-policy page.</li>
+        <li>Public postmortems — failures visible, history not erased.</li>
+      </ol>
+    </div>
+
+    <div class="loadbearing">
+      <span class="lb-label">The Load-bearing Critique</span>
+      <p>
+        Skeptic 3 said: <b>"You're describing me with extra steps."</b>
+        The project's response is not a better feature list. It's
+        <b>craft-as-practice</b> — the seven items above, audited, falsifiable,
+        visible to the user at the moment of trust. That's the version
+        competitors can't replicate.
+      </p>
+    </div>
+
+  </div>
+</section>
+
+<!-- ====================== DEFERRED / OPEN QUESTIONS ====================== -->
+<section id="deferred">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="sec-num">What We Deferred</span>
+      <h2>Open Questions · Not-Yet-Decided</h2>
+      <span class="rule"></span>
+      <span class="count">For the next session</span>
+    </div>
+    <p class="section-blurb">
+      Real questions we did not answer today. These are the conversations
+      the next session owes the project, in roughly the order they block
+      forward motion.
+    </p>
+
+    <div class="deferred-grid">
+
+      <div class="deferred">
+        <span class="d-tag">Open · blocks MVP framing</span>
+        <p>Is the 5s-to-meaningful-result rule a brand-killer (kills the most
+        ambitious tool ideas) or a feature (forces clarity)?</p>
+      </div>
+
+      <div class="deferred">
+        <span class="d-tag">Open · framing question</span>
+        <p>Is "privacy is nice-to-have" a habit from prior products, or a
+        deliberate read of this product's actual risk? — surfaced but not
+        resolved, given the user accepted the risk.</p>
+      </div>
+
+      <div class="deferred">
+        <span class="d-tag">Open · blocks "the 1"</span>
+        <p>Re-evaluate the 5 MVP tools on deep-vs-shallow. Of the 5, only CSV
+        Rescue + API Response Diff are clearly deep. JSON Surgeon is mixed.
+        Screenshot→Color and File Metadata Cleaner are shallow. The 1 may
+        need to change.</p>
+      </div>
+
+      <div class="deferred">
+        <span class="d-tag">Open · naming</span>
+        <p>Domain and trademark availability for WebAnvil must be independently
+        verified before committing to the name.</p>
+      </div>
+
+      <div class="deferred">
+        <span class="d-tag">Open · positioning</span>
+        <p>The real market may be "people forbidden from uploading" — gov,
+        healthcare, legal, journalists, security — not "free tools fans."
+        Positioning needs to be tested against that audience before launch.</p>
+      </div>
+
+      <div class="deferred">
+        <span class="d-tag">Open · success metric</span>
+        <p>Operational definition of "time-to-competence" — the moment the
+        user says "I have my answer and trust the answer." This needs a
+        measurement plan before "the 1" ships.</p>
+      </div>
+
+      <div class="deferred">
+        <span class="d-tag">Open · discovery</span>
+        <p>SEO plan for "JSON Surgeon" / "CSV Rescue" / "WebAnvil" — what
+        ranks now, what we'd need to rank, what to do about it. PM-6 is
+        the second-visit killer and discovery is the lever.</p>
+      </div>
+
+      <div class="deferred">
+        <span class="d-tag">Open · constraint</span>
+        <p>Local-first kills cloud sync, history, share-by-link, collab.
+        Treated as design-aroundable today, but the doc underweights the
+        competitive loss. Revisit after MVP.</p>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ====================== FOOTER ====================== -->
+<footer>
+  <div class="wrap">
+    <span class="ft-mark">WEBANVIL · BRAINSTORM FORGE</span>
+    <div>Pre-development critique · 2026-08-11 · Autonomous mode</div>
+    <div class="ft-path">
+      Source of truth:<br>
+      C:\ZDrive Folders\Projects\WebUtilityLab\_bmad-output\brainstorming\brainstorm-webanvil-predevelopment-2026-08-11\.memlog.md
+    </div>
+    <div class="ft-note">
+      This page was generated from the memlog. Every idea on this page comes
+      from the session. No external requests after page load — the artifact
+      walks the talk of the product it documents.
+    </div>
+  </div>
+</footer>
+
+<script>
+/* tiny enhancement: smooth-scroll for TOC anchors + reveal-on-scroll for decisions */
+document.querySelectorAll('.toc-list a, a[href^="#"]').forEach(function(a){
+  a.addEventListener('click',function(e){
+    var id=this.getAttribute('href').slice(1);
+    var t=document.getElementById(id);
+    if(t){e.preventDefault();t.scrollIntoView({behavior:'smooth',block:'start'});}
+  });
+});
+/* soft reveal for synthesis decisions on first paint */
+window.addEventListener('DOMContentLoaded',function(){
+  var els=document.querySelectorAll('.decision,.craft-list li,.pm-moment,.inv-row');
+  els.forEach(function(el){
+    el.style.opacity='0';
+    el.style.transform='translateY(8px)';
+    el.style.transition='opacity .55s ease, transform .55s ease';
+  });
+  var io=new IntersectionObserver(function(entries){
+    entries.forEach(function(en){
+      if(en.isIntersecting){
+        en.target.style.opacity='1';
+        en.target.style.transform='translateY(0)';
+        io.unobserve(en.target);
+      }
+    });
+  },{threshold:.12});
+  els.forEach(function(el){io.observe(el);});
+});
+</script>
+
+</body>
+</html>

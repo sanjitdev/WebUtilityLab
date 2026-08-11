@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Results — CSV Rescue — WebUtilityLab</title>
+<style>
+:root{
+  --paper:#fafaf7; --ink:#1a1a1a; --graphite:#5a5a5a;
+  --rule:#e6e3dc; --soft:#f1efe9;
+  --accent:#3a5a8a; --accent-soft:#e6ecf5;
+  --err:#a83232; --warn:#8a6a1a; --pii:#6a3a8a; --ok:#2a6a3a;
+  --err-soft:#f4e2e2; --warn-soft:#f4ecd9; --pii-soft:#ece1f4; --ok-soft:#dcecdf;
+  --shadow:0 1px 0 var(--rule);
+}
+.dark{
+  --paper:#0e1116; --ink:#e8e6e1; --graphite:#9a9892;
+  --rule:#232830; --soft:#161a21;
+  --accent:#7a9ad0; --accent-soft:#1a2230;
+  --err:#d97070; --warn:#d4a85a; --pii:#b48ad0; --ok:#7ac090;
+  --err-soft:#2a1a1a; --warn-soft:#2a231a; --pii-soft:#221a2a; --ok-soft:#1a2a1f;
+  --shadow:0 1px 0 var(--rule);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--paper);color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  font-size:1rem;line-height:1.6;-webkit-font-smoothing:antialiased}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace}
+a{color:var(--accent);text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:2px}
+a:hover{text-decoration-thickness:2px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:2px}
+.skip{position:absolute;left:-9999px;top:0;background:var(--accent);color:#fff;padding:.5rem .75rem;z-index:10}
+.skip:focus{left:.5rem;top:.5rem}
+header.site{padding:1rem 1.5rem;border-bottom:1px solid var(--rule);display:flex;align-items:center;gap:1rem;justify-content:space-between;background:var(--paper)}
+.brand{font-weight:600;letter-spacing:-.01em}
+.brand small{color:var(--graphite);font-weight:400;margin-left:.5rem}
+header.site nav{display:flex;align-items:center;gap:1rem;font-size:.875rem;color:var(--graphite)}
+.toggle{background:transparent;border:1px solid var(--rule);color:var(--ink);padding:.25rem .6rem;border-radius:3px;cursor:pointer;font:inherit}
+.toggle:hover{border-color:var(--accent)}
+main{max-width:880px;margin:0 auto;padding:1.5rem}
+section{margin:2.25rem 0}
+h1{font-size:1.875rem;font-weight:600;letter-spacing:-.015em;margin:0 0 1rem}
+h2{font-size:1.5rem;font-weight:600;letter-spacing:-.01em;margin:0 0 .75rem}
+.sub{color:var(--graphite);margin:0 0 1.25rem}
+.metastrip{font-size:.8125rem;color:var(--graphite);border-top:1px solid var(--rule);border-bottom:1px solid var(--rule);padding:.5rem 0;display:flex;flex-wrap:wrap;gap:1.25rem}
+.metastrip b{color:var(--ink);font-weight:500}
+.banner{background:var(--accent-soft);border-left:3px solid var(--accent);padding:.625rem .875rem;font-size:.875rem;margin-bottom:1.25rem;border-radius:2px}
+.problem{border:1px solid var(--rule);border-left:3px solid var(--graphite);border-radius:2px;margin-bottom:.875rem;background:var(--paper)}
+.problem.err{border-left-color:var(--err)}
+.problem.warn{border-left-color:var(--warn)}
+.problem.pii{border-left-color:var(--pii)}
+.problem header.prob{padding:.75rem 1rem;display:flex;align-items:baseline;gap:.5rem;flex-wrap:wrap}
+.problem header.prob .title{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-weight:600;font-size:.9375rem}
+.problem header.prob .sev{font-size:.75rem;color:var(--graphite);margin-left:auto}
+.problem .body{padding:0 1rem .875rem;color:var(--ink)}
+.problem .body p{margin:.25rem 0}
+.problem .body .expl{color:var(--graphite);font-size:.9375rem}
+.problem details{margin-top:.5rem}
+.problem summary{cursor:pointer;font-size:.8125rem;color:var(--accent);list-style:none}
+.problem summary::-webkit-details-marker{display:none}
+.problem summary::before{content:"▸ ";display:inline-block}
+.problem details[open] summary::before{content:"▾ "}
+.problem pre{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.75rem;background:var(--soft);padding:.625rem .75rem;margin:.5rem 0 0;border-radius:2px;overflow-x:auto;border:1px solid var(--rule)}
+.grouplabel{font-size:.75rem;letter-spacing:.06em;text-transform:uppercase;color:var(--graphite);margin:1rem 0 .5rem;font-weight:600}
+.grouplabel .dot{display:inline-block;width:.5rem;height:.5rem;border-radius:50%;margin-right:.4rem;vertical-align:middle}
+.grouplabel .dot.err{background:var(--err)}
+.grouplabel .dot.warn{background:var(--warn)}
+.grouplabel .dot.pii{background:var(--pii)}
+.grouplabel .dot.ok{background:var(--ok)}
+.grouplabel .dot.neutral{background:var(--graphite)}
+.next{font-size:.875rem;color:var(--graphite);margin-top:.5rem}
+.score-row{display:grid;grid-template-columns:8rem 1fr 3.5rem;gap:.75rem;align-items:center;padding:.5rem 0;border-bottom:1px solid var(--rule)}
+.score-row:last-child{border-bottom:none}
+.score-row .num{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-weight:600;font-size:1rem;text-align:right}
+.score-row .bar{height:.5rem;background:var(--soft);border-radius:2px;overflow:hidden}
+.score-row .bar i{display:block;height:100%}
+.bar.red i{background:var(--err)}
+.bar.amber i{background:var(--warn)}
+.bar.green i{background:var(--ok)}
+table.schema{width:100%;border-collapse:collapse;font-size:.875rem;margin-top:.5rem}
+table.schema caption{caption-side:top;text-align:left;color:var(--graphite);font-size:.8125rem;margin-bottom:.5rem}
+table.schema th,table.schema td{padding:.5rem .625rem;border-bottom:1px solid var(--rule);text-align:left;vertical-align:top}
+table.schema th{font-weight:600;color:var(--graphite);font-size:.75rem;letter-spacing:.04em;text-transform:uppercase}
+table.schema td.mono,table.schema th.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+table.schema td.val{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.75rem;color:var(--graphite)}
+.flagdot{display:inline-block;width:.4rem;height:.4rem;border-radius:50%;background:var(--warn);margin-right:.35rem;vertical-align:middle}
+.flagdot.pii{background:var(--pii)}
+.cta{border:1px solid var(--rule);border-radius:3px;padding:1.25rem;background:var(--paper)}
+.cta p{margin:0 0 .875rem}
+.btn{display:inline-block;background:var(--accent);color:#fff;border:0;padding:.75rem 1.125rem;border-radius:3px;font:inherit;font-weight:600;cursor:pointer;text-decoration:none}
+.btn:hover{filter:brightness(1.08)}
+.btn:focus-visible{outline-offset:3px}
+.cta .hint{font-size:.8125rem;color:var(--graphite);margin-top:.625rem}
+.links-mech{margin-top:1rem;padding-top:1rem;border-top:1px solid var(--rule);font-size:.875rem;color:var(--graphite)}
+.links-mech a{color:var(--graphite);text-decoration:underline;margin-right:1rem}
+.links-mech a:hover{color:var(--accent)}
+.links-mech .coming{font-size:.75rem;color:var(--graphite);opacity:.7}
+footer.site{padding:1.5rem;border-top:1px solid var(--rule);color:var(--graphite);font-size:.8125rem;display:flex;justify-content:space-between;max-width:880px;margin:0 auto}
+@media(max-width:560px){.score-row{grid-template-columns:7rem 1fr 3rem}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<a class="skip" href="#problems">Skip to problems</a>
+<header class="site" role="banner">
+  <div class="brand">WebUtilityLab <small>/ CSV Rescue</small></div>
+  <nav aria-label="Utility">
+    <a href="#privacy" style="color:var(--graphite)">Privacy</a>
+    <button class="toggle" id="theme" aria-pressed="false" aria-label="Toggle dark mode">Dark</button>
+  </nav>
+</header>
+<main>
+<div class="metastrip" aria-label="File metadata">
+  <span><b class="mono">vendor_export_2026-07.csv</b></span>
+  <span><b>12,000</b> rows</span>
+  <span><b>2.4 MB</b></span>
+  <span>UTF-8 <b class="mono">+BOM</b></span>
+  <span>Analyzed <b>2026-08-11 09:14</b></span>
+</div>
+<div class="banner" role="status" aria-live="polite">Results ready — 16 problems found, 1 high-severity.</div>
+
+<section id="problems" aria-labelledby="ph">
+  <h2 id="ph">16 problems found</h2>
+  <p class="sub">Checked 12,000 rows across 9 columns — schema, types, ranges, duplicates, and known PII patterns.</p>
+
+  <div class="grouplabel"><span class="dot err"></span>Duplicates</div>
+  <div class="problem err">
+    <header class="prob"><span class="title">12 duplicate rows based on <span class="mono">customer_id</span></span><span class="sev">1 problem · 12 rows</span></header>
+    <div class="body">
+      <p>Rows <span class="mono">14, 27, 41</span> share all fields with row <span class="mono">1</span>.</p>
+      <p class="expl">Duplicate detection uses a configurable key; default is all columns. We checked all columns and found 12 exact-match duplicates in this file.</p>
+      <details><summary>Show first 3 affected rows</summary>
+<pre>row  1  customer_id=88412  name="Alice Chen"  plan=starter
+row 14  customer_id=88412  name="Alice Chen"  plan=starter
+row 27  customer_id=88412  name="Alice Chen"  plan=starter
+row 41  customer_id=88412  name="Alice Chen"  plan=starter</pre>
+      <p class="next">Open row 14 in a text editor to confirm; or use <em>Clean and export → Deduplicate</em>.</p></details>
+    </div>
+  </div>
+
+  <div class="grouplabel"><span class="dot err"></span>Invalid emails</div>
+  <div class="problem err">
+    <header class="prob"><span class="title">47 rows have invalid emails in <span class="mono">contact_email</span></span><span class="sev">47 rows</span></header>
+    <div class="body">
+      <p>Affected rows: <span class="mono">23, 89, 142</span> …</p>
+      <p class="expl">Validated against RFC 5322 shape; common typos also flagged.</p>
+      <details><summary>Show first 3 affected rows</summary>
+<pre>row  23  contact_email="alice@@vendor.com"
+row  89  contact_email="bob.vendor.com"
+row 142  contact_email="carol@vendor,com"</pre></details>
+    </div>
+  </div>
+
+  <div class="grouplabel"><span class="dot warn"></span>Future dates</div>
+  <div class="problem warn">
+    <header class="prob"><span class="title">3 rows where <span class="mono">signup_date</span> is in the future</span><span class="sev">3 rows</span></header>
+    <div class="body">
+      <p>Affected rows: <span class="mono">5,891, 9,302, 10,455</span>.</p>
+      <p class="expl">"Future" means later than today&rsquo;s analysis date — likely data-entry errors.</p>
+      <details><summary>Show first 3 affected rows</summary>
+<pre>row  5891  signup_date="2027-03-14"
+row  9302  signup_date="2027-11-02"
+row 10455  signup_date="2028-01-08"</pre></details>
+    </div>
+  </div>
+
+  <div class="grouplabel"><span class="dot warn"></span>Missing values</div>
+  <div class="problem warn">
+    <header class="prob"><span class="title">8 rows have missing <span class="mono">signup_date</span></span><span class="sev">8 rows</span></header>
+    <div class="body">
+      <p>Affected rows: <span class="mono">102, 887</span> …</p>
+      <p class="expl">Empty cells, the literal string <span class="mono">"null"</span>, and whitespace-only were all counted as missing.</p>
+      <details><summary>Show first 3 affected rows</summary>
+<pre>row  102  signup_date=""
+row  887  signup_date="null"
+row 1144  signup_date="   "</pre></details>
+    </div>
+  </div>
+
+  <div class="grouplabel"><span class="dot warn"></span>Inconsistent categorical</div>
+  <div class="problem warn">
+    <header class="prob"><span class="title">Column <span class="mono">plan_type</span> has 4 distinct values: <span class="mono">'starter', 'Starter', 'STARTER', 'pro'</span></span><span class="sev">1 column</span></header>
+    <div class="body">
+      <p>Likely the same category with inconsistent casing — three forms of "starter" plus one distinct value.</p>
+      <p class="expl">Case-insensitive grouping suggested: <span class="mono">starter</span> → 11,940 rows, <span class="mono">pro</span> → 60 rows.</p>
+    </div>
+  </div>
+
+  <div class="grouplabel"><span class="dot pii"></span>PII</div>
+  <div class="problem pii">
+    <header class="prob"><span class="title">Column <span class="mono">ssn</span> contains values matching US SSN format</span><span class="sev">12,000 rows · high severity</span></header>
+    <div class="body">
+      <p>Match pattern: <span class="mono">^\d{3}-\d{2}-\d{4}$</span>. Vendor data should not ship without redaction.</p>
+      <p class="expl">Action: <em>Flag for review</em> · <em>Redact in cleaned file</em>.</p>
+      <details><summary>Show first 3 sample values</summary>
+<pre>ssn[1] = "123-45-6789"
+ssn[2] = "234-56-7890"
+ssn[3] = "345-67-8901"</pre></details>
+    </div>
+  </div>
+
+  <div class="grouplabel"><span class="dot neutral"></span>Outlier</div>
+  <div class="problem">
+    <header class="prob"><span class="title">Row <span class="mono">7,341</span> has <span class="mono">lifetime_value</span> of <span class="mono">9999999</span></span><span class="sev">24σ above mean</span></header>
+    <div class="body">
+      <p>Column mean is <span class="mono">312.40</span> (σ ≈ <span class="mono">416</span>). The value is likely a sentinel — confirm before keeping.</p>
+      <p class="expl">Outlier detection uses a z-score threshold of 6; this row clears it by a wide margin.</p>
+    </div>
+  </div>
+
+  <div class="grouplabel"><span class="dot warn"></span>Mixed types</div>
+  <div class="problem warn">
+    <header class="prob"><span class="title">Column <span class="mono">age</span> has 14 rows where the value is non-numeric (empty, <span class="mono">'N/A'</span>, or text)</span><span class="sev">1 column · 14 rows</span></header>
+    <div class="body">
+      <p>Affected rows: <span class="mono">1,022, 2,331, 4,810</span> …</p>
+      <p class="expl">Type inference expects numbers in this column. Mixed values slow downstream joins and break sort order.</p>
+      <details><summary>Show first 3 affected rows</summary>
+<pre>row 1022 age=""
+row 2331 age="N/A"
+row 4810 age="thirty-two"</pre></details>
+    </div>
+  </div>
+
+  <div class="grouplabel"><span class="dot warn"></span>Whitespace in IDs</div>
+  <div class="problem warn">
+    <header class="prob"><span class="title">47 rows have leading or trailing whitespace in <span class="mono">customer_id</span></span><span class="sev">47 rows</span></header>
+    <div class="body">
+      <p>Affected rows: <span class="mono">88, 511, 902</span> …</p>
+      <p class="expl">Whitespace in identifier columns makes joins against other systems fail silently.</p>
+      <details><summary>Show first 3 affected rows</summary>
+<pre>row   88 customer_id="88412 "
+row  511 customer_id=" 90123"
+row  902 customer_id=" 77231 "</pre></details>
+    </div>
+  </div>
+
+  <div class="grouplabel"><span class="dot warn"></span>Encoding quirks</div>
+  <div class="problem warn">
+    <header class="prob"><span class="title">File begins with a UTF-8 BOM (3 bytes: <span class="mono">0xEF 0xBB 0xBF</span>)</span><span class="sev">1 file</span></header>
+    <div class="body">
+      <p>BOM is preserved on first parse, dropped on second.</p>
+      <p class="expl">Most tools handle this transparently, but Excel on Windows sometimes shows the BOM as a leading character in cell A1. We've already stripped it for analysis below — the cleaned file will be BOM-free.</p>
+    </div>
+  </div>
+
+  <div class="grouplabel"><span class="dot warn"></span>Column-name collisions</div>
+  <div class="problem warn">
+    <header class="prob"><span class="title">Two columns have names that normalize to the same key (<span class="mono">email</span> and <span class="mono">Email</span>)</span><span class="sev">1 collision</span></header>
+    <div class="body">
+      <p>Affected columns: <span class="mono">contact_email</span>, <span class="mono">Email</span>.</p>
+      <p class="expl">Case differences in header rows are easy to miss and cause silent downstream join failures.</p>
+    </div>
+  </div>
+</section>
+
+<section aria-labelledby="sq">
+  <h2 id="sq">Data quality: <span style="font-family:ui-monospace,Menlo,Consolas,monospace">78 / 100</span></h2>
+  <p class="sub">Above the median for inbound vendor CSVs in our test set.</p>
+  <div class="score-row"><span>Completeness</span><span class="bar green" aria-hidden="true"><i style="width:82%"></i></span><span class="num">82</span></div>
+  <div class="score-row"><span>Validity</span><span class="bar amber" aria-hidden="true"><i style="width:71%"></i></span><span class="num">71</span></div>
+  <div class="score-row"><span>Uniqueness</span><span class="bar green" aria-hidden="true"><i style="width:95%"></i></span><span class="num">95</span></div>
+  <div class="score-row"><span>Consistency</span><span class="bar amber" aria-hidden="true"><i style="width:64%"></i></span><span class="num">64</span></div>
+</section>
+
+<section aria-labelledby="ss">
+  <h2 id="ss">Inferred schema</h2>
+  <p class="sub">Inferred from 12,000 rows. Mixed-type columns flagged.</p>
+  <table class="schema">
+    <caption>Inferred column types and basic statistics.</caption>
+    <thead><tr>
+      <th scope="col" class="mono">column</th>
+      <th scope="col">type</th>
+      <th scope="col" class="mono">non-null</th>
+      <th scope="col" class="mono">distinct</th>
+      <th scope="col" class="mono">sample</th>
+    </tr></thead>
+    <tbody>
+      <tr><td class="mono">customer_id</td><td>number</td><td class="mono">12000</td><td class="mono">11988</td><td class="val">1, 2, 3</td></tr>
+      <tr><td class="mono">name</td><td>string</td><td class="mono">12000</td><td class="mono">11423</td><td class="val">"Alice", "Bob", …</td></tr>
+      <tr><td class="mono">contact_email</td><td>email</td><td class="mono">11952</td><td class="mono">11890</td><td class="val">a@x.com, b@y.com, …</td></tr>
+      <tr><td class="mono">plan_type</td><td><span class="flagdot" title="Mixed casing"></span>string</td><td class="mono">12000</td><td class="mono">4</td><td class="val">"starter", "Starter", …</td></tr>
+      <tr><td class="mono">signup_date</td><td>date</td><td class="mono">11992</td><td class="mono">847</td><td class="val">2024-01-15, 2024-01-16, …</td></tr>
+      <tr><td class="mono">ssn</td><td><span class="flagdot pii" title="PII-pattern match"></span>pii</td><td class="mono">12000</td><td class="mono">11987</td><td class="val">***-**-****, …</td></tr>
+      <tr><td class="mono">lifetime_value</td><td>number</td><td class="mono">11800</td><td class="mono">4521</td><td class="val">0, 99, 9999, 9999999</td></tr>
+      <tr><td class="mono">age</td><td>number</td><td class="mono">11500</td><td class="mono">67</td><td class="val">24, 32, …</td></tr>
+      <tr><td class="mono">is_active</td><td>boolean</td><td class="mono">12000</td><td class="mono">2</td><td class="val">true, false</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section aria-labelledby="sc" class="cta-wrap">
+  <h2 id="sc">Clean and export</h2>
+  <div class="cta">
+    <p>Choose what to fix. Defaults are off — nothing changes without your say-so.</p>
+    <button class="btn" type="button">Clean and export</button>
+    <p class="hint">Opens options for what to fix. Nothing is uploaded.</p>
+  </div>
+  <div class="links-mech" aria-label="Next, you might want to">
+    <strong style="color:var(--ink);font-weight:600">Next, you might want to —</strong>
+    <a href="#" aria-disabled="true">Try API Response Diff on a sample export</a>
+    <a href="#" aria-disabled="true">Try JSON Surgeon on a JSON column</a>
+    <span class="coming">(coming)</span>
+  </div>
+</section>
+</main>
+<footer class="site" role="contentinfo">
+  <span>Runs in your browser — no upload.</span>
+  <a href="#" style="color:var(--accent)">Start over</a>
+</footer>
+<script>
+(function(){
+  var b=document.getElementById('theme'),h=document.documentElement;
+  try{var t=localStorage.getItem('wul-theme');if(t==='dark'){h.classList.add('dark');b.textContent='Light';b.setAttribute('aria-pressed','true')}}catch(e){}
+  b.addEventListener('click',function(){
+    h.classList.toggle('dark');
+    var d=h.classList.contains('dark');
+    b.textContent=d?'Light':'Dark';
+    b.setAttribute('aria-pressed',d?'true':'false');
+    try{localStorage.setItem('wul-theme',d?'dark':'light')}catch(e){}
+  });
+})();
+</script>
+</body>
+</html>

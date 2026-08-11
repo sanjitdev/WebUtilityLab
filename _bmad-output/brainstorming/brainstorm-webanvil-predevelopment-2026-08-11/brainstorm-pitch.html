@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WebAnvil — Pitch · 2026-08-11</title>
+<style>
+/* ============================================================
+   WebAnvil Pitch — single screen, forge aesthetic, zero externals
+   ============================================================ */
+:root{
+  --bg:#0a0807;
+  --bg-2:#14110d;
+  --bg-3:#1c1812;
+  --ink:#f4ead8;
+  --ink-2:#cfc2a4;
+  --ink-3:#8a7e63;
+  --rule:#3a2f22;
+  --ember:#ff6a1f;
+  --ember-2:#ffb056;
+  --spark:#ffd76b;
+  --steel:#c9d2d9;
+  --rust:#b04a1d;
+  --gold:#d9b35d;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:Georgia,'Iowan Old Style','Palatino Linotype',serif;line-height:1.5;-webkit-font-smoothing:antialiased}
+body{
+  background:
+    radial-gradient(ellipse at 50% 0%, #1a130b 0%, #0a0807 70%),
+    repeating-linear-gradient(0deg, transparent 0 38px, rgba(255,106,31,.02) 38px 39px);
+  min-height:100vh;
+}
+.mono{font-family:'Courier New',ui-monospace,monospace;letter-spacing:.22em;text-transform:uppercase;font-size:10px;color:var(--ink-3)}
+.page{max-width:1240px;margin:0 auto;padding:40px 44px 48px}
+
+/* ---------- TOP META + MARK ---------- */
+.mark{display:flex;align-items:center;gap:14px;margin-bottom:22px}
+.mark .dot{width:9px;height:9px;border-radius:50%;background:var(--ember);box-shadow:0 0 14px var(--ember),0 0 5px var(--ember-2);animation:pulse 2.2s ease-in-out infinite}
+@keyframes pulse{0%,100%{transform:scale(1);opacity:.95}50%{transform:scale(1.45);opacity:.55}}
+
+/* ---------- HOOK ---------- */
+.hook{font-size:clamp(28px,3.4vw,40px);line-height:1.18;margin:0 0 14px;max-width:920px;font-weight:normal}
+.hook em{color:var(--ember-2);font-style:italic}
+.brand-line{font-style:italic;color:var(--ink-2);font-size:16px;margin:0 0 30px;max-width:760px}
+
+/* ---------- THESIS ---------- */
+.thesis{
+  border-top:1px solid var(--rule);
+  border-bottom:1px solid var(--rule);
+  padding:22px 0;
+  display:grid;
+  grid-template-columns:130px 1fr;
+  gap:28px;
+  align-items:start;
+  margin-bottom:30px;
+}
+.thesis .label{font-family:'Courier New',monospace;font-size:10px;letter-spacing:.3em;text-transform:uppercase;color:var(--ink-3);padding-top:6px}
+.thesis p{margin:0;font-size:16px;color:var(--ink-2);max-width:760px}
+
+/* ---------- THREE-UP: TRUTHS / RISKS / ONE ---------- */
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0;border-top:1px solid var(--rule);border-bottom:1px solid var(--rule)}
+.col{padding:26px 26px 30px;border-right:1px solid var(--rule)}
+.col:last-child{border-right:none}
+.col .head{display:flex;align-items:baseline;gap:10px;margin-bottom:14px}
+.col .num{font-family:'Courier New',monospace;font-size:11px;color:var(--ember-2);letter-spacing:.2em}
+.col .head h3{margin:0;font-size:14px;font-weight:normal;letter-spacing:.04em;text-transform:uppercase;color:var(--ink)}
+.col ul{list-style:none;margin:0;padding:0}
+.col li{font-size:13.5px;color:var(--ink-2);margin:0 0 10px;padding-left:14px;position:relative;line-height:1.5}
+.col li::before{content:"·";position:absolute;left:0;top:-1px;color:var(--ember-2);font-weight:bold;font-size:18px;line-height:1}
+.col .quote{font-style:italic;color:var(--ink);font-size:13.5px;margin:0 0 12px;padding:10px 12px;border-left:2px solid var(--ember);background:rgba(255,106,31,.05)}
+.risk{border-top:1px solid rgba(176,74,29,.35);margin-top:8px;padding-top:10px}
+.risk .who{font-family:'Courier New',monospace;font-size:9.5px;letter-spacing:.22em;text-transform:uppercase;color:var(--ember-2);margin-bottom:4px}
+
+/* ---------- NEXT STEP + AS ---------- */
+.bottom{display:grid;grid-template-columns:1fr 1fr;gap:0;margin-top:0}
+.block{padding:22px 0}
+.block + .block{padding-left:32px;border-left:1px solid var(--rule)}
+.block h4{margin:0 0 10px;font-size:11px;font-weight:normal;letter-spacing:.3em;text-transform:uppercase;color:var(--ink-3);font-family:'Courier New',monospace}
+.block p{margin:0;font-size:14px;color:var(--ink-2)}
+.block p + p{margin-top:8px}
+.block strong{color:var(--ink);font-weight:normal}
+.ask-list{margin:0;padding:0;list-style:none}
+.ask-list li{font-size:14px;color:var(--ink-2);margin:0 0 8px;padding-left:16px;position:relative}
+.ask-list li::before{content:"→";position:absolute;left:0;color:var(--ember-2)}
+
+/* ---------- FOOTER ---------- */
+.foot{
+  margin-top:36px;
+  padding-top:18px;
+  border-top:1px solid var(--rule);
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:24px;
+  flex-wrap:wrap;
+}
+.foot .tagline{font-style:italic;color:var(--ink-3);font-size:13px;max-width:560px}
+.foot .meta{font-family:'Courier New',monospace;font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink-3);text-align:right}
+
+/* tighten for screenshot height */
+@media (max-height:1500px){
+  .page{padding:32px 44px 40px}
+  .hook{margin-bottom:10px}
+  .thesis{padding:18px 0;margin-bottom:24px}
+  .col{padding:22px 24px 24px}
+  .foot{margin-top:28px}
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="mark">
+    <span class="dot"></span>
+    <span class="mono">WebAnvil · Pre-development Pitch · 2026-08-11</span>
+  </div>
+
+  <!-- 1. THE HOOK -->
+  <h1 class="hook">A collection of <em>single-shot browser tools</em> that turn messy data into useful results — without remembering you.</h1>
+  <p class="brand-line">It costs you nothing because it doesn't remember you.</p>
+
+  <!-- 2. THE THESIS -->
+  <div class="thesis">
+    <div class="label">Thesis</div>
+    <p>A 100-tool site wins on volume. WebAnvil wins on <strong>depth</strong>: each tool solves a real job end-to-end, runs entirely in the browser, and refuses to pretend it has features competitors can copy. Stateless, no-account, no-history — the absences are the brand.</p>
+  </div>
+
+  <!-- 3 & 4 & 5: TRUTHS · RISKS · THE 1 -->
+  <div class="grid3">
+
+    <div class="col">
+      <div class="head"><span class="num">01</span><h3>The 5 Truths</h3></div>
+      <ul>
+        <li><strong>Stateless by design.</strong> Upload → process → download → leave. No history. Section 13's "chainable workflows" is out.</li>
+        <li><strong>Craft, not love.</strong> Seven practices: kind errors, graceful edges, teaching empty states, refusing bad jobs, honest changelogs, visible-at-moment-of-trust privacy, public postmortems.</li>
+        <li><strong>No signup. No account. No tracking.</strong> Privacy is verifiable in DevTools — zero network calls.</li>
+        <li><strong>10s budget.</strong> Show meaningful result in 5s; pre-flight estimate with tolerance band for longer jobs.</li>
+        <li><strong>One tool at a time.</strong> Ship JSON Surgeon excellently. Then assess. Then a second. No parallel bets.</li>
+      </ul>
+    </div>
+
+    <div class="col">
+      <div class="head"><span class="num">02</span><h3>The 3 Risks</h3></div>
+      <div class="quote">"You're describing me with extra steps."</div>
+      <div class="risk"><span class="who">Skeptic 3 · Competitor</span>Local-first is invisible in tab-comparison. Craft must be <em>demonstrated</em>, not claimed — build a Compare page that proves it.</div>
+      <div class="risk"><span class="who">Skeptic 1 · Privacy researcher</span>One forgotten transitive dep = brand-destroying lie. Privacy is architecture, not discipline.</div>
+      <div class="risk"><span class="who">Skeptic 2 · Solo dev</span>Craft-over-speed + solo = zero shipped by year two. Public repo from day one. Design for a successor.</div>
+    </div>
+
+    <div class="col">
+      <div class="head"><span class="num">03</span><h3>The 1</h3></div>
+      <p style="font-size:13.5px;color:var(--ink-2);margin:0 0 12px"><strong style="color:var(--ink);font-weight:normal">JSON Surgeon</strong> — the first tool. Developer-frequency. Time-to-competence as the success metric.</p>
+      <div class="quote">"See what's wrong with this API response."</div>
+      <ul>
+        <li>Format, validate, search, transform, flatten, schema-gen, type-gen.</li>
+        <li>Three outside users on real work files before launch.</li>
+        <li>Every error teaches. Every state has a next step.</li>
+      </ul>
+      <div class="risk"><span class="who">Flagged · depth vs shallow</span>Of the five MVP candidates, only CSV Rescue and API Response Diff are clearly deep. JSON Surgeon is mixed — re-evaluate before commitment.</div>
+    </div>
+
+  </div>
+
+  <!-- 6 & 7: NEXT STEP + ASK -->
+  <div class="bottom">
+    <div class="block">
+      <h4>This Week</h4>
+      <p><strong>Edit idea.md.</strong> Remove the Section 13 contradiction, add a Craft Practices section, add explicit privacy-baseline rules (no fonts, no CDN, no transitive deps with side-effects, audit on every release).</p>
+      <p><strong>Make the repo public.</strong> Day-one. README, contributor guide, "why this exists" paragraph someone new can own.</p>
+      <p><strong>Scope the JSON Surgeon prototype.</strong> Edge cases first (BOM, NaN, BigInt, deep, 50MB). Errors that teach. Empty state that invites.</p>
+    </div>
+    <div class="block">
+      <h4>The Ask</h4>
+      <ul class="ask-list">
+        <li><strong>Read idea.md and the memlog.</strong> Poke at the deep-vs-shallow reframe.</li>
+        <li><strong>Break the privacy claim.</strong> Find the transitive dep or analytics leak we missed.</li>
+        <li><strong>Steal a craft practice.</strong> Send us an example of a kinder error message you wish existed.</li>
+        <li><strong>Use it, then break it.</strong> Once JSON Surgeon ships, try to. The half-day audit is in the Definition of Done.</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="foot">
+    <div class="tagline">No fonts loaded. No CDN. No analytics. Open DevTools — zero network calls after page load.</div>
+    <div class="meta">No API calls in core · Open source from day one · Built in the open</div>
+  </div>
+
+</div>
+</body>
+</html>

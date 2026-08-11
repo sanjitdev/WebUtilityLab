@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Encoding error — CSV Rescue — WebUtilityLab</title>
+<style>
+:root{--paper:#fafaf7;--ink:#1a1a1a;--graphite:#5a5a5a;--rule:#d8d6cf;--soft:#f1efe9;--accent:#3a5a8a;--accent-soft:#e6ecf5;--err:#a83232;--warn:#8a6a1a}
+@media (prefers-color-scheme:dark){:root{--paper:#0e1116;--ink:#e8e6e1;--graphite:#9a9892;--rule:#2a2e35;--soft:#161a21;--accent:#7a9ad0;--accent-soft:#1a2230;--err:#d97070;--warn:#d4a85a}}
+:root[data-theme="dark"]{--paper:#0e1116;--ink:#e8e6e1;--graphite:#9a9892;--rule:#2a2e35;--soft:#161a21;--accent:#7a9ad0;--accent-soft:#1a2230;--err:#d97070;--warn:#d4a85a}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--paper);color:var(--ink)}
+body{font:17px/1.6 system-ui,-apple-system,Segoe UI,sans-serif;-webkit-font-smoothing:antialiased}
+.skip{position:absolute;left:-9999px;top:0;background:var(--ink);color:var(--paper);padding:.5rem .75rem;border-radius:0 0 4px 0}
+.skip:focus{left:0;outline:2px solid var(--accent);outline-offset:2px}
+header{border-bottom:1px solid var(--rule);padding:1rem 1.25rem;display:flex;align-items:center;gap:1rem;max-width:960px;margin:0 auto}
+.brand{font:600 1.05rem/1 ui-serif,Georgia,serif;letter-spacing:.01em}
+.brand small{color:var(--graphite);font-weight:400;margin-left:.5rem;font-size:.85rem}
+.theme{margin-left:auto;background:transparent;color:var(--ink);border:1px solid var(--rule);padding:.4rem .7rem;border-radius:4px;font:inherit;cursor:pointer}
+.theme:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+main{max-width:720px;margin:2.5rem auto 4rem;padding:0 1.25rem}
+.card{background:var(--soft);border:1px solid var(--rule);border-left:3px solid var(--err);border-radius:6px;padding:1.5rem 1.75rem}
+.eyebrow{color:var(--err);font:600 .8rem/1 ui-monospace,Menlo,Consolas,monospace;letter-spacing:.08em;text-transform:uppercase;margin:0 0 .5rem}
+h1{font:600 1.6rem/1.25 ui-serif,Georgia,serif;margin:.25rem 0 1.25rem;letter-spacing:-.01em}
+.card p{margin:0 0 1rem}
+.card p:last-of-type{margin-bottom:0}
+.data{font:14px/1.5 ui-monospace,Menlo,Consolas,monospace;background:var(--accent-soft);color:var(--ink);padding:.05em .35em;border-radius:3px}
+.muted{color:var(--graphite);margin-top:1.25rem;font-size:.95rem}
+.muted a{color:var(--accent)}
+.muted a:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:2px}
+.cta{display:inline-block;margin-top:1.5rem;background:var(--accent);color:#fff;border:0;padding:.7rem 1.1rem;border-radius:4px;font:600 1rem/1 inherit;cursor:pointer;text-decoration:none}
+.cta:hover{filter:brightness(1.08)}
+.cta:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+.privacy{margin-top:2rem;color:var(--graphite);font-size:.9rem;padding-top:1rem;border-top:1px solid var(--rule)}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+@media (max-width:520px){.card{padding:1.25rem}h1{font-size:1.4rem}}
+</style>
+</head>
+<body>
+<a class="skip" href="#error">Skip to error</a>
+<header>
+  <div class="brand">CSV Rescue <small>— WebUtilityLab</small></div>
+  <button class="theme" type="button" aria-label="Toggle theme" aria-pressed="false">Theme</button>
+</header>
+<main>
+  <section class="card" id="error" aria-labelledby="err-h1">
+    <p class="eyebrow">Encoding error</p>
+    <h1 id="err-h1">We can&rsquo;t read this file as UTF-8.</h1>
+    <p>The file&rsquo;s first three bytes are a UTF-8 BOM (<span class="data">0xEF 0xBB 0xBF</span>) &mdash; but the bytes that follow aren&rsquo;t valid UTF-8 text.</p>
+    <p>CSV Rescue requires UTF-8 because the data quality checks (email validation, date parsing) only work on Unicode text. Files that look like UTF-8 but aren&rsquo;t usually got their encoding wrong at save time &mdash; most often this is Windows-1252 saved as UTF-8 by a misconfigured editor.</p>
+    <p>Open the file in a text editor that lets you pick the encoding on save &mdash; VS Code, Sublime, Notepad++ &mdash; and re-save it as UTF-8 (no BOM). Then drop it again.</p>
+    <p class="muted">Need more help? <a href="#postmortems">See our public postmortems</a>.</p>
+  </section>
+  <button class="cta" type="button">Try a different file</button>
+  <p class="privacy">Your file never left your browser. We rejected it before reading the data.</p>
+</main>
+<script>
+(function(){var b=document.querySelector('.theme'),r=document.documentElement;function set(t){r.setAttribute('data-theme',t);b.setAttribute('aria-pressed',t==='dark');try{localStorage.setItem('wul-theme',t)}catch(e){}}
+try{var s=localStorage.getItem('wul-theme');if(s)set(s)}catch(e){}
+b.addEventListener('click',function(){set(r.getAttribute('data-theme')==='dark'?'light':'dark')})})();
+</script>
+</body>
+</html>
