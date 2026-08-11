@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Clean and export — CSV Rescue — WebUtilityLab</title>
+<style>
+:root{
+  --paper:#fafaf7; --ink:#1a1a1a; --graphite:#5a5a5a;
+  --rule:#d8d6cf; --soft:#f1efe9;
+  --accent:#3a5a8a; --accent-soft:#e6ecf5; --on-accent:#ffffff;
+  --err:#a83232; --warn:#8a6a1a; --pii:#6a3a8a; --ok:#2a6a3a;
+  --backdrop:rgba(20,20,18,.5);
+}
+.dark{
+  --paper:#0e1116; --ink:#e8e6e1; --graphite:#9a9892;
+  --rule:#2a2e35; --soft:#161a21;
+  --accent:#7a9ad0; --accent-soft:#1a2230; --on-accent:#0e1116;
+  --err:#d97070; --warn:#d4a85a; --pii:#b48ad0; --ok:#7ac090;
+  --backdrop:rgba(0,0,0,.6);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--paper);color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  font-size:1rem;line-height:1.6;-webkit-font-smoothing:antialiased}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace}
+a{color:var(--accent);text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:2px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:2px}
+.skip{position:absolute;left:-9999px;top:0;background:var(--accent);color:var(--on-accent);padding:.5rem .75rem;z-index:10}
+.skip:focus{left:.5rem;top:.5rem}
+header.site{padding:1rem 1.5rem;border-bottom:1px solid var(--rule);display:flex;align-items:center;gap:1rem;justify-content:space-between;background:var(--paper)}
+.brand{font-weight:600;letter-spacing:-.01em}
+.brand small{color:var(--graphite);font-weight:400;margin-left:.5rem}
+.toggle{background:transparent;border:1px solid var(--rule);color:var(--ink);padding:.25rem .6rem;border-radius:3px;cursor:pointer;font:inherit}
+.toggle:hover{border-color:var(--accent)}
+main{max-width:880px;margin:0 auto;padding:1.5rem}
+.dimmed{opacity:.35;pointer-events:none;user-select:none;filter:saturate(.5)}
+.privacy{padding:.875rem;background:var(--accent-soft);border-left:3px solid var(--accent);font-size:.875rem;border-radius:2px;margin:1.25rem 0}
+
+.backdrop{position:fixed;inset:0;background:var(--backdrop);z-index:100;display:flex;align-items:flex-start;justify-content:center;padding:6vh 1rem 2rem;overflow:auto}
+.modal{background:var(--paper);border:1px solid var(--rule);border-radius:4px;max-width:560px;width:100%;box-shadow:0 8px 28px rgba(0,0,0,.18)}
+@media(prefers-reduced-motion:reduce){.backdrop,.modal{animation:none!important;transition:none!important}}
+.modal header.m{padding:1.25rem 1.25rem .5rem;border-bottom:1px solid var(--rule)}
+.modal h2{font-size:1.375rem;font-weight:600;letter-spacing:-.01em;margin:0 0 .5rem}
+.modal header.m p{margin:.25rem 0;color:var(--graphite);font-size:.9375rem}
+.modal header.m .privacy-line{font-size:.8125rem;color:var(--ok);margin-top:.5rem}
+.section{padding:1rem 1.25rem;border-bottom:1px solid var(--rule)}
+.section:last-of-type{border-bottom:none}
+.subhead{font-size:.75rem;letter-spacing:.08em;text-transform:uppercase;color:var(--graphite);margin:0 0 .625rem;font-weight:600}
+.ba{display:grid;grid-template-columns:1fr 1fr;gap:.625rem;font-size:.8125rem}
+.ba .col{background:var(--soft);border:1px solid var(--rule);border-radius:2px;padding:.625rem .75rem}
+.ba .col h3{font-size:.75rem;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--graphite);margin:0 0 .5rem}
+.ba .col dl{margin:0;display:grid;grid-template-columns:5.25rem 1fr;gap:.25rem .5rem;font-size:.8125rem}
+.ba .col dt{color:var(--graphite)}
+.ba .col dd{margin:0;color:var(--ink);word-break:break-word}
+.diffline{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.75rem;color:var(--graphite);text-align:center;margin:.625rem 0 0;padding:.375rem;background:var(--paper);border:1px dashed var(--rule);border-radius:2px}
+.diffline .neg{color:var(--err)}
+.diffline .pos{color:var(--ok)}
+
+.toggle-row{display:grid;grid-template-columns:auto 1fr auto;gap:.75rem;align-items:start;padding:.75rem 0;border-bottom:1px dashed var(--rule)}
+.toggle-row:last-child{border-bottom:none}
+.switch{position:relative;display:inline-block;width:38px;height:22px;flex-shrink:0;margin-top:.15rem}
+.switch input{opacity:0;width:0;height:0}
+.slot{position:absolute;cursor:pointer;inset:0;background:var(--paper);border:1px solid var(--rule);border-radius:11px;transition:background .15s}
+.slot::before{content:"";position:absolute;left:2px;top:2px;width:16px;height:16px;background:var(--graphite);border-radius:50%;transition:transform .15s,background .15s}
+input:checked + .slot{background:var(--accent-soft);border-color:var(--accent)}
+input:checked + .slot::before{transform:translateX(16px);background:var(--accent)}
+.toggle-row .label{font-weight:600;font-size:.9375rem;margin:0 0 .15rem}
+.toggle-row .desc{color:var(--graphite);font-size:.8125rem;margin:0}
+.toggle-row .desc.err-text{color:var(--err)}
+.toggle-row .badge{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.6875rem;color:var(--graphite);background:var(--soft);border:1px solid var(--rule);padding:.15rem .4rem;border-radius:2px;white-space:nowrap;align-self:start;margin-top:.15rem}
+.tooltip{position:relative;display:inline-block;border-bottom:1px dotted var(--err);cursor:help}
+.tooltip:focus{outline:2px solid var(--accent);outline-offset:2px}
+.tooltip::after{content:attr(data-tip);position:absolute;left:0;bottom:calc(100% + 6px);background:var(--ink);color:var(--paper);font-family:inherit;font-size:.75rem;font-weight:400;line-height:1.4;padding:.5rem .625rem;border-radius:3px;width:max-content;max-width:240px;opacity:0;pointer-events:none;transition:opacity .12s;z-index:5}
+.tooltip:hover::after,.tooltip:focus::after{opacity:1}
+
+footer.m{padding:1rem 1.25rem 1.25rem;display:flex;flex-direction:column;gap:.75rem}
+.helper{font-size:.8125rem;color:var(--graphite);text-align:right;margin:0}
+.btns{display:flex;justify-content:flex-end;gap:.5rem}
+.btn{display:inline-block;padding:.625rem 1rem;border-radius:3px;font:inherit;font-weight:600;cursor:pointer;border:1px solid var(--rule)}
+.btn.secondary{background:transparent;color:var(--ink)}
+.btn.secondary:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
+.btn.primary:hover:not(:disabled){filter:brightness(1.08)}
+.btn.primary:disabled{background:var(--graphite);border-color:var(--graphite);cursor:not-allowed;opacity:.6}
+
+footer.site{padding:1.5rem;border-top:1px solid var(--rule);color:var(--graphite);font-size:.8125rem;display:flex;justify-content:space-between;max-width:880px;margin:0 auto}
+@media(max-width:520px){.ba{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<a class="skip" href="#modal-title">Skip to modal</a>
+<header class="site" role="banner">
+  <div class="brand">WebUtilityLab <small>/ CSV Rescue</small></div>
+  <nav aria-label="Utility">
+    <a href="#privacy" style="color:var(--graphite)">Privacy</a>
+    <button class="toggle" id="theme" aria-pressed="false" aria-label="Toggle dark mode">Dark</button>
+  </nav>
+</header>
+
+<main aria-hidden="true" class="dimmed">
+  <h1>16 problems found</h1>
+  <p>Page is dimmed while the clean-and-export modal is open.</p>
+  <div class="privacy">Privacy reminder would be visible here.</div>
+  <p>Body scroll is locked while the modal is open.</p>
+</main>
+
+<footer class="site dimmed" role="contentinfo" aria-hidden="true">
+  <span>Runs in your browser — no upload.</span>
+  <a href="#">Start over</a>
+</footer>
+
+<div class="backdrop" id="backdrop">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title" aria-describedby="modal-helper">
+    <header class="m">
+      <h2 id="modal-title">Clean and export</h2>
+      <p>Choose what to fix. Defaults are off — nothing changes without your say-so.</p>
+      <p class="privacy-line">Nothing is uploaded. The cleaned file is built in your browser.</p>
+    </header>
+
+    <section class="section" aria-labelledby="ba-h">
+      <h3 class="subhead" id="ba-h">Before / after</h3>
+      <div class="ba">
+        <div class="col" aria-label="Original file">
+          <h3>Original</h3>
+          <dl>
+            <dt>file</dt><dd class="mono">vendor_export_2026-07.csv</dd>
+            <dt>rows</dt><dd class="mono">12,000</dd>
+            <dt>problems</dt><dd class="mono">12 found</dd>
+            <dt>PII</dt><dd class="mono">1 column flagged</dd>
+          </dl>
+        </div>
+        <div class="col" aria-label="Proposed cleaned file">
+          <h3>Proposed cleaned</h3>
+          <dl>
+            <dt>file</dt><dd class="mono">cleaned-vendor_export_2026-07-2026-08-11-0914.csv</dd>
+            <dt>rows</dt><dd class="mono">11,988 <span style="color:var(--graphite)">(12 duplicates removed)</span></dd>
+            <dt>problems</dt><dd class="mono">8 remain (after toggles applied)</dd>
+            <dt>PII</dt><dd class="mono">ssn column redacted to [REDACTED]</dd>
+          </dl>
+        </div>
+      </div>
+      <p class="diffline"><span class="neg">– 12 rows</span>  <span>+ 0 rows</span>  ·  <span class="neg">– 12,000 SSNs</span>  <span>+ 0</span></p>
+    </section>
+
+    <section class="section" aria-labelledby="tg-h">
+      <h3 class="subhead" id="tg-h">What to fix</h3>
+
+      <div class="toggle-row">
+        <label class="switch">
+          <input type="checkbox" class="tg" aria-describedby="d1">
+          <span class="slot" aria-hidden="true"></span>
+        </label>
+        <div>
+          <p class="label">Deduplicate</p>
+          <p class="desc" id="d1">Drop exact-match duplicates. Default key is all columns; click to configure.</p>
+        </div>
+        <span class="badge">fixes: duplicates</span>
+      </div>
+
+      <div class="toggle-row">
+        <label class="switch">
+          <input type="checkbox" class="tg" aria-describedby="d2">
+          <span class="slot" aria-hidden="true"></span>
+        </label>
+        <div>
+          <p class="label">Fill missing values</p>
+          <p class="desc" id="d2">Replace empty / &lsquo;null&rsquo; / whitespace-only cells with <span class="mono">[MISSING]</span>. Conservative: never invents values.</p>
+        </div>
+        <span class="badge">fixes: missing values</span>
+      </div>
+
+      <div class="toggle-row">
+        <label class="switch">
+          <input type="checkbox" class="tg" aria-describedby="d3">
+          <span class="slot" aria-hidden="true"></span>
+        </label>
+        <div>
+          <p class="label">Validate and flag</p>
+          <p class="desc" id="d3">Drop rows with invalid emails or dates. You&rsquo;ll see what was dropped in the diff.</p>
+        </div>
+        <span class="badge">fixes: invalid emails, invalid dates</span>
+      </div>
+
+      <div class="toggle-row">
+        <label class="switch">
+          <input type="checkbox" class="tg" aria-describedby="d4">
+          <span class="slot" aria-hidden="true"></span>
+        </label>
+        <div>
+          <p class="label">Normalize categorical</p>
+          <p class="desc" id="d4">Lower-case all values in flagged columns (e.g. <span class="mono">plan_type</span>). Confirm via diff.</p>
+        </div>
+        <span class="badge">fixes: inconsistent categorical</span>
+      </div>
+
+      <div class="toggle-row">
+        <label class="switch">
+          <input type="checkbox" class="tg" aria-describedby="d5">
+          <span class="slot" aria-hidden="true"></span>
+        </label>
+        <div>
+          <p class="label">Redact PII</p>
+          <p class="desc err-text" id="d5">Replace matched PII values with <span class="mono">[REDACTED]</span> in the cleaned file. <span class="tooltip" tabindex="0" data-tip="After download, the cleaned file is yours. The original stays in your browser tab until you close it.">Irreversible after download.</span> The original file stays on your disk; only the downloaded file is changed.</p>
+        </div>
+        <span class="badge">fixes: PII</span>
+      </div>
+    </section>
+
+    <footer class="m">
+      <p class="helper" id="modal-helper">Confirm builds the cleaned file in your browser. Nothing is sent.</p>
+      <div class="btns">
+        <button class="btn secondary" type="button" id="cancel">Cancel</button>
+        <button class="btn primary" type="button" id="confirm" disabled>Confirm and download</button>
+      </div>
+    </footer>
+  </div>
+</div>
+
+<script>
+(function(){
+  var b=document.getElementById('theme'),h=document.documentElement;
+  try{var t=localStorage.getItem('wul-theme');if(t==='dark'){h.classList.add('dark');b.textContent='Light';b.setAttribute('aria-pressed','true')}}catch(e){}
+  b.addEventListener('click',function(){
+    h.classList.toggle('dark');
+    var d=h.classList.contains('dark');
+    b.textContent=d?'Light':'Dark';
+    b.setAttribute('aria-pressed',d?'true':'false');
+    try{localStorage.setItem('wul-theme',d?'dark':'light')}catch(e){}
+  });
+
+  // Toggle demo: enable Confirm when any switch is on
+  var tgs=document.querySelectorAll('input.tg');
+  var c=document.getElementById('confirm');
+  function sync(){
+    var any=Array.prototype.some.call(tgs,function(x){return x.checked});
+    c.disabled=!any;
+  }
+  Array.prototype.forEach.call(tgs,function(x){
+    x.addEventListener('change',sync);
+  });
+})();
+</script>
+</body>
+</html>

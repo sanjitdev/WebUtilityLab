@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CSV Rescue — WebUtilityLab</title>
+<script>try{var t=localStorage.getItem('wul-theme');if(t==='dark'||(!t&&window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches))document.documentElement.classList.add('dark');}catch(e){}</script>
+<style>
+:root{
+ --paper:#fafaf7; --ink:#1a1a1a; --graphite:#5a5a5a; --rule:#d8d6cf;
+ --cobalt:#3a5a8a; --cobalt-bg:rgba(58,90,138,.08); --on-cobalt:#ffffff;
+ --red:#a83232; --amber:#8a6a1a; --violet:#6a3a8a; --green:#2a6a3a;
+ --bg-card:#ffffff;
+}
+html.dark{
+ --paper:#0e1116; --ink:#e8e6e1; --graphite:#9a9892; --rule:#2a2e35;
+ --cobalt:#7a9ad0; --cobalt-bg:rgba(122,154,208,.12); --on-cobalt:#0e1116;
+ --red:#d97070; --amber:#d4a85a; --violet:#b48ad0; --green:#7ac090;
+ --bg-card:#161a20;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+ background:var(--paper); color:var(--ink);
+ font:400 1rem/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+ -webkit-font-smoothing:antialiased;
+}
+@media (prefers-reduced-motion: no-preference){
+ body{transition:background-color 180ms ease,color 180ms ease}
+}
+.skip{position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden}
+.skip:focus{position:static;width:auto;height:auto;padding:.5rem .75rem;background:var(--ink);color:var(--paper);text-decoration:none}
+:focus-visible{outline:2px solid var(--cobalt);outline-offset:2px;border-radius:2px}
+a{color:var(--cobalt);text-underline-offset:3px;text-decoration-thickness:1px}
+a:hover{text-decoration-thickness:2px}
+header{border-bottom:1px solid var(--rule);padding:1rem 1.5rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;max-width:880px;margin:0 auto}
+.wordmark{font-weight:600;letter-spacing:-.01em;color:var(--ink);text-decoration:none;font-size:1rem}
+.wordmark small{color:var(--graphite);font-weight:400}
+.header-tools{display:flex;align-items:center;gap:1rem;font-size:.875rem}
+.privacy-link{color:var(--graphite);text-decoration:none;border-bottom:1px dotted var(--graphite)}
+.privacy-link:hover{color:var(--ink);border-bottom-color:var(--ink)}
+.theme-toggle{
+ background:transparent;border:1px solid var(--rule);color:var(--ink);
+ width:2.25rem;height:2.25rem;border-radius:4px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;
+}
+.theme-toggle:hover{border-color:var(--cobalt)}
+.theme-toggle svg{width:1rem;height:1rem;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+.theme-toggle .moon{display:none}
+html.dark .theme-toggle .sun{display:none}
+html.dark .theme-toggle .moon{display:block}
+main{max-width:880px;margin:0 auto;padding:5rem 1.5rem 3rem}
+.hero{text-align:center;margin-bottom:3.5rem}
+.hero h1{font-size:2.25rem;line-height:1.2;font-weight:600;margin:0 0 1.25rem;letter-spacing:-.015em;color:var(--ink)}
+.hero .lede{max-width:38rem;margin:0 auto 1rem;color:var(--ink);font-size:1.0625rem}
+.hero .privacy-line{color:var(--graphite);font-size:.9375rem;margin:0 auto 1.75rem;max-width:34rem}
+.actions{display:flex;gap:.75rem;justify-content:center;flex-wrap:wrap}
+.btn{
+ font:inherit;border-radius:4px;padding:.625rem 1.125rem;cursor:pointer;
+ text-decoration:none;display:inline-block;border:1px solid transparent;line-height:1.2;
+}
+.btn-primary{background:var(--cobalt);color:var(--on-cobalt);border-color:var(--cobalt)}
+.btn-primary:hover{filter:brightness(1.08)}
+.btn-secondary{background:transparent;color:var(--ink);border-color:var(--rule)}
+.btn-secondary:hover{border-color:var(--ink)}
+.dropzone{
+ width:320px;height:180px;margin:2.5rem auto 0;
+ border:1.5px dashed var(--graphite);border-radius:6px;
+ display:flex;align-items:center;justify-content:center;
+ color:var(--graphite);font-size:.9375rem;text-align:center;padding:1rem;
+ background:transparent;font:inherit;line-height:1.6;cursor:pointer;
+}
+.dropzone:hover{background:var(--cobalt-bg);border-color:var(--cobalt);color:var(--ink)}
+.dz-status{margin:.85rem auto 0;max-width:34rem;color:var(--ink);font-size:.9375rem;text-align:center;min-height:1.4em}
+.dz-privacy{margin:.5rem auto 0;color:var(--graphite);font-size:.8125rem;text-align:center}
+.teaching{display:grid;grid-template-columns:1fr;gap:1.25rem;margin-top:3.5rem}
+@media(min-width:720px){.teaching{grid-template-columns:repeat(3,1fr)}}
+.card{background:var(--bg-card);border:1px solid var(--rule);border-radius:6px;padding:1.25rem 1.25rem 1rem}
+.card h2{font-size:1rem;font-weight:600;margin:0 0 .5rem;color:var(--ink);letter-spacing:-.005em}
+.card p{margin:0 0 .75rem;color:var(--graphite);font-size:.9375rem}
+.card pre{
+ margin:0;font:400 .875rem/1.55 ui-monospace,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+ color:var(--ink);background:transparent;border-top:1px solid var(--rule);
+ padding-top:.75rem;white-space:pre-wrap;word-break:break-word;
+}
+.tag{display:inline-block;font-size:.75rem;padding:.05rem .4rem;border-radius:3px;margin-right:.25rem;font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace}
+.tag-err{color:var(--red)}
+.tag-warn{color:var(--amber)}
+.tag-pii{color:var(--violet)}
+.tag-ok{color:var(--green)}
+footer{border-top:1px solid var(--rule);margin-top:4rem;padding:1.5rem;max-width:880px;margin-left:auto;margin-right:auto;font-size:.875rem;color:var(--graphite);display:flex;flex-wrap:wrap;gap:1rem;justify-content:space-between;align-items:center}
+footer .reminder{color:var(--graphite)}
+@media (prefers-reduced-motion: no-preference){
+ .theme-toggle svg{transition:transform 180ms ease}
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to main content</a>
+<header>
+ <a class="wordmark" href="#">WebUtilityLab <small>/ CSV Rescue</small></a>
+ <div class="header-tools">
+ <a class="privacy-link" href="#privacy">Privacy: this never leaves your browser</a>
+ <button class="theme-toggle" type="button" aria-pressed="false" aria-label="Toggle dark mode" title="Toggle dark mode">
+ <svg class="sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+ <svg class="moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+ <span class="skip">Toggle theme</span>
+ </button>
+ </div>
+</header>
+<main id="main">
+ <section class="hero">
+ <h1>Drop a CSV to find out what&rsquo;s wrong with it.</h1>
+ <p class="lede">Files up to 50&nbsp;MB, UTF-8, with or without a BOM. We don&rsquo;t upload &mdash; this happens in your browser.</p>
+ <p class="privacy-line">No account, no history, no upload. Your file is parsed locally and discarded when you close the tab.</p>
+ <div class="actions">
+ <a class="btn btn-primary" href="#example">Try the example</a>
+ <a class="btn btn-secondary" id="browse-btn" href="#browse">Browse files</a>
+ </div>
+ <input type="file" id="dz-file" accept=".csv,text/csv" hidden>
+ <button type="button" class="dropzone" id="dz" aria-label="Drop a CSV here, or browse to choose a file">Drop a CSV here, or paste CSV text</button>
+ <p class="dz-status" id="dz-status" role="status" aria-live="polite"></p>
+ <p class="dz-privacy">File reading is local &mdash; your data never leaves this browser.</p>
+ </section>
+
+ <section class="teaching" aria-label="What this tool does">
+ <article class="card">
+ <h2>What we detect</h2>
+ <p>Encoding mismatches, stray delimiters, ragged rows, and embedded&nbsp;PII.</p>
+ <pre><span class="tag tag-warn">encoding</span> windows-1252
+<span class="tag tag-err">rows</span> ragged at line 142
+<span class="tag tag-pii">pii</span> 3 columns</pre>
+ </article>
+ <article class="card">
+ <h2>What we show you</h2>
+ <p>A row-by-row diff with the byte offset and the likely cause.</p>
+ <pre>line 142, col 38
+&quot;Smith, J.&quot;,42,&quot;oops
+expected 3 fields, got 2</pre>
+ </article>
+ <article class="card">
+ <h2>What you can do</h2>
+ <p>Fix in place, export a cleaned copy, or copy a&nbsp;repro snippet.</p>
+ <pre><span class="tag tag-ok">fixed</span> 41 rows
+<span class="tag tag-ok">export</span> cleaned.csv</pre>
+ </article>
+ </section>
+</main>
+<footer>
+ <span>&copy; 2026 WebUtilityLab</span>
+ <a href="#github">GitHub</a>
+ <span class="reminder" id="privacy">No account, no history, no upload.</span>
+</footer>
+<script>
+(function(){
+ var btn=document.querySelector('.theme-toggle');
+ var root=document.documentElement;
+ function sync(){var d=root.classList.contains('dark');btn.setAttribute('aria-pressed',d?'true':'false');}
+ btn.addEventListener('click',function(){
+ root.classList.toggle('dark');
+ var t=root.classList.contains('dark')?'dark':'light';
+ try{localStorage.setItem('wul-theme',t);}catch(e){}
+ sync();
+ });
+ sync();
+})();
+(function(){
+ var dz=document.getElementById('dz');
+ var input=document.getElementById('dz-file');
+ var status=document.getElementById('dz-status');
+ var browse=document.getElementById('browse-btn');
+ if(!dz||!input||!status)return;
+ function openPicker(){input.click();}
+ function showGot(name){
+ status.textContent='Got the file \u2014 but this is a static preview. The real CSV Rescue would now run the check. ('+name+')';
+ }
+ dz.addEventListener('click',openPicker);
+ if(browse){browse.addEventListener('click',function(e){e.preventDefault();openPicker();});}
+ ['dragenter','dragover'].forEach(function(ev){
+ dz.addEventListener(ev,function(e){e.preventDefault();e.stopPropagation();});
+ });
+ dz.addEventListener('drop',function(e){
+ e.preventDefault();e.stopPropagation();
+ var f=(e.dataTransfer&&e.dataTransfer.files&&e.dataTransfer.files[0])||null;
+ if(f){showGot(f.name);}else{showGot('pasted file');}
+ });
+ input.addEventListener('change',function(){
+ var f=input.files&&input.files[0];
+ if(f)showGot(f.name);
+ });
+})();
+</script>
+</body>
+</html>
