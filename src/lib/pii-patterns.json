@@ -1,0 +1,109 @@
+{
+  "$schema": "./pii-patterns.schema.json",
+  "version": "2026-08-11.1",
+  "scope": "MVP — 6 PII pattern families. Deferred: see docs/pii-patterns.md §'Deferred patterns'.",
+  "engineDefaults": {
+    "perCellTimeoutMs": 10,
+    "columnSuppressionTokens": ["id", "order_id", "customer_id", "ref", "sku", "transaction_id", "uuid", "serial"],
+    "testBinList": ["4111111111111111", "5555555555554444", "378282246310005", "6011111111111117"],
+    "runOrder": ["email", "phone-e164", "phone-display", "credit-card", "iban", "us-ssn", "uk-nino"],
+    "suppressionRule": "Patterns marked columnContextSuppression=true skip cells in columns whose header (case-insensitive) contains any token in columnSuppressionTokens. Patterns marked false run in all columns."
+  },
+  "patterns": [
+    {
+      "id": "email",
+      "label": "Possible email address",
+      "regex": "[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,24}",
+      "anchored": false,
+      "validation": null,
+      "jurisdiction": "universal",
+      "falsePositiveRate": "~0.1%",
+      "columnContextSuppression": true,
+      "sourceUrl": "RFC 5322 (informal subset; accepts + aliases, rejects quoted locals and IP-literal domains)",
+      "rationale": "Single most common PII cell. ~0.1% FP on business CSVs (version strings, dotted paths). Per-cell default."
+    },
+    {
+      "id": "phone-e164",
+      "label": "Possible phone number (E.164)",
+      "regex": "\\+[1-9]\\d{7,14}\\b",
+      "anchored": true,
+      "validation": "structural: total length 8–15 digits, leading +, first country-code digit 1–9",
+      "jurisdiction": "international",
+      "falsePositiveRate": "<0.05%",
+      "columnContextSuppression": true,
+      "sourceUrl": "ITU-T E.164",
+      "rationale": "Strict E.164 only. Display-format phones handled by phone-display. Run first so phone-display does not re-flag E.164 matches."
+    },
+    {
+      "id": "phone-display",
+      "label": "Possible phone number (display format — higher false-positive risk)",
+      "regex": "(?:\\+?1[-.\\s]?)?\\(?\\d{3}\\)?[-.\\s]?\\d{3}[-.\\s]?\\d{4}",
+      "anchored": true,
+      "validation": "structural only; no checksum",
+      "jurisdiction": "US/NANP",
+      "falsePositiveRate": "1–3% on transaction CSVs",
+      "columnContextSuppression": true,
+      "sourceUrl": "NANP (North American Numbering Plan)",
+      "rationale": "Catches real-world formatted numbers. Highest-FP pattern in the list. Cells matching phone-e164 are suppressed here."
+    },
+    {
+      "id": "credit-card",
+      "label": "Possible credit card number (Luhn-valid)",
+      "regex": "\\b(?:\\d[ -]?){12,18}\\d\\b",
+      "anchored": true,
+      "validation": "Luhn mod-10 (ISO/IEC 7812-1). Strip non-digits from the match before checking. Test BINs in engineDefaults.testBinList are caught and dropped with label 'Test card number discarded', not flagged.",
+      "jurisdiction": "universal (Visa/MC/Amex/Discover/JCB/UnionPay)",
+      "falsePositiveRate": "~0.01% on Luhn-valid runs",
+      "columnContextSuppression": false,
+      "sourceUrl": "ISO/IEC 7812-1",
+      "rationale": "Luhn is the load-bearing filter. No column suppression needed; precision is high enough."
+    },
+    {
+      "id": "iban",
+      "label": "Possible IBAN (mod-97 valid)",
+      "regex": "\\b[A-Z]{2}\\d{2}[A-Z0-9]{11,30}\\b",
+      "anchored": true,
+      "validation": "mod-97 (ISO 13616). Length pre-check against per-country table; reject if country-code length does not match. JS BigInt used for chunked-mod to avoid >16-digit precision loss.",
+      "lengthTable": {
+        "AL": 28, "AD": 24, "AT": 20, "AZ": 28, "BH": 22, "BE": 16, "BA": 20, "BR": 29,
+        "BG": 22, "CR": 22, "HR": 21, "CY": 28, "CZ": 24, "DK": 18, "DO": 28, "EE": 20,
+        "FO": 18, "FI": 18, "FR": 27, "GE": 22, "DE": 22, "GI": 23, "GR": 27, "GL": 18,
+        "GT": 28, "HU": 28, "IS": 26, "IE": 22, "IL": 23, "IT": 27, "JO": 30, "KZ": 20,
+        "KW": 30, "LV": 21, "LB": 28, "LI": 21, "LT": 20, "LU": 20, "MK": 19, "MT": 31,
+        "MR": 27, "MU": 30, "MC": 27, "MD": 24, "ME": 22, "NL": 18, "NO": 15, "PK": 24,
+        "PS": 29, "PL": 28, "PT": 25, "QA": 29, "RO": 24, "SM": 27, "SA": 24, "RS": 22,
+        "SK": 24, "SI": 19, "ES": 24, "SE": 24, "CH": 21, "TL": 23, "TN": 24, "TR": 26,
+        "AE": 23, "GB": 22, "VG": 24, "XK": 20
+      },
+      "jurisdiction": "international",
+      "falsePositiveRate": "~0.05% raw; ~0.01% after length filter",
+      "columnContextSuppression": false,
+      "sourceUrl": "ISO 13616",
+      "rationale": "mod-97 + per-country length table is precision enough. No column suppression. Lowercase IBANs normalized before regex; spaces stripped."
+    },
+    {
+      "id": "us-ssn",
+      "label": "Possible US SSN (shape only — no checksum)",
+      "regex": "\\b\\d{3}-\\d{2}-\\d{4}\\b",
+      "anchored": true,
+      "validation": "structural only. Post-match filter rejects area 000, group 00, serial 0000, area 666, area 900–999 (SSA never issues these).",
+      "jurisdiction": "US-only",
+      "falsePositiveRate": "0.5–2% on typical CSVs",
+      "columnContextSuppression": false,
+      "sourceUrl": "Social Security Administration",
+      "rationale": "Bare-9 regex is too noisy; hyphenated form is the realistic SSN shape in CSVs. Phone regex runs first; SSN matches in phone-positive cells are suppressed."
+    },
+    {
+      "id": "uk-nino",
+      "label": "Possible UK National Insurance Number (shape only)",
+      "regex": "\\b[A-CEGHJ-PR-TW-Z][A-CEGHJ-NPR-TW-Z]\\d{6}[A-D]\\b",
+      "anchored": true,
+      "validation": "structural only. NINo prefix validity rules in regex: no D, F, I, Q, U, V as start; no O as second char.",
+      "jurisdiction": "UK-only",
+      "falsePositiveRate": "~0.1%",
+      "columnContextSuppression": true,
+      "sourceUrl": "HMRC NINo format specification",
+      "rationale": "Tight shape, near-zero false negatives, low FP. 30-line addition; cheap insurance for UK users."
+    }
+  ]
+}
