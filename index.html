@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!--
+      Privacy Baseline (PRD FR-23, SOLUTION-DESIGN §"Build-time calls"):
+      No web fonts, no CDN, no analytics, no telemetry. The `<title>` is
+      the wordmark; CSS variables and a system-ui stack handle type.
+      Story 1.1 ships the minimum mount point + title; the rest of the
+      page chrome (header, footer, theme seed script) lands in E02.
+    -->
+    <title>WebUtilityLab / CSV Rescue</title>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

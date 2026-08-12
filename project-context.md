@@ -84,3 +84,7 @@ These are inherited from the privacy posture and the static-page IA, not authore
 ## How to read this file
 
 This is **foundational context**, not the architecture. The architecture spine (next file produced) carries the **invariants** only — the calls a future builder can't read off compliant code. Anything in this file that is a real trade-off (paradigm, parser, worker boundary, state shape) becomes an `AD-n` in the spine. Anything that is structural detail that the code will decide for itself stays here.
+
+## Persistent operational rule — per-story quality loop
+
+**Every story follows the loop in `docs/loop-protocol.md` without exception.** That is: create-story → build → Review #1 (coderabbit, fresh context) → fix → Review #2 (bmad-code-review, fresh context) → fix → production-readiness gate → mark done. A story is `done` only when both reviews returned zero must-fix AND every applicable ship gate from `epics.md` §"Acceptance test" passed. No "approve with comments", no skipping the gate, no parallelizing across stories. The loop exists to make the highest quality product inevitable — weakening it invalidates the quality claim.

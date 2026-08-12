@@ -6,18 +6,25 @@ desktop.ini
 *.swo
 *~
 
-# IDE
+# IDE — `.vscode/` is excluded except for the two files we intentionally
+# track: `settings.json` (project-level editor settings) and
+# `extensions.json` (recommended extension list). The trailing `/` on
+# `.vscode/` plus the explicit re-include patterns is the only way Git
+# will track files in nested subdirectories of an otherwise-ignored
+# directory; bare `*` will silently drop subdirs.
 .idea/
 *.iml
-.vscode/*
+.vscode/
 !.vscode/settings.json
 !.vscode/extensions.json
 
-# Node / build (when implementation lands)
+# Node / build
 node_modules/
 dist/
 build/
 *.log
+
+# Environment
 .env
 .env.*
 !.env.example
@@ -32,3 +39,16 @@ coverage/
 # OS-generated temp
 tmp/
 temp/
+
+# OS metadata
+ehthumbs.db
+Icon?
+.fseventsd/
+.Spotlight-V100/
+.Trashes/
+.VolumeIcon.icns
+*.cab
+*.msi
+*.msm
+*.msp
+*.lnk

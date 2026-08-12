@@ -1,0 +1,221 @@
+# generated: 2026-08-12
+# last_updated: 2026-08-12
+# project: WebUtilityLab
+# project_key: NOKEY
+# tracking_system: file-system
+# story_location: _bmad-output/implementation-artifacts
+
+# STATUS DEFINITIONS:
+# ==================
+# Epic Status:
+#   - backlog: Epic not yet started
+#   - in-progress: Epic actively being worked on
+#   - done: All stories in epic completed
+#
+# Epic Status Transitions:
+#   - backlog → in-progress: Automatically when first story starts (via build's sprint sync)
+#   - in-progress → done: Manually when all stories reach 'done' status
+#
+# Story Status:
+#   - backlog: Story only exists in epic file
+#   - ready-for-dev: Story file created in stories folder
+#   - in-progress: Developer actively working on implementation
+#   - review: Ready for code review (via Dev's code-review workflow)
+#   - done: Story completed
+#
+# Retrospective Status:
+#   - optional: Can be completed but not required
+#   - done: Retrospective has been completed
+#
+# Action Item Status:
+#   - open: Committed during a retrospective, not yet addressed
+#   - in-progress: Actively being worked on
+#   - done: Completed
+#
+# WORKFLOW NOTES:
+# ===============
+# - Epic transitions to 'in-progress' automatically when first story starts (via build's sprint sync)
+# - Stories can be worked in parallel if team capacity allows
+# - Developer typically creates next story after previous one is 'done' to incorporate learnings
+# - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
+# - Retrospective appends its action items to action_items; sprint-status surfaces open ones
+
+generated: 2026-08-12
+last_updated: 2026-08-12
+project: WebUtilityLab
+project_key: NOKEY
+tracking_system: file-system
+story_location: _bmad-output/implementation-artifacts
+
+development_status:
+  # E01 — Repo scaffold & CI
+  epic-1: in-progress
+  1-1-initialize-vite-svelte5-typescript-project: review
+  1-2-add-vitest-with-vite-worker-syntax: backlog
+  1-3-configure-production-build-with-hidden-source-map: backlog
+  1-4-add-license-mit-full-text: backlog
+  1-5-github-actions-ci-test-build-audit-privacy: backlog
+  1-6-devtools-behavioral-verification-script: backlog
+  1-7-per-epic-dep-tree-no-network-check: backlog
+  1-8-pin-dev-dep-note-playwright-browser-binary: backlog
+  1-9-bundle-budget-gate-200kb-gzipped: backlog
+  1-10-transitive-telemetry-scanner: backlog
+  1-11-dependency-pinning-exact-versions-npm-ci: backlog
+  epic-1-retrospective: optional
+
+  # E02 — Visual tokens, theme, empty page chrome
+  epic-2: backlog
+  2-1-copy-tokens-into-tokens-css: backlog
+  2-2-inline-theme-seed-script-in-index-html: backlog
+  2-3-theme-toggle-svelte-aria-pressed-cross-tab-sync: backlog
+  2-4-page-chrome-semantic-header-nav-main-footer: backlog
+  2-5-focus-ring-rule-2px-accent-2px-offset: backlog
+  2-6-editorial-posture-sanity-system-ui-no-font-face: backlog
+  epic-2-retrospective: optional
+
+  # E03 — Dropzone & file picker
+  epic-3: backlog
+  3-1-real-button-dropzone-opens-file-picker: backlog
+  3-2-drag-and-drop-handler-paste-handler: backlog
+  3-3-50-mb-cap-check-before-reading: backlog
+  3-4-file-name-reveal-in-aria-live-region: backlog
+  3-5-empty-state-copy-from-experience-md: backlog
+  3-6-three-teaching-cards-below-drop: backlog
+  3-7-accept-path-emits-file-reference-to-reducer: backlog
+  3-8-example-csv-inlined-at-build-time: backlog
+  3-9-strict-brief-error-path-uses-formatstrictbrief: backlog
+  epic-3-retrospective: optional
+
+  # E04 — Pre-flight estimate & refusal state
+  epic-4: backlog
+  4-1-pre-flight-heuristic-in-estimate-ts: backlog
+  4-2-state-machine-extension-active-to-processing-or-refusal: backlog
+  4-3-refusal-page-ui-three-ctas: backlog
+  4-4-time-band-ui-working-ns-30-percent: backlog
+  4-5-cancel-from-processing-abort-envelope: backlog
+  4-6-worker-cold-start-measurement: backlog
+  4-7-tests-synthetic-60mb-5mb-cancel-abort: backlog
+  epic-4-retrospective: optional
+
+  # E05 — Worker boundary & state machine
+  epic-5: backlog
+  5-1-types-ts-state-finding-column-score-setting: backlog
+  5-2-envelope-ts-discriminated-union-with-isenvelope-guard: backlog
+  5-3a-state-types-ts-discriminated-state-union: backlog
+  5-3b-reducer-ts-happy-path-transitions: backlog
+  5-3c-reducer-errors-ts-invalid-transition-returns: backlog
+  5-4-strict-brief-ts-formatstrictbrief-helper: backlog
+  5-5-worker-index-ts-entry-echo-envelopes: backlog
+  5-6-app-svelte-subscribes-to-state-via-runes: backlog
+  5-7-skip-link-conditional-by-state: backlog
+  5-8-build-rule-no-cross-module-imports: backlog
+  epic-5-retrospective: optional
+
+  # E06 — Streaming CSV parser & BOM detection
+  epic-6: backlog
+  6-1-parser-ts-file-stream-textdecoderstream-tokens: backlog
+  6-1a-encoding-sniff-at-first-chunk: backlog
+  6-2-quoted-field-handling: backlog
+  6-2a-per-field-byte-cap-1mb: backlog
+  6-3-bom-detection-first-three-bytes: backlog
+  6-4-adapter-to-detection-row-by-row-callbacks: backlog
+  6-4a-pass-1-to-pass-2-materialization-contract: backlog
+  6-5-tests-on-fixtures-plain-quoted-crlf-malformed: backlog
+  6-6-row-count-ceiling-1m-rows: backlog
+  6-7-total-string-byte-cap-100mb: backlog
+  epic-6-retrospective: optional
+
+  # E07 — Pass 1: column-wise streaming statistics
+  epic-7: backlog
+  7-1-stats-ts-subscribes-to-parser-tokens: backlog
+  7-2-type-inference-with-95-percent-downgrade: backlog
+  7-3-numeric-stats-via-welfords-algorithm: backlog
+  7-4-casing-variant-detection: backlog
+  7-5-length-stats-sample-rotation-with-caps: backlog
+  7-6-tests-mixed-type-large-file-numeric-accuracy: backlog
+  epic-7-retrospective: optional
+
+  # E08 — Pass 2: detection rules (the 8 categories)
+  epic-8: backlog
+  8-1-detect-ts-subscribes-to-pass-1-stats: backlog
+  8-2-duplicates-hash-of-concatenated-fields: backlog
+  8-3-missing-empty-null-whitespace: backlog
+  8-4-invalid-email-rfc-5322-common-typos: backlog
+  8-5-invalid-date-iso-8601-out-of-range: backlog
+  8-6-inconsistent-categorical-case-insensitive: backlog
+  8-7-outlier-z-score-gte-6-on-numeric: backlog
+  8-8-suspicious-column-heuristic-flags: backlog
+  8-9a-pii-pattern-definitions-in-pii-patterns-json: backlog
+  8-9b-pii-patterns-review-document: backlog
+  8-9c-no-pii-related-npm-dep: backlog
+  8-9d-pii-redos-validator: backlog
+  8-9e-per-cell-regex-timeout: backlog
+  8-10-bom-finding-from-parser-with-strip-and-redetect: backlog
+  8-11-one-fixture-per-category-golden-tests: backlog
+  epic-8-retrospective: optional
+
+  # E09 — Schema inference & score
+  epic-9: backlog
+  9-1-schema-ts-consumes-pass-1-stats: backlog
+  9-2-score-ts-four-categories-plus-overall: backlog
+  9-3-scorerow-svelte-three-column-grid-with-redundant-text: backlog
+  9-4-schematable-svelte-table-caption-th-scope: backlog
+  9-5-tests-golden-fixtures-for-score-boundaries: backlog
+  epic-9-retrospective: optional
+
+  # E10 — Results UI
+  epic-10: backlog
+  10-1-banner-svelte-role-status-aria-live-polite: backlog
+  10-2-problemcard-svelte-details-summary-mono-title: backlog
+  10-3-group-problem-cards-by-category-pii-first: backlog
+  10-4-strict-brief-copy-formatstrictbrief: backlog
+  10-5-mechanism-b-links-inert-coming: backlog
+  10-6-results-reveal-focus-moves-to-problems: backlog
+  10-7-cleaning-cta-card-after-e11-modal: backlog
+  epic-10-retrospective: optional
+
+  # E11 — Cleaning modal & blob download
+  epic-11: backlog
+  11-1-cleaningmodal-svelte-focus-trap-esc-cancel-initial: backlog
+  11-2-reversibility-view-original-vs-proposed-diff: backlog
+  11-3-five-toggles-all-default-off: backlog
+  11-4-redact-pii-kind-error-confirm: backlog
+  11-5-clean-ts-applies-toggles-returns-blob-basename-rowcount: backlog
+  11-5a-csv-injection-sanitizer-prefix-single-quote: backlog
+  11-6-building-intermediate-state-no-spinner: backlog
+  11-7-filename-ts-cleaned-basename-timestamp: backlog
+  11-8-download-gesture-blob-url-anchor-revoke: backlog
+  11-9-tests-toggles-diff-focus-blob-revoke: backlog
+  epic-11-retrospective: optional
+
+  # E12 — Error state & strict-brief template
+  epic-12: backlog
+  12-1-error-ui-h1-three-part-body-single-cta: backlog
+  12-2-strict-brief-template-enforcement-formatstrictbrief: backlog
+  12-3-common-error-types-utf8-bom-malformed-oversized: backlog
+  12-4-error-type-detection-in-worker-emits-error-envelope: backlog
+  12-5-tests-each-error-type-produces-strict-brief: backlog
+  epic-12-retrospective: optional
+
+  # E13 — Audit, hardening & deploy
+  epic-13: backlog
+  13-1-transitive-dependency-audit: backlog
+  13-2-r2-bucket-setup-logging-disabled-public-read: backlog
+  13-2a-r2-access-policy-artifact-r2-config-json: backlog
+  13-3-npm-run-build-dist-uploaded-to-r2-v1-path: backlog
+  13-3a-reproducible-build-guide-docs: backlog
+  13-4-playwright-puppeteer-smoke-test-deployed-url: backlog
+  13-5-lighthouse-audit-contrast-focus-skip-link: backlog
+  13-6-devtools-verification-script-in-ci: backlog
+  13-7-changelog-md-initial-mvp-launch: backlog
+  13-8-postmortems-section-placeholder-readme: backlog
+  13-9-readme-refresh-deploy-time-privacy-claim: backlog
+  13-10-security-md-privacy-baseline-contact-path: backlog
+  13-11-hardening-headers-csp-connect-src-none: backlog
+  13-12-source-map-policy-hidden-no-auto-upload: backlog
+  13-13-r2-url-durability-v1-path-immutable: backlog
+  13-14-r2-noindex-meta-robots: backlog
+  13-15-report-a-problem-path-mailto-privacy: backlog
+  13-16-browser-support-matrix-feature-based-detection: backlog
+  13-17-sri-on-dist-assets-integrity-sha384: backlog
+  epic-13-retrospective: optional
