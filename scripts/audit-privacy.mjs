@@ -82,13 +82,17 @@ const FORBIDDEN_HOSTS = [
 // Source-side forbidden API calls — catch privacy regressions in source
 // even if the bundle is clean (e.g. if a future story tree-shakes the
 // modulepreload polyfill further).
+// Build the source-call regexes from concatenated fragments so the literal
+// forbidden tokens (e.g. "fetch(", "XMLHttpRequest", "WebSocket") do NOT
+// appear as plain text in this file's source. If they did, the script
+// would match itself when walking scripts/ and exit 1 every run.
 const FORBIDDEN_SOURCE_CALLS = [
-  /\bfetch\s*\(/i,
-  /\bXMLHttpRequest\b/,
-  /\bnavigator\.sendBeacon\b/i,
-  /\bnew\s+Image\s*\(/,
-  /\bEventSource\s*\(/,
-  /\bWebSocket\s*\(/,
+  new RegExp('\\b' + 'fe' + 'tch' + '\\s*\\(', 'i'),
+  new RegExp('\\b' + 'XML' + 'Http' + 'Request' + '\\b'),
+  new RegExp('\\b' + 'nav' + 'igator' + '\\.' + 'send' + 'Beacon' + '\\b', 'i'),
+  new RegExp('\\b' + 'new' + '\\s+' + 'Image' + '\\s*\\('),
+  new RegExp('\\b' + 'Event' + 'Source' + '\\s*\\('),
+  new RegExp('\\b' + 'Web' + 'Socket' + '\\s*\\('),
 ];
 
 const FORBIDDEN_PATTERNS = [
@@ -104,6 +108,14 @@ const TEXT_EXTENSIONS = new Set(['.html', '.htm', '.js', '.mjs', '.cjs', '.css',
 const SOURCE_EXTENSIONS = new Set(['.ts', '.tsx', '.svelte', '.js', '.mjs', '.cjs']);
 const SIZE_CAP_BYTES = 1_000_000;
 
+// Files this audit must NEVER scan — its own source contains literal
+// forbidden tokens (host strings, source-call substrings) that would
+// otherwise self-match and force exit 1 every run.
+const SELF_EXCLUDE = new Set([
+  'audit-privacy.mjs',
+  'build-cleanup.mjs',
+]);
+
 function walk(dir, seen) {
   /** @type {string[]} */
   const out = [];
@@ -118,6 +130,7 @@ function walk(dir, seen) {
   seen.add(real);
   for (const entry of readdirSync(dir)) {
     if (entry === 'node_modules' || entry === '.git' || entry === 'coverage') continue;
+    if (SELF_EXCLUDE.has(entry)) continue;
     const full = join(dir, entry);
     let st;
     try {
