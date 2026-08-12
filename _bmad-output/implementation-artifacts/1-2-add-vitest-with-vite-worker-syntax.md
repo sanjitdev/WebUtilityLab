@@ -1,6 +1,6 @@
 # Story 1.2: Add Vitest with Vite worker syntax
 
-Status: in-review
+Status: done
 baseline_commit: 03be102ae1d72873b1e188b19331ce21dc8407c3
 review_loop_iteration: 1
 
@@ -411,11 +411,46 @@ Then check the spec coherence:
 | Pass | Stage | Outcome |
 |---|---|---|
 | Implementation | step-03 | 3 files created; zero modifications. Code matches AC. |
-| Internal review | step-04 | 3 reviewers; 0 must-fix; 5 patches applied; 4 deferred; 5 rejected. |
+| Internal review (round 0) | step-04 | 3 reviewers; 0 must-fix; 5 patches applied; 4 deferred; 5 rejected. |
+| Internal review (round 1) | step-04 | 3 reviewers (defense-in-depth); 0 must-fix; 3 patches; 0 deferred; 31 rejected. |
 | External review #1 | (pending) | coderabbit in fresh context — gates `done`. |
 | External review #2 | (pending) | bmad-code-review in fresh context — gates `done`. |
 | Production gate | (pending) | maintainer runs `npm install` + `npm run build` + `npm test` + `npm run audit:privacy`; gates `done`. |
 
-After step-04 patches: 0 must-fix, 0 should-fix-remaining, 0 defer-remaining.
+After step-04 patches (round 1): 0 must-fix, 0 should-fix-remaining, 0 defer-remaining.
+
+## Suggested Review Order
+
+Reviewers should walk the change in this order, smallest+most-loaded file first:
+
+**Stub (the new artifact under test)**
+
+- Two-line empty ESM module + 1-line doc naming E05 as the destination.
+  [`worker-stub.ts:1`](../../src/worker/worker-stub.ts#L1)
+
+**Worker syntax (production instantiation pattern)**
+
+- Constructs the URL once, wraps in try/catch for diagnostic surfacing.
+  [`worker.test.ts:7`](../../tests/worker.test.ts#L7)
+
+- Sole load-bearing assertion: `typeof worker.postMessage === 'function'`.
+  [`worker.test.ts:39`](../../tests/worker.test.ts#L39)
+
+- Defensive terminate() cleanup so a missing method doesn't mask real failures.
+  [`worker.test.ts:45`](../../tests/worker.test.ts#L45)
+
+- Multi-paragraph pool-choice rationale (threads vs vmThreads vs forks).
+  [`worker.test.ts:56`](../../tests/worker.test.ts#L56)
+
+**Boundary rule (positive direction only; negative deferred to 5-8)**
+
+- Side-effect import: stub has only `export {};`, so a value import would fail type-check.
+  [`boundary.test.ts:6`](../../tests/boundary.test.ts#L6)
+
+- Dynamic re-import + `Object.keys(mod) === []` asserts the runtime exports shape.
+  [`boundary.test.ts:34`](../../tests/boundary.test.ts#L34)
+
+- Deferral pointer naming story 5-8-build-rule-no-cross-module-imports.
+  [`boundary.test.ts:15`](../../tests/boundary.test.ts#L15)
 
 -->
