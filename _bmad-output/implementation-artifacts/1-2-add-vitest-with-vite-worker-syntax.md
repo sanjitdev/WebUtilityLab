@@ -1,7 +1,8 @@
 # Story 1.2: Add Vitest with Vite worker syntax
 
-Status: review
+Status: in-review
 baseline_commit: 03be102ae1d72873b1e188b19331ce21dc8407c3
+review_loop_iteration: 1
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -287,6 +288,96 @@ Rejected (5):
 - "Co-Authored-By `Opus 4.8` doesn't match Dev Agent `claude-sonnet-4-5`" —
   both credit lines are accurate; the implementation subagent authored the
   code, the loop-protocol main session drafted the commit message.
+
+After patches: 0 must-fix, 0 should-fix-remaining, 0 defer-remaining.
+
+### bmad-build step-04 review patches (review_loop_iteration: 1)
+
+A second pass of the three parallel reviewers fired against the post-patch
+state (defense-in-depth — the loop-protocol calls for fresh-context review at
+this stage). Classification summary:
+
+- **intent_gap**: 0
+- **bad_spec**: 0
+- **patch**: 3 (one technical correctness finding, two documentation
+  improvements)
+- **defer**: 0
+- **reject**: 31 (rhetoric-heavy critique with selective premise errors;
+  defensive-coding-for-its-own-sake suggestions; multiple findings had been
+  applied in the previous round; one reviewer stopped at the verification-gate
+  Step 1 screen because the change is non-behavioral w.r.t. pre-existing code)
+
+Patches applied:
+
+1. **`tests/boundary.test.ts` — rework the verbatimModuleSyntax rationale**
+   (adversarial #4): the prior comment said verbatimModuleSyntax "requires
+   this be a `import type` or a bare side-effect import" — technically
+   misleading. The real reason is "stub has only `export {};` (no default
+   export), so `import value from '...'` would fail at type-check". The
+   comment now says that.
+
+2. **`tests/boundary.test.ts` — explicit deferral pointer** (adversarial #3):
+   the prior doc referenced "E05" as a vague future landing. It now names
+   the explicit story key: `5-8-build-rule-no-cross-module-imports`.
+
+3. **`tests/worker.test.ts` — SCOPE clarification** (adversarial #10/11):
+   the prior doc claimed "URL resolution + Vite plugin chain must resolve
+   cleanly" without acknowledging that the assertion only proves the
+   constructor returns a message-port-shaped object, NOT that the worker
+   module's source was evaluated end-to-end. An explicit SCOPE note added
+   above the try/catch makes the test's true coverage visible to a reader
+   who skips the assertion body. The onmessage-round-trip evolution is
+   documented as an E05 concern when the first real worker lands.
+
+Deferred (0): no behavior gaps surfaced; the verification-gap reviewer
+halted cleanly at Step 1 because the diff is non-behavioral w.r.t.
+pre-existing code.
+
+Rejected (31) — notes from the running log:
+
+- "Title `production worker syntax` is misleading against a stub"
+  (adversarial #1) — the `describe` block title refers to the production
+  *instantiation pattern* exercised against the stub *file*, not to the
+  stub itself being production. Already documented inline; not noise worth
+  rewriting for.
+
+- "Positive-shape test asserts nothing — Object.keys of empty module is a
+  tautology" (adversarial #2) — the boundary's *content surface* is
+  "workers export nothing observable from main-thread". A future E05
+  worker that exports something by accident flips this test loud. Load-
+  bearing, not tautological. Already-doc'd.
+
+- "Dynamic import re-imports a cached module — no additional resolution
+  signal" (adversarial #5) — defense-in-depth: re-importing at runtime
+  guards against the static import being tree-shaken, mocked, or filtered.
+  Two-key cost; assertion still validates the exports shape.
+
+- "`new URL('../src/worker/worker-stub.ts', ...)` doesn't match
+  production's path" (adversarial #6) — production has no real worker
+  *file* yet (E05 spawns from `src/lib/state.ts`, which doesn't exist).
+  The relative URL must point at a file that actually exists for the
+  test to be runnable. The production *syntax* is exercised; the
+  production *target* is impossible to reach until E05.
+
+- "`worker.terminate()` not in spec" (adversarial #7) — Node's `Worker`
+  implementation does expose `terminate()`; the guard is for forward-
+  compat, not a current bug.
+
+- 10 edge-case-hunter findings (`worker-stub.ts:1`, `boundary.test.ts:5/6`,
+  `worker.test.ts:7/13/6-15/4/1-15/1`): all defensive coding for a
+  3-file, 113-line diff in a `node` test environment with `verbatimModuleSyntax:
+  true` and `pool: 'threads'`. Most were already addressed in the prior
+  patch round; the rest are guards against runtimes this project does
+  not target.
+
+- "Packaging/formatting/style preferences" (catch {}, ESM-key sorting,
+  barrel-import risk, `beforeAll`/`afterAll` absence, etc.) — reviewer
+  taste, not correctness.
+
+- "The diff doesn't include package.json/vitest.config/tsconfig updates"
+  (adversarial #23) — those configs were already landed in S01.1
+  Review #2 commit `39897e1` (worker plugin, test block). The S01.2
+  diff relies on them and the Dev Notes already explain that.
 
 After patches: 0 must-fix, 0 should-fix-remaining, 0 defer-remaining.
 

@@ -11,6 +11,12 @@ describe('production worker syntax (AD-3)', () => {
     // The URL resolution + Vite plugin chain must resolve cleanly through
     // Vitest's worker pool — a regression here would mean production's worker
     // story broke without anyone noticing.
+    //
+    // SCOPE: this test proves the `new Worker(...)` constructor returns a
+    // message-port-shaped object when given a `?worker` URL. It does NOT
+    // prove the worker module's source was evaluated end-to-end (that
+    // would require an `onmessage` round-trip, which the empty stub has
+    // no handler for — an E05 concern when the first real worker lands).
     let worker;
     try {
       worker = new Worker(workerUrl, { type: 'module' });

@@ -1,9 +1,8 @@
 import { describe, it, expect } from 'vitest';
-// Side-effect import: the stub exports nothing, so a static `import` here
-// exists only to assert that the path resolves through the main-thread
-// Vite pipeline. `verbatimModuleSyntax: true` (tsconfig) requires this be
-// a `import type` or a bare side-effect import; a default import would
-// fail at type-check because the stub has no default export.
+// Side-effect import: the stub has only `export {};` — no named or default
+// export — so a static `import value from '...'` would fail at type-check.
+// The side-effect form is intentionally the only static option; the
+// dynamic `await import(...)` below carries the assertion.
 import '../src/worker/worker-stub';
 
 describe('AD-3 worker boundary — positive shape only in S01.2', () => {
@@ -13,19 +12,20 @@ describe('AD-3 worker boundary — positive shape only in S01.2', () => {
     // top-level await that blocks the main thread, or non-ESM shape that
     // breaks TypeScript's `import`.
     //
-    // DEFERRED TO E05: the NEGATIVE direction of the boundary rule
-    //   (SOLUTION-DESIGN line 86: "any `import` from `worker/*` in a main-thread
-    //    module, or any `import` from `svelte` in `worker/*`, fails the build")
-    //   is NOT testable in S01.2 because:
-    //     - `src/main.ts` does not (yet) import from `worker/*` — the first
-    //       such import lands in E05 when `src/lib/state.ts` spawns the worker.
-    //     - No `worker/*` file imports from `svelte` yet.
-    //   Authoring the negative test now would require fabricating a violation
-    //   inside this test file, which is silly. The strict enforcement (a
-    //   custom Rollup plugin or tsconfig path mapping) lives in E05 when the
-    //   directory tree has both sides of the boundary.
+    // DEFERRED TO E05 story 5-8-build-rule-no-cross-module-imports: the
+    // NEGATIVE direction of the boundary rule (SOLUTION-DESIGN line 86:
+    // "any `import` from `worker/*` in a main-thread module, or any `import`
+    // from `svelte` in `worker/*`, fails the build") is NOT testable in
+    // S01.2 because:
+    //   - `src/main.ts` does not (yet) import from `worker/*` — the first
+    //     such import lands in E05 when `src/lib/state.ts` spawns the worker.
+    //   - No `worker/*` file imports from `svelte` yet.
+    // Authoring the negative test now would require fabricating a violation
+    // inside this test file, which is silly. The strict enforcement (a
+    // custom Rollup plugin or tsconfig path mapping) lives in story 5-8 when
+    // the directory tree has both sides of the boundary.
     //
-    // S01.2 ships the machinery (this test scaffold) — E05 ships the fence.
+    // S01.2 ships the machinery (this test scaffold) — 5-8 ships the fence.
 
     // Re-import dynamically so we can assert the module loaded cleanly
     // AND inspect its exports shape. The static side-effect import above
