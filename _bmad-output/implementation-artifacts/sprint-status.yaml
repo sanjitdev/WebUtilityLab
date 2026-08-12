@@ -51,7 +51,7 @@ development_status:
   # E01 — Repo scaffold & CI
   epic-1: in-progress
   1-1-initialize-vite-svelte5-typescript-project: done
-  1-2-add-vitest-with-vite-worker-syntax: in-progress
+  1-2-add-vitest-with-vite-worker-syntax: review
   1-3-configure-production-build-with-hidden-source-map: backlog
   1-4-add-license-mit-full-text: backlog
   1-5-github-actions-ci-test-build-audit-privacy: backlog

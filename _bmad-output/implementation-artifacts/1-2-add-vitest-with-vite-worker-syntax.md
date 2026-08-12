@@ -1,6 +1,6 @@
 # Story 1.2: Add Vitest with Vite worker syntax
 
-Status: in-review
+Status: review
 baseline_commit: 03be102ae1d72873b1e188b19331ce21dc8407c3
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
@@ -295,5 +295,36 @@ After patches: 0 must-fix, 0 should-fix-remaining, 0 defer-remaining.
 - **Pool choice**. If the implementer reaches for `vmThreads` or `forks`, the worker plugin chain won't apply. Default `threads` is correct. Explain why in the file's doc comment.
 - **Stub location**. `src/worker/` co-locates with future real workers; `tests/fixtures/` keeps it test-private. Either is acceptable; document the choice.
 - **Negative boundary rule**. NOT in S01.2's scope. Do not invent a fabrication-of-violation test. Document the deferral.
+
+### Suggested Review Order
+
+Reviewers should read the diff in this order (smallest, most-loaded file first):
+
+1. [`src/worker/worker-stub.ts`](src/worker/worker-stub.ts) — 2-line stub; trivial.
+2. [`tests/boundary.test.ts`](tests/boundary.test.ts) — positive test + doc comment explaining why negative enforcement lands in E05.
+3. [`tests/worker.test.ts`](tests/worker.test.ts) — production worker-instantiation syntax + pool-choice rationale doc (longest file; deserves its own review pass).
+
+Then check the spec coherence:
+
+- AC #1 (config topology): `vite.config.ts` already has the merged `test:` block from S01.1 (`39897e1`); no change in S01.2.
+- AC #2 (worker test passes): deferred to maintainer (`npm test` after `npm install`).
+- AC #3 (boundary rule testable): yes, positive direction; negative deferred to E05 with doc comment.
+- AC #4 (build/check/test exit 0, 0 .map files): deferred to maintainer (Task 5).
+- AC #5 (audit:privacy exits 0): deferred to maintainer (Task 5.4).
+- AC #6 (no new deps): confirmed by `package.json` diff (none).
+- AC #7 (disposable stub): confirmed by file content (`export {};`).
+- AC #8 (pool-choice doc): at the bottom of `tests/worker.test.ts`.
+
+### Loop Protocol Pass Summary
+
+| Pass | Stage | Outcome |
+|---|---|---|
+| Implementation | step-03 | 3 files created; zero modifications. Code matches AC. |
+| Internal review | step-04 | 3 reviewers; 0 must-fix; 5 patches applied; 4 deferred; 5 rejected. |
+| External review #1 | (pending) | coderabbit in fresh context — gates `done`. |
+| External review #2 | (pending) | bmad-code-review in fresh context — gates `done`. |
+| Production gate | (pending) | maintainer runs `npm install` + `npm run build` + `npm test` + `npm run audit:privacy`; gates `done`. |
+
+After step-04 patches: 0 must-fix, 0 should-fix-remaining, 0 defer-remaining.
 
 -->
