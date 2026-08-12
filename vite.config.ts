@@ -8,6 +8,14 @@ import { svelte } from '@sveltejs/vite-plugin-svelte';
 // Story 1.1 acceptance: `find dist -name '*.map' | wc -l` MUST equal 0.
 export default defineConfig({
   plugins: [svelte()],
+  // AD-3 worker boundary: pre-wire Vite's worker config so E05's
+  // `?worker` import and `new Worker(new URL(..., import.meta.url), { type: 'module' })`
+  // use ES module format (code-splitting friendly, Playwright-friendly)
+  // and route through the svelte() plugin for Svelte-in-worker support.
+  worker: {
+    format: 'es',
+    plugins: () => [svelte()],
+  },
   build: {
     // 'hidden' = emit .map files but do NOT reference them from the bundle.
     // The spec's "Source-map policy is hidden-source-map" + "dist/ contains

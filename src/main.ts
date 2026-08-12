@@ -8,6 +8,9 @@
  */
 import { mount } from 'svelte';
 import App from './App.svelte';
+// Side-effect import: registers the page chrome baseline (AD-7: no inline
+// `<style>` in components). E02 replaces `app.css` with the full chrome.
+import './styles/app.css';
 
 const target = document.getElementById('app');
 if (!target) {

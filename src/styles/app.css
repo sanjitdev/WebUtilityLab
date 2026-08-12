@@ -1,0 +1,55 @@
+/*
+ * app.css — Page chrome baseline.
+ *
+ * Story 1.1 ships only enough styles for the empty-state wordmark to
+ * render with usable contrast, type, and focus. All hex literals are
+ * imported via tokens.css (AD-8); no inline `<style>` in components
+ * (AD-7).
+ *
+ * E02 replaces this file with the full page chrome
+ * (`2-4-page-chrome-semantic-header-nav-main-footer`).
+ */
+
+@import './tokens.css';
+
+.wordmark-page {
+  font-family: var(--font-system);
+  color: var(--ink);
+  background: var(--paper);
+  min-height: 100vh;
+  margin: 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: var(--space-page-y) var(--space-page-x);
+  box-sizing: border-box;
+}
+
+.wordmark-header {
+  width: 100%;
+  max-width: 880px;
+}
+
+.wordmark {
+  font-size: var(--size-wordmark);
+  font-weight: var(--weight-wordmark);
+  letter-spacing: var(--tracking-wordmark);
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.wordmark-title {
+  color: var(--ink);
+}
+
+.wordmark-sep {
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.wordmark-subtitle {
+  color: var(--accent);
+}

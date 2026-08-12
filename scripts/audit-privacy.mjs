@@ -141,13 +141,8 @@ function walk(dir, seen) {
     if (st.isDirectory()) {
       out.push(...walk(full, seen));
     } else if (st.isFile()) {
-      // Symlink-file: skip; we only want to walk real files.
-      let lstat;
-      try {
-        lstat = statSync(full); // not lstat — stat follows symlinks
-      } catch {
-        continue;
-      }
+      // stat (not lstat) follows symlinks; we already cycle-guarded via
+      // `seen` so a symlink can't loop the walk. Push unconditionally.
       out.push(full);
     }
   }
@@ -220,6 +215,19 @@ function main() {
       const hit = scanFile(file, SOURCE_EXTENSIONS);
       if (hit) findings.push(hit);
     }
+  }
+
+  // Scan the root-level `index.html` — this is the most likely place for a
+  // future story to add a `<link rel="stylesheet" href="https://...">`,
+  // a `<script src="https://...">`, or a `<meta http-equiv="refresh">`.
+  // Walking only src/ + scripts/ would miss it. We scan it directly
+  // (not via walk) because we want exactly one file, not a tree.
+  const rootIndexHtml = join(repoRoot, 'index.html');
+  if (existsSync(rootIndexHtml)) {
+    const hit = scanFile(rootIndexHtml, TEXT_EXTENSIONS);
+    if (hit) findings.push(hit);
+  } else {
+    findings.push(`${rootIndexHtml}: missing (S01.1 ships this file)`);
   }
 
   if (findings.length > 0) {
