@@ -1,12 +1,17 @@
 import { describe, it, expect } from 'vitest';
+// Side-effect import: the stub exports nothing, so a static `import` here
+// exists only to assert that the path resolves through the main-thread
+// Vite pipeline. `verbatimModuleSyntax: true` (tsconfig) requires this be
+// a `import type` or a bare side-effect import; a default import would
+// fail at type-check because the stub has no default export.
 import '../src/worker/worker-stub';
 
 describe('AD-3 worker boundary — positive shape only in S01.2', () => {
-  it('imports src/worker/worker-stub.ts directly (TypeScript-level resolution)', () => {
-    // The test passes if the import resolves. This proves the worker module
-    // is importable from a test (main-thread context) — i.e. the worker file
-    // itself does not have hidden side effects, top-level await that blocks
-    // the main thread, or non-ESM shape that breaks TypeScript's `import`.
+  it('imports src/worker/worker-stub.ts directly (TypeScript-level resolution)', async () => {
+    // The test proves the worker module is importable from a test (main-thread
+    // context) — i.e. the worker file itself has no hidden side effects,
+    // top-level await that blocks the main thread, or non-ESM shape that
+    // breaks TypeScript's `import`.
     //
     // DEFERRED TO E05: the NEGATIVE direction of the boundary rule
     //   (SOLUTION-DESIGN line 86: "any `import` from `worker/*` in a main-thread
@@ -21,6 +26,12 @@ describe('AD-3 worker boundary — positive shape only in S01.2', () => {
     //   directory tree has both sides of the boundary.
     //
     // S01.2 ships the machinery (this test scaffold) — E05 ships the fence.
-    expect(true).toBe(true);
+
+    // Re-import dynamically so we can assert the module loaded cleanly
+    // AND inspect its exports shape. The static side-effect import above
+    // would already fail at module-resolution time if the path is broken;
+    // the dynamic check below asserts the runtime contract.
+    const mod = await import('../src/worker/worker-stub');
+    expect(Object.keys(mod).sort()).toEqual([]);
   });
 });

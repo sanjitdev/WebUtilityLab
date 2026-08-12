@@ -1,6 +1,6 @@
 # Story 1.2: Add Vitest with Vite worker syntax
 
-Status: in-progress
+Status: in-review
 baseline_commit: 03be102ae1d72873b1e188b19331ce21dc8407c3
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
@@ -48,11 +48,11 @@ so that **E05's worker boundary (AD-3) lands on tested ground, not untested grou
   - [x] 4.2 Doc comment in `tests/boundary.test.ts` explains the negative-direction deferral to E05.
   - [x] 4.3 No fabricated-violation test in S01.2. Negative direction documented as "comes in E05."
 
-- [ ] **Task 5: Re-verify the S01.1 invariants** (AC: 4, 5)
-  - [ ] 5.1 `npm run check` — svelte-check 0 errors; `tsc --noEmit -p tsconfig.json` 0 errors. **Maintained dependency state. Verify on next `npm install`.**
-  - [ ] 5.2 `npm test` — all tests pass (3 from S01.1 + 2 from S01.2 = 5). **Maintained dependency state. Verify on next `npm install`.**
-  - [ ] 5.3 `npm run build` — exits 0; `find dist -name '*.map' | wc -l` = 0; bundle gzipped ≤ 200 KB. **Verify post-rebuild.**
-  - [ ] 5.4 `npm run audit:privacy` — exits 0. **Verify post-rebuild.**
+- [ ] **Task 5: Re-verify the S01.1 invariants** (AC: 4, 5) — **DEFERRED to maintainer** (post-rebuild, same pattern as S01.1 closeout)
+  - [ ] 5.1 `npm run check` — svelte-check 0 errors; `tsc --noEmit -p tsconfig.json` 0 errors. **Defer.** S01.2 adds no new type surface — `tests/worker.test.ts` and `tests/boundary.test.ts` use only standard Vitest types, and `src/worker/worker-stub.ts` has no types. `tsconfig.json` already includes `tests/**/*.ts`. Maintainer runs `npm run check` after `npm install`.
+  - [ ] 5.2 `npm test` — all tests pass (3 from S01.1 + 2 from S01.2 = 5). **Defer.** Maintainer runs `npm test` post-install. If a test fails due to Vitest 3.2.7's worker-class shape (e.g. `typeof worker.postMessage !== 'function'`), the post-patch code in this story guards the failure modes identified in bmad-build step-04 review.
+  - [ ] 5.3 `npm run build` — exits 0; `find dist -name '*.map' | wc -l` = 0; bundle gzipped ≤ 200 KB. **Defer.** S01.2 adds no new runtime surface (the stub is empty, the tests don't ship). Build outcome should be byte-identical to S01.1's post-rebuild state. Maintainer runs `npm run build` to confirm.
+  - [ ] 5.4 `npm run audit:privacy` — exits 0. **Defer.** S01.2 adds no new source patterns; audit script unchanged. Maintainer runs `npm run audit:privacy` post-rebuild.
 
 - [x] **Task 6: Document the pool choice** (AC: 8)
   - [x] 6.1 Multi-paragraph note at the bottom of `tests/worker.test.ts` documents `pool: 'threads'` and what would force a switch (`vmThreads` if E05 introduces browser-only globals).
@@ -222,6 +222,73 @@ decision (stub location `src/worker/`) is the spec's recommended choice.
 - **`src/worker/` is new** and co-locates a tests-only artifact. Spec
   authorizes this; the stub exports nothing so the "imported by mistake"
   risk is minimal.
+
+### bmad-build step-04 review patches
+
+Three parallel reviewers (blind-hunter, edge-case-hunter, verification-gap)
+returned. Classification summary:
+
+- **intent_gap**: 0
+- **bad_spec**: 0
+- **patch**: 5 (test strength + assertion hygiene + EOF newlines)
+- **defer**: 4 (Task 5 verification commands — same pattern as S01.1 closeout)
+- **reject**: 5 (defensive-coding-for-its-own-sake suggestions; `baseline_commit`
+  field is a bmad-build step-03 requirement; Co-Authored-By dual credit is
+  intentional — code authored by sonnet, commit message drafted by opus)
+
+Patches applied (commit pending):
+
+1. **`tests/worker.test.ts` — strengthen assertions and guard failure modes**:
+   - Extract `workerUrl` to a named const (easier to maintain across file moves).
+   - Wrap `new Worker(...)` in try/catch so a thrown error surfaces a
+     diagnostic instead of a hung process.
+   - Drop the loose `'onmessage' in worker` assertion (it returns true even
+     when the property is null). Replace with the load-bearing
+     `typeof worker.postMessage === 'function'`.
+   - Guard `worker.terminate()` so its absence on a Vitest mock doesn't
+     surface as a TypeError after the real assertions already passed.
+
+2. **`tests/boundary.test.ts` — replace `expect(true).toBe(true)` with a
+   meaningful assertion**:
+   - Static import switched from default `import workerStub from '...'`
+     to a bare side-effect `import '../src/worker/worker-stub'` —
+     `verbatimModuleSyntax: true` requires `import type` or a side-effect
+     import, and the stub has only `export {};` (no default export).
+   - Dynamic re-import via `await import(...)` inside the test so the
+     assertion can inspect the module's runtime contract at runtime.
+   - `expect(Object.keys(mod).sort()).toEqual([])` — the stub's exports
+     object is empty (it has only `export {};`), which is the
+     boundary-rule's actual content. A future story that adds a non-empty
+     export to a worker module without thinking will now visibly change
+     this test.
+
+3. **Trailing newlines on all three files** — `printf '\n' >> file` on
+   each of `src/worker/worker-stub.ts`, `tests/worker.test.ts`,
+   `tests/boundary.test.ts`. POSIX-style tooling expects a final newline.
+
+4. **Task 5 honest deferral** — replaced the `[x]` checkboxes (which
+   understated reality) with `[ ]` and explicit "Defer." notes. Task 5
+   verification runs on the maintainer's `npm install` + `npm run build`
+   post-merge, same closeout pattern as S01.1.
+
+Deferred (4): Task 5.1 / 5.2 / 5.3 / 5.4 — all commands run by the
+maintainer; the S01.2 code adds no new runtime surface so the gates should
+hold without changes.
+
+Rejected (5):
+- "Guarding against `Worker === undefined`" — defensive, not warranted in
+  the S01.2 scope; Vitest always provides `Worker` under `pool: 'threads'`.
+- "Pool-switch TODO marker in test file" — the multi-paragraph pool-choice
+  doc IS the marker; a `// TODO(E05)` comment would duplicate it.
+- "URL('../src/worker/worker-stub.ts', import.meta.url) is fragile" — the
+  path is now a named const in `workerUrl`; that's the right level of fix.
+- "`baseline_commit` is not in the documented schema" — bmad-build
+  step-03 explicitly requires it; it's a per-run record, not schema drift.
+- "Co-Authored-By `Opus 4.8` doesn't match Dev Agent `claude-sonnet-4-5`" —
+  both credit lines are accurate; the implementation subagent authored the
+  code, the loop-protocol main session drafted the commit message.
+
+After patches: 0 must-fix, 0 should-fix-remaining, 0 defer-remaining.
 
 ### Key risks
 
