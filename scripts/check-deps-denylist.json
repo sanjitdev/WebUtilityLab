@@ -1,0 +1,89 @@
+{
+  "version": 1,
+  "packages": {
+    "@amplitude/analytics-browser": {
+      "reason": "Amplitude SDK phones home. Any package in the @amplitude/* scope is included unless explicitly opted-out via the SDK's opt-out API, which we never call.",
+      "added": "2026-08-13",
+      "added_by": "Sanjit",
+      "evidence": "https://www.docs.developers.amplitude.com/data/sdks/typescript-browser/"
+    },
+    "@google-analytics/analytics-js": {
+      "reason": "Google Analytics JS SDK. Any package in the @google-analytics/* scope is included for the same reason as the @amplitude/* scope.",
+      "added": "2026-08-13",
+      "added_by": "Sanjit",
+      "evidence": "https://github.com/googleanalytics/analytics-js"
+    },
+    "@sentry/browser": {
+      "reason": "Sentry browser SDK uploads stack traces and session replays to Sentry's servers. We deliberately do not use Sentry.",
+      "added": "2026-08-13",
+      "added_by": "Sanjit",
+      "evidence": "https://github.com/getsentry/sentry-javascript"
+    },
+    "@sentry/node": {
+      "reason": "Sentry Node SDK uploads stack traces to Sentry's servers. We deliberately do not use Sentry.",
+      "added": "2026-08-13",
+      "added_by": "Sanjit",
+      "evidence": "https://github.com/getsentry/sentry-javascript"
+    },
+    "@vercel/analytics": {
+      "reason": "Vercel Web Analytics ships a script tag and POSTs page views to vercel-insights.com. We don't deploy to Vercel and we don't want analytics.",
+      "added": "2026-08-13",
+      "added_by": "Sanjit",
+      "evidence": "https://vercel.com/docs/analytics"
+    },
+    "amplitude-js": {
+      "reason": "Legacy Amplitude SDK. Phones home on every page load.",
+      "added": "2026-08-13",
+      "added_by": "Sanjit",
+      "evidence": "https://github.com/amplitude/Amplitude-JavaScript"
+    },
+    "fullstory": {
+      "reason": "FullStory SDK records session replays and sends them to fullstory.com. We never opt in.",
+      "added": "2026-08-13",
+      "added_by": "Sanjit",
+      "evidence": "https://www.fullstory.com/sdk/"
+    },
+    "hotjar": {
+      "reason": "Hotjar SDK records heatmaps and session replays. Sends to hotjar.com.",
+      "added": "2026-08-13",
+      "added_by": "Sanjit",
+      "evidence": "https://help.hotjar.com/"
+    },
+    "mixpanel": {
+      "reason": "Mixpanel Node SDK (server-side). Phones home on every track() call.",
+      "added": "2026-08-13",
+      "added_by": "Sanjit",
+      "evidence": "https://github.com/mixpanel/mixpanel-node"
+    },
+    "mixpanel-browser": {
+      "reason": "Mixpanel browser SDK. Phones home on every event.",
+      "added": "2026-08-13",
+      "added_by": "Sanjit",
+      "evidence": "https://github.com/mixpanel/mixpanel-js"
+    },
+    "posthog-js": {
+      "reason": "PostHog browser SDK. Phones home on every event capture and page view.",
+      "added": "2026-08-13",
+      "added_by": "Sanjit",
+      "evidence": "https://posthog.com/docs/libraries/js"
+    },
+    "posthog-node": {
+      "reason": "PostHog Node SDK. Same phone-home behavior as posthog-js but server-side.",
+      "added": "2026-08-13",
+      "added_by": "Sanjit",
+      "evidence": "https://posthog.com/docs/libraries/node"
+    },
+    "react-ga": {
+      "reason": "react-ga is a Google Analytics wrapper. Phones home on every page view / event.",
+      "added": "2026-08-13",
+      "added_by": "Sanjit",
+      "evidence": "https://github.com/react-ga/react-ga"
+    },
+    "react-ga4": {
+      "reason": "react-ga4 is the GA4 wrapper. Same phone-home behavior as react-ga.",
+      "added": "2026-08-13",
+      "added_by": "Sanjit",
+      "evidence": "https://github.com/codler/react-ga4"
+    }
+  }
+}

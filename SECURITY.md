@@ -95,7 +95,10 @@ catches what the static walk misses. CI runs it on every push and PR
 ## Build-time tooling
 
 The privacy claim covers **runtime**, not build-time dev tooling. Two
-dev-side effects are known and intentional:
+dev-side effects are known and intentional — and the `check-deps`
+gate (above) protects the build-time as well as runtime attack
+surface by failing CI on any package known to phone home before
+the test suite runs:
 
 1. **Playwright browser-binary download.** `playwright` is a devDependency
    (added in S01.6, pinned to `1.62.1`). Running
@@ -113,3 +116,76 @@ dev-side effects are known and intentional:
    lockfile is byte-stable across installs.
 
 S01.8 (Pin dev-dep note) formalizes this disclosure.
+
+## Dependency-tree gate
+
+WebUtilityLab's Privacy Baseline is protected at **three layers**:
+
+1. **Static walk** (`scripts/audit-privacy.mjs`) — scans source, bundle,
+   and scripts for forbidden host strings (`google-analytics.com`,
+   `sentry.io`, …) and forbidden source-call APIs (`fetch`,
+   `XMLHttpRequest`, `navigator.sendBeacon`, …).
+2. **Behavioral walk** (`scripts/audit-behavior.mjs`) — boots the
+   production build in real Chromium and asserts zero non-same-origin
+   network requests after `load`.
+3. **Dependency-tree gate** (`scripts/check-deps.mjs`, this section) —
+   walks the full installed dependency tree (`npm ls --all --json`)
+   and asserts no package is on a hand-maintained denylist of known
+   "phones home" packages (`scripts/check-deps-denylist.json`).
+
+The dep-tree gate catches what the other two cannot: a future
+contributor who adds a benign-looking dep that secretly ships
+telemetry. The static walk doesn't catch a SDK that the contributor
+never calls; the behavioral walk doesn't catch a SDK that's never
+imported into the bundle. The dep-tree gate catches both at the
+**install** step, before the contributor's first commit is even
+merged.
+
+### Current denylist (load-bearing entries)
+
+The seed list lives at `scripts/check-deps-denylist.json` and contains:
+
+- `@sentry/browser`, `@sentry/node` — Sentry SDKs
+- `posthog-js`, `posthog-node` — PostHog SDKs
+- `mixpanel-browser`, `mixpanel` — Mixpanel SDKs
+- `amplitude-js`, `@amplitude/analytics-browser` — Amplitude SDKs
+- `@google-analytics/analytics-js` — GA SDK (and the
+  `@google-analytics/*` scope)
+- `react-ga`, `react-ga4` — Google Analytics wrappers
+- `hotjar` — Hotjar SDK
+- `@vercel/analytics` — Vercel Web Analytics
+- `fullstory` — FullStory SDK
+
+Each entry carries `reason`, `added` date, `added_by: Sanjit`, and
+a documentation URL in the JSON schema.
+
+### How to add a new entry
+
+Edit `scripts/check-deps-denylist.json`, add the package name and
+metadata, commit, push. CI will enforce the gate on the next push.
+There is no auto-detection because auto-detectors false-positive on
+benign packages (e.g. `axios`, `playwright`, anything that uses
+`fetch()` for non-telemetry reasons). The maintainer's judgment is
+the simpler and more accurate gate.
+
+### How to use the one-off `--allow` flag
+
+For a temporary exception (e.g. you're adding a denylisted package
+under a feature flag and need CI to pass while you work on the
+opt-out), invoke the script directly with
+`node scripts/check-deps.mjs --allow=<regex>`. The flag is
+repeatable for multiple patterns and is **not persisted** to the
+denylist — the denylist is the persistent record.
+
+### Why this is the third layer (not a replacement)
+
+The static walk catches source-level regressions. The behavioral
+walk catches runtime regressions. The dep-tree gate catches
+install-level regressions. Each layer addresses a different threat
+model; together they form a defense-in-depth posture. Removing any
+one layer leaves a gap: a benign-looking SDK that no source rule
+flags and no behavioral rule catches is exactly the failure mode the
+dep-tree gate prevents.
+
+CI runs `check:deps` after `npm ci` and before `npm run check` so a
+PR adding a bad dep fails the cheapest check first.

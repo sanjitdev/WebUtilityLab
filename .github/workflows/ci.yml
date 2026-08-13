@@ -40,6 +40,11 @@ jobs:
       - name: Install dependencies (npm ci)
         run: npm ci
 
+      # Dep-tree gate (S01.7) — fail fast on known telemetry packages
+      # in the installed tree. Cheapest check; runs before anything else.
+      - name: Run check:deps
+        run: npm run check:deps
+
       - name: Run svelte-check + tsc
         run: npm run check
 
