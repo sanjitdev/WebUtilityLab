@@ -2,7 +2,7 @@
 
 Status: done
 baseline_commit: e815dd00f225b003cee0eb2a5cab71a3f3c62c8e (post S02.1 stamp)
-final_commit: <to be filled after push>
+final_commit: e37f57d (pushed to main)
 
 > **Loop protocol (mandatory).** This story must pass Review #1 (coderabbit), Review #2 (bmad-code-review), and the production-readiness gate before being marked `done`. See `docs/loop-protocol.md`. The story at the front of every loop is the smallest thing the architecture needs to keep working — `S02.2` lands the **first-paint theme seed** that prevents FOUC (flash-of-unstyled-content / flash-of-wrong-theme) on reload. S02.1 put the `.dark` selector in `tokens.css`; without this seed, a dark-mode user would see a white flash for one frame before the bundle hydrates and the toggle lands (S02.3). The seed runs as an inline `<script>` in `<head>`, executes synchronously before paint, and is the **only** theme-state mutation that lives outside Svelte.
 
