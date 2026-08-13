@@ -2,7 +2,7 @@
 
 Status: done
 baseline_commit: 6e3ac91 (S01.10 done, post-stamp)
-final_commit: <to be filled after push>
+final_commit: 69c30e7 (S01.11 done)
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
