@@ -15,7 +15,8 @@
     "audit:privacy": "node scripts/audit-privacy.mjs",
     "audit:behavior": "node scripts/audit-behavior.mjs",
     "audit:all": "npm run audit:privacy && npm run audit:behavior",
-    "check:deps": "node scripts/check-deps.mjs"
+    "check:deps": "node scripts/check-deps.mjs",
+    "check:bundle": "node scripts/check-bundle-size.mjs"
   },
   "engines": {
     "node": ">=20.0.0"

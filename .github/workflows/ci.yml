@@ -54,6 +54,15 @@ jobs:
       - name: Run vite build + source-map cleanup
         run: npm run build
 
+      # Bundle budget gate (S01.9) — assert the gzipped dist/ total
+      # stays ≤ 200 KB. Catches bloater PRs that grow the bundle past
+      # the architecture's "What ships" promise. Runs AFTER build
+      # (needs dist/) and BEFORE audit:privacy (cheapest semantic
+      # check first, so a bloater catches the eye before a privacy
+      # regression does).
+      - name: Run check:bundle
+        run: npm run check:bundle
+
       - name: Run audit:privacy (static walk)
         run: npm run audit:privacy
 
