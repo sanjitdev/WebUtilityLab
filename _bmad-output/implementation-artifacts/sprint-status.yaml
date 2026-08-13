@@ -59,7 +59,7 @@ development_status:
   1-7-per-epic-dep-tree-no-network-check: done
   1-8-pin-dev-dep-note-playwright-browser-binary: done
   1-9-bundle-budget-gate-200kb-gzipped: done
-  1-10-transitive-telemetry-scanner: backlog
+  1-10-transitive-telemetry-scanner: done
   1-11-dependency-pinning-exact-versions-npm-ci: backlog
   epic-1-retrospective: optional
 

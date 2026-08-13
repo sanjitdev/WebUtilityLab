@@ -36,3 +36,15 @@ export function formatReport(
 ): string;
 
 export function parseAllowFlags(argv: string[]): RegExp[];
+
+export function parseVersionConstraints(path?: string): Map<
+  string,
+  {
+    reason?: string;
+    added?: string;
+    added_by?: string;
+    evidence?: string;
+    blockedVersions?: string;
+    allowedVersions?: string;
+  }
+>;

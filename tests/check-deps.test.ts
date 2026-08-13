@@ -5,6 +5,7 @@ import {
   findDenylisted,
   formatReport,
   parseAllowFlags,
+  parseVersionConstraints,
 } from '../scripts/check-deps.mjs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -251,6 +252,71 @@ describe('check-deps (S01.7 dep-tree gate)', () => {
     it('returns empty array when no --allow flags present', () => {
       const re = parseAllowFlags([]);
       expect(re).toEqual([]);
+    });
+  });
+
+  describe('parseVersionConstraints (S01.10 additive)', () => {
+    it('reads the v2 schema and returns the versionConstraints map', () => {
+      const map = parseVersionConstraints(join(scriptsDir, 'check-deps-denylist.json'));
+      // The seed has versionConstraints: {} (empty), but the field
+      // exists and parses cleanly without throwing.
+      expect(map).toBeInstanceOf(Map);
+      expect(map.size).toBe(0);
+    });
+
+    it('returns empty Map when the versionConstraints field is missing (legacy v1)', () => {
+      const tmpDir = mkdtempSync(join(tmpdir(), 'check-deps-legacy-'));
+      const path = join(tmpDir, 'legacy.json');
+      // v1-style schema: just `version: 1` + `packages`, no versionConstraints.
+      writeFileSync(
+        path,
+        JSON.stringify({
+          version: 1,
+          packages: {
+            '@sentry/browser': { reason: 'r', added: '2026-08-13', added_by: 'Sanjit', evidence: 'e' },
+          },
+        }),
+        'utf8',
+      );
+      const map = parseVersionConstraints(path);
+      expect(map.size).toBe(0);
+      rmSync(tmpDir, { recursive: true, force: true });
+    });
+
+    it('reads a v2 schema with one version-constraint entry', () => {
+      const tmpDir = mkdtempSync(join(tmpdir(), 'check-deps-constraints-'));
+      const path = join(tmpDir, 'with-constraints.json');
+      writeFileSync(
+        path,
+        JSON.stringify({
+          version: 2,
+          packages: {},
+          versionConstraints: {
+            'my-pkg': {
+              reason: 'Version 1.2.4 added telemetry',
+              added: '2026-08-13',
+              added_by: 'Sanjit',
+              evidence: 'release notes',
+              blockedVersions: '>=1.2.4',
+            },
+          },
+        }),
+        'utf8',
+      );
+      const map = parseVersionConstraints(path);
+      expect(map.size).toBe(1);
+      const entry = map.get('my-pkg');
+      expect(entry?.reason).toContain('1.2.4');
+      expect(entry?.blockedVersions).toBe('>=1.2.4');
+      rmSync(tmpDir, { recursive: true, force: true });
+    });
+
+    it('returns empty Map when file is missing', () => {
+      const tmpDir = mkdtempSync(join(tmpdir(), 'check-deps-no-constraints-'));
+      const path = join(tmpDir, 'nope.json');
+      const map = parseVersionConstraints(path);
+      expect(map.size).toBe(0);
+      rmSync(tmpDir, { recursive: true, force: true });
     });
   });
 });

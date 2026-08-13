@@ -45,6 +45,14 @@ jobs:
       - name: Run check:deps
         run: npm run check:deps
 
+      # Per-version telemetry scanner (S01.10) — second layer of the
+      # dep-tree gate. Catches (a) packages that ship forbidden
+      # telemetry code in their source, and (b) version ranges that
+      # added telemetry in a patch release. Runs immediately after
+      # check:deps because both share the same threat model.
+      - name: Run check:telemetry
+        run: npm run check:telemetry
+
       - name: Run svelte-check + tsc
         run: npm run check
 

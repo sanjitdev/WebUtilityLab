@@ -162,7 +162,7 @@ the test suite runs.
 
 ## Dependency-tree gate
 
-WebUtilityLab's Privacy Baseline is protected at **three layers**:
+WebUtilityLab's Privacy Baseline is protected at **four layers**:
 
 1. **Static walk** (`scripts/audit-privacy.mjs`) — scans source, bundle,
    and scripts for forbidden host strings (`google-analytics.com`,
@@ -175,14 +175,21 @@ WebUtilityLab's Privacy Baseline is protected at **three layers**:
    walks the full installed dependency tree (`npm ls --all --json`)
    and asserts no package is on a hand-maintained denylist of known
    "phones home" packages (`scripts/check-deps-denylist.json`).
+4. **Per-version telemetry scanner** (`scripts/check-telemetry.mjs`,
+   "Per-version telemetry scanner (S01.10)" below) — closes the
+   patch-release gap left by the denylist: walks each installed
+   package's source for forbidden telemetry tokens and asserts no
+   installed version matches a blocked-version range.
 
-The dep-tree gate catches what the other two cannot: a future
+The dep-tree gate catches what the first two cannot: a future
 contributor who adds a benign-looking dep that secretly ships
 telemetry. The static walk doesn't catch a SDK that the contributor
 never calls; the behavioral walk doesn't catch a SDK that's never
 imported into the bundle. The dep-tree gate catches both at the
 **install** step, before the contributor's first commit is even
-merged.
+merged. The per-version scanner adds a fourth layer for the case
+where the contributor's dep is clean today but a patch release adds
+telemetry between audits.
 
 ### Current denylist (load-bearing entries)
 
@@ -233,9 +240,38 @@ dep-tree gate prevents.
 CI runs `check:deps` after `npm ci` and before `npm run check` so a
 PR adding a bad dep fails the cheapest check first.
 
+### Per-version telemetry scanner (S01.10)
+
+The dep-tree gate (S01.7) protects against packages that phone home
+**regardless of version** (`@sentry/*`, `posthog-js`, etc.). It does
+NOT catch a patch release that adds telemetry to a previously-benign
+package — the threat model of "patch releases can introduce telemetry
+between audits" (epics §S01.10).
+
+`scripts/check-telemetry.mjs` is the second layer:
+
+1. **Per-version denylist** — `scripts/check-deps-denylist.json`'s new
+   `versionConstraints` map lists `name@versionRange` pairs that are
+   forbidden (e.g. `pkg@>=1.2.4` if `1.2.4` added telemetry). The
+   script asserts no installed package matches a blocked range.
+2. **Source-pattern scan** — every `.js`/`.mjs`/`.cjs`/`.ts` file
+   under `node_modules/<pkg>/` is grepped for forbidden telemetry
+   tokens (`navigator.sendBeacon`, references to forbidden analytics
+   hosts, etc.). A package whose source contains a forbidden pattern
+   is flagged, even if its name is not on any denylist.
+
+The current `versionConstraints` map is empty. Future entries are
+added by editing `scripts/check-deps-denylist.json` and committing;
+CI enforces on the next push.
+
+Why hand-maintained, not auto-detection: same rationale as S01.7.
+Auto-detectors false-positive on UI libraries that use `fetch()` for
+normal XHR; the maintainer's judgment is the simpler and more
+accurate gate.
+
 ## Why this is structural, not aspirational
 
-The Privacy Baseline is enforced by **three independent gates**, each
+The Privacy Baseline is enforced by **four independent gates**, each
 catching a different threat model:
 
 1. **Static walk** (`scripts/audit-privacy.mjs`) — scans source, bundle,
@@ -254,15 +290,24 @@ catching a different threat model:
    (`scripts/check-deps-denylist.json`). Catches install-level
    regressions — a benign-looking SDK that the contributor never calls
    and the bundle never imports.
+4. **Per-version telemetry scanner** (`scripts/check-telemetry.mjs`) —
+   walks each installed package's source for forbidden telemetry
+   tokens and asserts no installed version matches a blocked-version
+   range (`scripts/check-deps-denylist.json`'s `versionConstraints`
+   map). Catches the threat the previous layer misses: a previously-
+   benign package that adds telemetry in a patch release.
 
 Every gate runs on every push and every PR (see
 `.github/workflows/ci.yml`). A future contributor cannot merge a change
-that violates any of the three without a CI failure. No "we should
+that violates any of the four without a CI failure. No "we should
 remember to" — the gates remember; the gates enforce.
 
 This is what "structural" means: the privacy claim is verifiable by
-running three commands (`npm run audit:privacy`, `npm run audit:behavior`,
-`npm run check:deps`) and reading two files (`scripts/check-deps-denylist.json`,
-`scripts/audit-behavior-allowlist.json`). Disabling any gate is a one-PR
+running four commands (`npm run audit:privacy`, `npm run audit:behavior`,
+`npm run check:deps`, `npm run check:telemetry`) and reading three files
+(`scripts/check-deps-denylist.json`,
+`scripts/audit-behavior-allowlist.json`,
+`scripts/check-deps-denylist.json`'s `versionConstraints` map).
+Disabling any gate is a one-PR
 change that will be reviewed and (presumably) rejected. The audit trail
 is the git history of those files.

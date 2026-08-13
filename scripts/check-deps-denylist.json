@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "packages": {
     "@amplitude/analytics-browser": {
       "reason": "Amplitude SDK phones home. Any package in the @amplitude/* scope is included unless explicitly opted-out via the SDK's opt-out API, which we never call.",
@@ -85,5 +85,6 @@
       "added_by": "Sanjit",
       "evidence": "https://github.com/codler/react-ga4"
     }
-  }
+  },
+  "versionConstraints": {}
 }

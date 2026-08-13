@@ -213,6 +213,49 @@ export function parseAllowFlags(argv) {
 }
 
 /**
+ * S01.10 — Read the `versionConstraints` map from the denylist JSON.
+ * This is the second dep-tree layer: it catches packages whose
+ * telemetry behavior changed in a specific version range (e.g. a
+ * benign `pkg@1.2.3` that became `pkg@1.2.4`-with-telemetry in a
+ * patch release). S01.7's `parseDenyList` catches packages by name
+ * regardless of version; this catches behavior changes within a
+ * version range.
+ *
+ * Accepts both `version: 1` (legacy, no `versionConstraints` field)
+ * and `version: 2` (current). Returns an empty Map for either case
+ * if the field is missing.
+ *
+ * Returns a `Map<name, { reason, blockedVersions?, allowedVersions? }>`.
+ * The `blockedVersions` and `allowedVersions` strings are passed
+ * through to `parseVersionConstraint()` at check time.
+ */
+export function parseVersionConstraints(path = denyListPath) {
+  if (!existsSync(path)) return new Map();
+  let text;
+  try {
+    text = readFileSync(path, 'utf8');
+  } catch {
+    return new Map();
+  }
+  let parsed;
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    return new Map();
+  }
+  if (!parsed || typeof parsed !== 'object') return new Map();
+  const raw = parsed.versionConstraints;
+  if (!raw || typeof raw !== 'object') return new Map();
+  const out = new Map();
+  for (const [name, entry] of Object.entries(raw)) {
+    if (entry && typeof entry === 'object') {
+      out.set(name, entry);
+    }
+  }
+  return out;
+}
+
+/**
  * Run `npm ls --all --json` and return the parsed tree. Returns `null`
  * on failure (timeout, non-zero exit, parse error). The script exits
  * 1 if this fails — npm ls is the source of truth.
