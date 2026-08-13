@@ -2,7 +2,7 @@
 
 Status: done
 baseline_commit: cad9a34 (S01.9 done)
-final_commit: <to be filled after push>
+final_commit: 02654e0 (S01.10 done)
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
