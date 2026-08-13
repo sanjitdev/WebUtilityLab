@@ -52,3 +52,9 @@ Icon?
 *.msm
 *.msp
 *.lnk
+
+# Local CI overrides — defensive (see S01.5 AC11). A maintainer
+# debugging a failing CI step may add `ci.local.yml` with overrides;
+# we don't want it committed. The committed workflow is `ci.yml`.
+.github/workflows/*.local.yml
+.github/workflows/*.local.yaml

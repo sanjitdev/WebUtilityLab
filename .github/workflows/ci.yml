@@ -1,0 +1,65 @@
+name: ci
+
+# WebUtilityLab CI — runs the full gate on every push to main and every
+# pull request targeting main. This is the load-bearing Privacy Baseline
+# check: a contributor cannot merge a change that drops a test, fails
+# TypeScript, breaks the source-map policy, or ships forbidden patterns
+# (telemetry hosts, @font-face, network-call APIs in source) because CI
+# gates the merge.
+#
+# Why both push and pull_request: PRs are where contributors actually
+# push code; main-only would let a draft PR rot without validation.
+#
+# Why ubuntu-latest: cheapest GitHub-hosted runner; matches the Linux
+# environment the static dist/ deploys to (R2).
+#
+# Why npm ci (not npm install): installs from package-lock.json without
+# mutating it. Aligns with the "dependency pinning" posture (S01.11)
+# and prevents surprise lockfile changes mid-CI.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  ci:
+    name: ci
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies (npm ci)
+        run: npm ci
+
+      - name: Run svelte-check + tsc
+        run: npm run check
+
+      - name: Run vitest
+        run: npm test
+
+      - name: Run vite build + source-map cleanup
+        run: npm run build
+
+      - name: Run audit:privacy (static walk)
+        run: npm run audit:privacy
+
+      # Defense-in-depth: even if scripts/build-cleanup.mjs regressed
+      # silently and audit-privacy's distFiles filter missed it, this
+      # explicit find-based assertion catches it. Exits non-zero if
+      # any .map file ships in dist/.
+      - name: Assert no .map files in dist/
+        run: |
+          if [ -n "$(find dist -name '*.map' 2>/dev/null)" ]; then
+            echo "::error::source-map file(s) found in dist/:"
+            find dist -name '*.map'
+            exit 1
+          fi

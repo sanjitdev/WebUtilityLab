@@ -8,6 +8,19 @@ A local-first, browser-based utility toolbox. The first product is **CSV Rescue*
 
 This repository currently holds the planning artifacts produced by a BMad planning chain — brief, PRD, UX spines, architecture spine, and solution design — plus the BMad tooling that produced them. The product itself has not been implemented yet.
 
+## CI
+
+GitHub Actions runs the full Privacy Baseline gate on every push to `main` and on every pull request targeting `main`:
+
+- `npm ci` — clean install from the committed lockfile.
+- `npm run check` — svelte-check + tsc.
+- `npm test` — Vitest suite (source-map policy, worker boundary, smoke, boundary).
+- `npm run build` — Vite production build + post-build source-map cleanup.
+- `npm run audit:privacy` — static walk over `dist/`, `src/`, `scripts/`, and `index.html` for forbidden hosts, `@font-face`, and network-call APIs.
+- Explicit `find dist -name '*.map'` assertion (defense-in-depth).
+
+To enforce merge-time gating: in repo settings → Branches → Branch protection rules for `main`, enable "Require status checks to pass before merging" and select `ci` as the required check.
+
 ## Privacy Baseline (ship gate)
 
 CSV Rescue's privacy posture is enforced by CI, not by maintainer discipline. The headline claim:
