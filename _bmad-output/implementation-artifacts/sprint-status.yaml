@@ -42,6 +42,7 @@
 
 generated: 2026-08-12
 last_updated: 2026-08-13
+# S02.6 story created 2026-08-13 — see 2-6-editorial-posture-sanity-system-ui-no-font-face.md
 project: WebUtilityLab
 project_key: NOKEY
 tracking_system: file-system
@@ -70,7 +71,7 @@ development_status:
   2-3-theme-toggle-svelte-aria-pressed-cross-tab-sync: done
   2-4-page-chrome-semantic-header-nav-main-footer: done
   2-5-focus-ring-rule-2px-accent-2px-offset: done
-  2-6-editorial-posture-sanity-system-ui-no-font-face: backlog
+  2-6-editorial-posture-sanity-system-ui-no-font-face: review
   epic-2-retrospective: optional
 
   # E03 — Dropzone & file picker
