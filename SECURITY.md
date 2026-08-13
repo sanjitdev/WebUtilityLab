@@ -61,6 +61,35 @@ npm run audit:privacy                  # exits 0; prints "[audit-privacy] OK (st
 grep -r 'sourceMappingURL' dist/       # → no matches
 ```
 
+## What leaves the user's browser
+
+The Privacy Baseline's load-bearing claim is the **runtime inventory**: the
+list of every network request the user's browser makes when loading and
+operating WebUtilityLab. Today the inventory is exactly the same-origin
+assets the page serves:
+
+- `index.html` — the page itself
+- `assets/index-*.css` — the bundled stylesheet
+- `assets/index-*.js` — the bundled application code
+- `favicon.ico` (or the empty 204 placeholder, depending on browser)
+
+**And nothing else.** Every other request — analytics endpoints,
+telemetry beacons, font CDNs, error reporters, third-party scripts —
+is structurally forbidden by the Privacy Baseline. The
+`scripts/audit-behavior.mjs` allowlist (`scripts/audit-behavior-allowlist.json`)
+is intentionally empty today; a future story that legitimately needs an
+external request must add an entry, with rationale, and the change is
+reviewable in git history.
+
+The behavioral audit (`scripts/audit-behavior.mjs`) is the load-bearing
+artifact that enforces this: it drives a real headless Chromium against
+the production build, listens on every `request` event, tags each as
+pre-load or post-load, and asserts both that no non-same-origin request
+fires AND that no request fires after `load`. A future contributor who
+introduces a runtime `fetch()` from a Svelte component, a dynamic
+`<script>` tag, or a service-worker registration will trip the assertion
+and CI will fail.
+
 ## Behavioral audit
 
 Beyond the static walk, the Privacy Baseline's "zero requests after `load`"
@@ -94,28 +123,42 @@ catches what the static walk misses. CI runs it on every push and PR
 
 ## Build-time tooling
 
-The privacy claim covers **runtime**, not build-time dev tooling. Two
-dev-side effects are known and intentional — and the `check-deps`
-gate (above) protects the build-time as well as runtime attack
-surface by failing CI on any package known to phone home before
-the test suite runs:
+The Privacy Baseline covers **runtime in the user's browser**. Build-time
+network calls happen on the maintainer's machine or CI runners and are
+documented here in full. Each entry follows a fixed template so a future
+contributor who adds a new build-time call can copy the shape:
 
-1. **Playwright browser-binary download.** `playwright` is a devDependency
-   (added in S01.6, pinned to `1.62.1`). Running
-   `npx playwright install chromium` downloads ~115 MB of browser
-   binaries from `playwright.azureedge.net` (Microsoft's CDN, used by
-   Playwright's distribution). This is a **build-time install** — the
-   user's browser never contacts that host; only the maintainer's
-   machine does, and only when the browser is first installed. CI
-   runs this step on `ubuntu-latest` runners.
+```
+### N. <Tool or Package>
+- **Package/Tool**: <name>@<version> (exact pin per S01.11) OR <tool name>
+- **Host(s)**: <host1>, <host2> (operator / purpose)
+- **Data transferred**: <size> <content class>. Never any user data.
+- **Frequency**: <first install / every CI run / every npm install>
+- **User impact**: zero. The user's browser never contacts this host.
+- **Rationale**: <why this is necessary for the build / test pipeline>
+```
 
-2. **`npm ci` lockfile fetch.** `npm ci` (used by CI per S01.5) fetches
-   packages from the npm registry. This is part of every Node project's
-   build pipeline; not specific to WebUtilityLab. The published
-   `package.json` declares exact-version pins (S01.11) so the
-   lockfile is byte-stable across installs.
+The `check-deps` gate (below) protects the build-time as well as runtime
+attack surface by failing CI on any package known to phone home before
+the test suite runs.
 
-S01.8 (Pin dev-dep note) formalizes this disclosure.
+### 1. Playwright browser-binary download
+
+- **Package/Tool**: `playwright@1.62.1` (exact pin per S01.11, added in S01.6)
+- **Host(s)**: `playwright.azureedge.net` (Microsoft's CDN; used by Playwright's distribution)
+- **Data transferred**: ~115 MB Chromium browser binaries (compressed). **Never any user data. Never any source-map content. Never any project source.**
+- **Frequency**: First install per machine per Playwright version. CI runs `npx playwright install chromium --with-deps` on every push.
+- **User impact**: zero. The user's browser never contacts this host. Binaries are cached at `~/.cache/ms-playwright/` (maintainer's machine) and `/root/.cache/ms-playwright/` (`ubuntu-latest` CI runners).
+- **Rationale**: the behavioral Privacy Baseline audit (`scripts/audit-behavior.mjs`, see `## Behavioral audit` below) requires a real headless Chromium to drive the production build. No alternative — the audit would be a static walk that misses runtime `fetch()` calls if it ran without a real browser.
+
+### 2. `npm ci` lockfile fetch
+
+- **Package/Tool**: `npm` (called via `npm ci` in `.github/workflows/ci.yml` and by maintainer locally)
+- **Host(s)**: `registry.npmjs.org` (npm registry; default registry for every npm install)
+- **Data transferred**: the project's `package-lock.json` — every direct and transitive dep declared in the project's pinned manifest. **Never any user data. The lockfile is byte-stable across installs because `package.json` declares exact-version pins (S01.11).**
+- **Frequency**: every CI run; every `npm install` / `npm ci` on the maintainer's machine.
+- **User impact**: zero. The user's browser never contacts this host.
+- **Rationale**: standard Node build pipeline. There is no Node project that doesn't fetch deps from a registry; the choice of registry is the npm default.
 
 ## Dependency-tree gate
 
@@ -189,3 +232,37 @@ dep-tree gate prevents.
 
 CI runs `check:deps` after `npm ci` and before `npm run check` so a
 PR adding a bad dep fails the cheapest check first.
+
+## Why this is structural, not aspirational
+
+The Privacy Baseline is enforced by **three independent gates**, each
+catching a different threat model:
+
+1. **Static walk** (`scripts/audit-privacy.mjs`) — scans source, bundle,
+   and scripts for forbidden host strings (`google-analytics.com`,
+   `sentry.io`, …) and forbidden source-call APIs (`fetch`,
+   `XMLHttpRequest`, `navigator.sendBeacon`, …). Catches source-level
+   regressions that compile into the bundle.
+2. **Behavioral walk** (`scripts/audit-behavior.mjs`) — boots the
+   production build in real Chromium and asserts zero non-same-origin
+   network requests after `load`. Catches runtime regressions — lazy
+   `fetch()` from a Svelte component, dynamic `<script>` injection, a
+   third-party SDK's startup handshake that the static walk missed.
+3. **Dependency-tree gate** (`scripts/check-deps.mjs`) — walks the full
+   installed dependency tree and asserts no package is on a
+   hand-maintained denylist of known "phones home" packages
+   (`scripts/check-deps-denylist.json`). Catches install-level
+   regressions — a benign-looking SDK that the contributor never calls
+   and the bundle never imports.
+
+Every gate runs on every push and every PR (see
+`.github/workflows/ci.yml`). A future contributor cannot merge a change
+that violates any of the three without a CI failure. No "we should
+remember to" — the gates remember; the gates enforce.
+
+This is what "structural" means: the privacy claim is verifiable by
+running three commands (`npm run audit:privacy`, `npm run audit:behavior`,
+`npm run check:deps`) and reading two files (`scripts/check-deps-denylist.json`,
+`scripts/audit-behavior-allowlist.json`). Disabling any gate is a one-PR
+change that will be reviewed and (presumably) rejected. The audit trail
+is the git history of those files.
