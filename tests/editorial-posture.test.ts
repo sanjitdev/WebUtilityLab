@@ -299,12 +299,15 @@ describe('editorial-posture (S02.6 system-ui / no font-face / zero network)', ()
     });
   });
 
-  describe('AC16h: scripts/audit-behavior.mjs exits 0', () => {
+  describe('AC16h: scripts/audit-behavior.mjs exits 0 (and AI-2.1 log-content contract)', () => {
     // audit-behavior.mjs boots `vite preview`, launches Chromium via
     // Playwright, runs a 2s post-load pause, then tears down. It takes
     // ~10-15s on a clean machine. Step-05 patch (review #1 finding):
     // raised to 60s to give slack on slow CI runners (was 30s). The
-    // default Vitest 5s timeout is insufficient.
+    // default Vitest 5s timeout is insufficient. Step-05 patch (review
+    // #3 finding): the exit-code-only test vacuously passes if the
+    // script is a no-op; verify the actual log-content contract for
+    // AI-2.1 (page chrome summary line gating + --verbose opt-in).
     it('node scripts/audit-behavior.mjs returns exit code 0', () => {
       const result = spawnSync('node', ['scripts/audit-behavior.mjs'], {
         cwd: repoRoot,
@@ -313,6 +316,49 @@ describe('editorial-posture (S02.6 system-ui / no font-face / zero network)', ()
       // Same defensive guard as AC16g — surface spawn errors.
       if (result.error) throw result.error;
       expect(result.status, result.stderr ?? result.stdout).toBe(0);
+    }, 60_000);
+    // Step-05 patch (review #3 finding): verify the AI-2.1 log-content
+    // contract — in default mode the "page chrome partial" info log is
+    // silent, and the happy-path "page chrome: all landmarks present"
+    // summary fires. The 60s timeout from the exit-code test above is
+    // reused (one full boot + 2s post-load pause + teardown per run).
+    it('default-mode stdout: happy-path "all landmarks present" summary; no "page chrome partial" breadcrumb', () => {
+      const result = spawnSync('node', ['scripts/audit-behavior.mjs'], {
+        cwd: repoRoot,
+        encoding: 'utf8',
+      });
+      if (result.error) throw result.error;
+      const stdout = result.stdout ?? '';
+      // Default mode: the chrome is complete (S02.4 + S03.1 shipped),
+      // so the summary line MUST fire.
+      expect(stdout).toContain('page chrome: all landmarks present');
+      // Default mode: the partial-chrome breadcrumb MUST NOT fire.
+      expect(stdout).not.toMatch(/page chrome selectors not all present/);
+      expect(stdout).not.toMatch(/page chrome: partial/);
+      expect(result.status, result.stderr ?? stdout).toBe(0);
+    }, 60_000);
+    // --verbose opt-in: when partial-chrome state occurs (regression),
+    // verbose mode re-emits the breadcrumb. On the happy path (current
+    // production build), --verbose mode behaves the same as default —
+    // the AI-2.1 log noise stays silent. Verifying --verbose does NOT
+    // regress to the noisy multi-breadcrumb behavior of pre-patch-3.
+    it('--verbose stdout: does NOT regress to the pre-patch-3 "selectors not all present" breadcrumb', () => {
+      const result = spawnSync('node', ['scripts/audit-behavior.mjs', '--verbose'], {
+        cwd: repoRoot,
+        encoding: 'utf8',
+      });
+      if (result.error) throw result.error;
+      const stdout = result.stdout ?? '';
+      // --verbose mode on happy path: same contract as default mode.
+      // The pre-patch-3 "selectors not all present" info log is gone
+      // (Step-05 patch 3 deduplication); --verbose does NOT re-introduce it.
+      expect(stdout).not.toMatch(/page chrome selectors not all present/);
+      // Happy-path "all landmarks present" summary line still fires
+      // (the end-of-main structured summary is unchanged by --verbose on
+      // the happy path — it fires in both modes; patch 3 only removed
+      // the duplicate mid-sequence breadcrumb, not this summary).
+      expect(stdout).toContain('page chrome: all landmarks present');
+      expect(result.status, result.stderr ?? stdout).toBe(0);
     }, 60_000);
   });
 

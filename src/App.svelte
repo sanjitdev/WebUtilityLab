@@ -18,6 +18,7 @@
    * siblings under the App.svelte root.
    */
   import ThemeToggle from './components/ThemeToggle.svelte';
+  import Dropzone from './components/Dropzone.svelte';
 </script>
 
 <a class="skip-link" href="#main">Skip to main content</a>
@@ -35,7 +36,7 @@
 </header>
 
 <main id="main" tabindex="-1" class="page-main">
-  <!-- E03 lands the dropzone here. -->
+  <Dropzone />
 </main>
 
 <footer class="page-footer">

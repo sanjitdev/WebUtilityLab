@@ -228,14 +228,14 @@ async function runSequence(page, previewUrl, allowlistRegexes, log) {
     landmarkState[sel] = visible;
   }
   const allLandmarksPresent = landmarks.every((s) => landmarkState[s]);
-  if (!allLandmarksPresent) {
-    log(
-      `  (info) page chrome selectors not all present yet — ` +
-        `${Object.entries(landmarkState)
-          .map(([k, v]) => `${k}=${v}`)
-          .join(' ')} (expected once E02 lands)`,
-    );
-  }
+  // Step-05 patch (review #3 finding): the mid-sequence "page chrome
+  // selectors not all present" info log AND the end-of-main "page
+  // chrome: partial — …" summary line both fired with overlapping
+  // info, doubling the noise on a regression. Pick one — the
+  // end-of-main summary (more structured, runs after the full
+  // sequence) — and suppress the mid-sequence breadcrumb entirely.
+  // The `verbose` flag is moot for this specific log; remove the
+  // gated branch entirely.
 
   // Final anomaly list — any post-load request is anomalous on the empty page.
   const anomalies = allRequests.filter((r) => {
@@ -264,6 +264,17 @@ async function runSequence(page, previewUrl, allowlistRegexes, log) {
 
 async function main() {
   const log = (msg) => console.log(`[audit-behavior] ${msg}`);
+  // AI-2.1 (S03.1 fold-in) + Step-05 patch (review #5 finding): the
+  // "page chrome partial" info log has been noisy since E01. With
+  // S02.4 + S03.1, "partial" is now an unexpected state; the
+  // end-of-main summary line is the user-facing reporting (one place
+  // only — see Patch 3 that removed the duplicate mid-sequence log).
+  // The partial-chrome summary is gated behind --verbose so
+  // contributors debugging a regression can still see it; default
+  // mode stays silent. The --verbose parse uses strict equality
+  // (`find((a) => a === '--verbose')`) so a `--log-file=--verbose`
+  // argument is NOT misclassified as the verbose flag.
+  const verbose = process.argv.find((a) => a === '--verbose') !== undefined;
 
   if (!existsSync(distDir)) {
     console.error(`[audit-behavior] ${distDir} not found. Run \`npm run build\` first.`);
@@ -312,9 +323,23 @@ async function main() {
           `post-load: ${result.postLoadAnomalies.length})`,
       );
       log(`service-worker registrations: ${result.serviceWorkerRegs}`);
-      log(
-        `page chrome: ${result.allLandmarksPresent ? 'all landmarks present' : 'partial (E02 pending)'}`,
-      );
+      // AI-2.1 (S03.1 fold-in): the prior wording "page chrome
+      // partial (E02 pending)" was an E01-era placeholder. With
+      // S02.4 + S03.1, the chrome is canonical (header / nav / main /
+      // footer all present). In default mode we log the positive
+      // "all landmarks present" signal only when the chrome is
+      // complete; the unexpected "partial" state is logged behind
+      // --verbose so contributors debugging a regression can still
+      // see it.
+      if (result.allLandmarksPresent) {
+        log(`page chrome: all landmarks present`);
+      } else if (verbose) {
+        log(
+          `page chrome: partial — ${Object.entries(result.landmarkState)
+            .map(([k, v]) => `${k}=${v}`)
+            .join(' ')}`,
+        );
+      }
 
       const allowedRequests =
         result.totalRequests - result.preLoadAnomalies.length - result.postLoadAnomalies.length;
