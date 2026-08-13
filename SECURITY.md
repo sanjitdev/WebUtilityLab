@@ -60,3 +60,56 @@ find dist -name '*.map' | wc -l        # → 0
 npm run audit:privacy                  # exits 0; prints "[audit-privacy] OK (static walk) · …"
 grep -r 'sourceMappingURL' dist/       # → no matches
 ```
+
+## Behavioral audit
+
+Beyond the static walk, the Privacy Baseline's "zero requests after `load`"
+claim is verified at the **actual browser level** by
+`scripts/audit-behavior.mjs`, invoked as `npm run audit:behavior`. The
+script:
+
+1. Spawns `vite preview` against the production `dist/` on a free port.
+2. Drives a real headless Chromium against the preview URL.
+3. Listens on every `request` event from navigation start.
+4. Waits for `load`, then pauses 2 seconds to catch lazy `fetch()` /
+   dynamic `import()` calls that fire after initial render.
+5. Asserts `navigator.serviceWorker.getRegistrations()` returns an empty
+   list. A future contributor who accidentally registers a service
+   worker will trip this assertion.
+6. Asserts no request is anomalous. A request is anomalous if it is
+   not same-origin AND does not match a regex in
+   `scripts/audit-behavior-allowlist.json`. Any post-load request on
+   the empty page is anomalous.
+
+The "drop → results → modal → close" interaction sequence from
+epics.md §"Acceptance test" #4 lands incrementally as E03–E11 ship. The
+blocks are present in `audit-behavior.mjs` behind `// TODO: E03+` (etc.)
+markers so future contributors know exactly where to extend.
+
+**Why this is the load-bearing check.** A static source-walk can miss
+runtime `fetch()` calls introduced by lazy modules, dynamic imports,
+or third-party code embedded in dependencies. The behavioral check
+catches what the static walk misses. CI runs it on every push and PR
+(see `.github/workflows/ci.yml`).
+
+## Build-time tooling
+
+The privacy claim covers **runtime**, not build-time dev tooling. Two
+dev-side effects are known and intentional:
+
+1. **Playwright browser-binary download.** `playwright` is a devDependency
+   (added in S01.6, pinned to `1.62.1`). Running
+   `npx playwright install chromium` downloads ~115 MB of browser
+   binaries from `playwright.azureedge.net` (Microsoft's CDN, used by
+   Playwright's distribution). This is a **build-time install** — the
+   user's browser never contacts that host; only the maintainer's
+   machine does, and only when the browser is first installed. CI
+   runs this step on `ubuntu-latest` runners.
+
+2. **`npm ci` lockfile fetch.** `npm ci` (used by CI per S01.5) fetches
+   packages from the npm registry. This is part of every Node project's
+   build pipeline; not specific to WebUtilityLab. The published
+   `package.json` declares exact-version pins (S01.11) so the
+   lockfile is byte-stable across installs.
+
+S01.8 (Pin dev-dep note) formalizes this disclosure.

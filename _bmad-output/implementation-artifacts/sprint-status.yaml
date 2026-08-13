@@ -55,7 +55,7 @@ development_status:
   1-3-configure-production-build-with-hidden-source-map: done
   1-4-add-license-mit-full-text: done
   1-5-github-actions-ci-test-build-audit-privacy: done
-  1-6-devtools-behavioral-verification-script: backlog
+  1-6-devtools-behavioral-verification-script: done
   1-7-per-epic-dep-tree-no-network-check: backlog
   1-8-pin-dev-dep-note-playwright-browser-binary: backlog
   1-9-bundle-budget-gate-200kb-gzipped: backlog

@@ -52,6 +52,17 @@ jobs:
       - name: Run audit:privacy (static walk)
         run: npm run audit:privacy
 
+      # Behavioral audit — boots `vite preview` and drives a real Chromium
+      # against the production build. Catches what the static walk misses:
+      # post-load lazy fetches, dynamic <script> injection, runtime fetch()
+      # from third-party code, and accidental service-worker registrations.
+      # See scripts/audit-behavior.mjs for the load-bearing assertions.
+      - name: Install Playwright Chromium browser
+        run: npx playwright install chromium --with-deps
+
+      - name: Run audit:behavior (boot preview + drive Chromium)
+        run: npm run audit:behavior
+
       # Defense-in-depth: even if scripts/build-cleanup.mjs regressed
       # silently and audit-privacy's distFiles filter missed it, this
       # explicit find-based assertion catches it. Exits non-zero if
