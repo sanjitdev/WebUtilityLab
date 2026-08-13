@@ -9,7 +9,30 @@
       the wordmark; CSS variables and a system-ui stack handle type.
       Story 1.1 ships the minimum mount point + title; the rest of the
       page chrome (header, footer, theme seed script) lands in E02.
+
+      Story 2.2 lands the inline theme-seed script: reads
+      localStorage.wul-theme, falls back to prefers-color-scheme, and
+      flips `<html class="dark">` BEFORE first paint to prevent FOUC.
+      AD-7 (theme contract) is half-closed by this seed; S02.3 closes
+      the other half with the toggle button + persistence + live-region
+      announcement. The script is intentionally classic (no type="module",
+      no defer/async) so it executes synchronously during parse.
     -->
+    <script>
+      (function () {
+        try {
+          var stored = localStorage.getItem('wul-theme');
+          var mode = (stored === 'dark' || stored === 'light')
+            ? stored
+            : (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+          if (mode === 'dark') {
+            document.documentElement.classList.add('dark');
+          }
+        } catch (_) {
+          // localStorage may throw in privacy-strict browsers; default to light.
+        }
+      })();
+    </script>
     <title>WebUtilityLab / CSV Rescue</title>
   </head>
   <body>

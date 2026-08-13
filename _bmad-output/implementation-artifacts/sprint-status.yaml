@@ -66,7 +66,7 @@ development_status:
   # E02 — Visual tokens, theme, empty page chrome
   epic-2: in-progress
   2-1-copy-tokens-into-tokens-css: done
-  2-2-inline-theme-seed-script-in-index-html: backlog
+  2-2-inline-theme-seed-script-in-index-html: done
   2-3-theme-toggle-svelte-aria-pressed-cross-tab-sync: backlog
   2-4-page-chrome-semantic-header-nav-main-footer: backlog
   2-5-focus-ring-rule-2px-accent-2px-offset: backlog
