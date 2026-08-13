@@ -17,8 +17,12 @@
  *   - skip-link is the first tab stop, visually hidden until focused
  *   - the header's <nav> uses aria-label="Page"
  *   - the wordmark separator is aria-hidden
- *   - S02.5 expands the :focus-visible rule; this file's nav-link
- *     `:hover` / `:focus-visible` lift is a placeholder until then.
+ *   - the global :focus-visible rule (tokens.css) handles focus rings
+ *     on every focusable element; the chrome-specific focus rules
+ *     were promoted to tokens.css in S02.5.
+ *   - the .nav-privacy :hover / :focus-visible color lift is editorial
+ *     (a hover signal), NOT a focus ring; the focus ring comes from
+ *     the global rule.
  *
  * AD-10 (editorial): the wordmark stays in sentence case ("CSV Rescue",
  * not "Csv Rescue" or "CSV RESCUE"); the chrome has no marketing copy;
@@ -147,29 +151,6 @@ body {
 }
 
 /*
- * Main must be focusable to receive programmatic focus from the
- * skip-link. The tabindex="-1" is on the element itself in the
- * markup; this CSS ensures the focus ring shows. AD-9 / S02.5 will
- * canonicalize this to a global :focus-visible rule; the placeholder
- * below matches the canonical shape (2px solid var(--accent), 2px
- * offset) so that S02.5 only needs to *promote* the rule rather than
- * introduce a new one.
- *
- * Review #1 patch (S02.4): the original placeholder used
- * `outline: none`, which is an a11y regression (kills the browser's
- * default focus ring on a focusable element). Replaced with the
- * canonical 2px solid var(--accent) ring at 2px offset, using only
- * tokens that already exist in tokens.css. This is a strict subset
- * of what S02.5 will land globally, so the promotion is a no-op for
- * the chrome and the focus ring is visible today.
- */
-.page-main:focus,
-.page-main:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
-
-/*
  * Footer — empty placeholder. Top border mirrors the header; muted
  * ink color (--graphite) signals low-emphasis visual weight.
  */
@@ -186,7 +167,7 @@ body {
  * 180ms theme transition; the chrome has no motion outside what
  * S02.5 introduces.
  *
- * Review #1 patch (S02.4): deleted the empty
+ * S02.4 deleted the empty
  * `@media (prefers-reduced-motion: no-preference) { /* placeholder *\ }`
  * block that was staked out for S02.5. Dead rules drift; S02.5 will
  * add its own media query when it lands. Removing the empty block
