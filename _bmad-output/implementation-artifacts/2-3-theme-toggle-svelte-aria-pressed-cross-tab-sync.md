@@ -2,7 +2,7 @@
 
 Status: done
 baseline_commit: 53b56ba8d6cd3fc12add2d8f531ea1cff2ec8792
-final_commit: <to be filled after push>
+final_commit: 92823f7
 review_loop_iteration: 1
 
 > **Loop protocol (mandatory).** This story must pass Review #1 (coderabbit), Review #2 (bmad-code-review), and the production-readiness gate before being marked `done`. See `docs/loop-protocol.md`. `S02.3` lands the user-facing theme toggle component, closing AD-7's "no FOUC + persisted preference + live-region announcement" half. S02.1 put the token contract in `tokens.css`; S02.2 landed the inline seed that prevents first-paint flicker; S02.3 is the interactive component — the only place in the codebase that writes `wul-theme` to `localStorage` and the second `documentElement.classList` mutation surface (the seed is the first; both are explicitly enumerated in the AC11g follow-up maintenance patch in S02.2). Without S02.3, the theme is purely system-preference-driven and the user has no way to override.
