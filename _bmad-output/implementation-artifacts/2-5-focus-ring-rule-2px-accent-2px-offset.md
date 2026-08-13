@@ -2,7 +2,7 @@
 
 Status: done
 baseline_commit: b1b18f51302978d3744eec71e44c84c481e53305
-final_commit: <to be filled after push>
+final_commit: fdb8a37
 
 > **Loop protocol (mandatory).** This story must pass Review #1 (coderabbit), Review #2 (bmad-code-review), and the production-readiness gate before being marked `done`. See `docs/loop-protocol.md`. `S02.5` is the **focus-and-motion** story — it closes the user-visible half of AD-9 (visible focus rings on every focusable element) and the motion half of AD-7 (the 180ms theme transition gated behind `prefers-reduced-motion: no-preference`). Before this story, the focus ring lived only in a one-line placeholder inside `tokens.css` (a `2px solid var(--accent)` rule applied to `:focus-visible`), the chrome's `.page-main:focus` was an S02.4-to-S02.5 placeholder that needed to be promoted or removed, and the theme transition simply did not exist (the seed's class flip is instant on first paint; toggling the theme in the S02.3 button is also instant). After this story, every focusable element shows the canonical 2px solid `var(--accent)` ring at 2px offset on keyboard focus, the toggle's theme flip animates color and background over 180ms, and users with `prefers-reduced-motion: reduce` see the instant flip (no motion, no spinners, no animation).
 
