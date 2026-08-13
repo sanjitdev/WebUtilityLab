@@ -44,6 +44,7 @@
 generated: 2026-08-12
 last_updated: 2026-08-13
 # S02.6 story created 2026-08-13 — see 2-6-editorial-posture-sanity-system-ui-no-font-face.md
+# S03.2 done 2026-08-13 — see 3-2-drag-and-drop-handler-paste-handler.md
 project: WebUtilityLab
 project_key: NOKEY
 tracking_system: file-system
@@ -78,7 +79,7 @@ development_status:
   # E03 — Dropzone & file picker
   epic-3: in-progress
   3-1-real-button-dropzone-opens-file-picker: review
-  3-2-drag-and-drop-handler-paste-handler: ready-for-dev
+  3-2-drag-and-drop-handler-paste-handler: done
   3-3-50-mb-cap-check-before-reading: backlog
   3-4-file-name-reveal-in-aria-live-region: backlog
   3-5-empty-state-copy-from-experience-md: backlog

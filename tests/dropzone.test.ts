@@ -237,12 +237,14 @@ describe('dropzone (S03.1 real <button> dropzone opens file picker)', () => {
     it('Dropzone.svelte does NOT wire addEventListener("change", …) (imperative DOM API bypass)', () => {
       expect(dropzoneSource).not.toMatch(/\baddEventListener\s*\(\s*['"]change['"]/);
     });
-    it('Dropzone.svelte does NOT contain onMount(…) (no imperatively-mounted accept handler)', () => {
-      // Belt-and-suspender: a future contributor might add an
-      // `onMount(() => fileInput.addEventListener('change', …))`.
-      // Pinning `onMount(` absent keeps S03.1 purely declarative.
-      expect(dropzoneSource).not.toMatch(/\bonMount\s*\(/);
-    });
+    // NOTE: the prior pin `Dropzone.svelte does NOT contain onMount(…)`
+    // was removed in S03.2. S03.2 adds the paste handler via onMount,
+    // so the dropzone now legitimately contains onMount. The S03.2
+    // test (tests/dropzone-drag-paste.test.ts AC18b) replaces the
+    // onMount discipline: the paste handler MUST be in onMount, not
+    // the file picker change handler. The change-handler pin above
+    // (no @change / onchange / addEventListener('change')) still
+    // holds — S03.2 is drag-drop + paste ONLY.
   });
 
   describe('AC17f: zero hex literals in component CSS (AD-8)', () => {

@@ -20,3 +20,39 @@ Items surfaced by review layers and intentionally deferred from their triggering
   summary: AC16e second test misses unquoted `rel=stylesheet` — the regex requires `rel="stylesheet"` or `rel='stylesheet'` with quotes.
   evidence: Verification Gap "Other finding" — the spec doesn't promise unquoted-form coverage; HTML attribute values should always be quoted per the editorial posture. No real-world regression risk today.
 
+- source_spec: `_bmad-output/implementation-artifacts/3-2-drag-and-drop-handler-paste-handler.md`
+  summary: Add `dataTransfer.dropEffect = 'copy'` in `handleDragEnter`/`handleDragOver` so the cursor shows the proper "copy" feedback during drag-over instead of the default forbidden-state cursor.
+  evidence: Edge Case Hunter + Adversarial — dragenter/dragover currently only call preventDefault, no dropEffect. UX nice-to-have; spec doesn't mandate. Future story (probably S03.5 once the surrounding chrome lands) can land the cursor-feedback polish.
+
+- source_spec: `_bmad-output/implementation-artifacts/3-2-drag-and-drop-handler-paste-handler.md`
+  summary: `handleDragLeave` does not check `event.relatedTarget` — when S03.5/S03.6 wraps the dropzone in a container (heading, lede, teaching cards), the class will flicker as the cursor crosses internal nodes.
+  evidence: Adversarial + Edge Case Hunter — current implementation works only because the dropzone button has no children. Pre-emptively adding a `dragenter`/`dragleave` counter or `relatedTarget === null` guard would future-proof the visual. Best folded into S03.5 (when the container is added) or a dedicated S03.x polish story.
+
+- source_spec: `_bmad-output/implementation-artifacts/3-2-drag-and-drop-handler-paste-handler.md`
+  summary: Paste handler does not strip BOM (U+FEFF) or normalize CRLF→LF before the CSV-likeness heuristic; E06's parser is the right layer for that normalization.
+  evidence: Edge Case Hunter — Windows clipboard CSV (BOM-prefixed, CRLF-terminated) hits the gesture surface; the firstLine split on `'\n'` includes the trailing `\r` on Windows-pasted text. The parser (E06) is responsible for normalization per the architecture spine. Not S03.2's job; defer to E06.
+
+- source_spec: `_bmad-output/implementation-artifacts/3-2-drag-and-drop-handler-paste-handler.md`
+  summary: `handleDrop` only inspects `dataTransfer.files[0]`; dropping multiple files silently consumes the first and discards the rest without user feedback.
+  evidence: Edge Case Hunter — spec AC1 explicitly says `files[0]` is the accept; multi-file UX is not in S03.2 scope. Defer to a later story if multi-file ingest becomes a requirement (would need a teaching-card update, an error-toast surface, and a reducer shape change).
+
+- source_spec: `_bmad-output/implementation-artifacts/3-2-drag-and-drop-handler-paste-handler.md`
+  summary: Multiple `<Dropzone>` instances would each register a window-level `paste` listener; S03.2's design assumes a single instance.
+  evidence: Edge Case Hunter — current page has one Dropzone. A singleton guard or instance-scoped listener would future-proof if a multi-zone layout ever lands. Defer until a second dropzone is needed.
+
+- source_spec: `_bmad-output/implementation-artifacts/3-2-drag-and-drop-handler-paste-handler.md`
+  summary: Paste handler does not check `event.isTrusted`; a synthetic paste event dispatched by an extension or XSS payload would be accepted by the heuristic and forwarded to the reducer.
+  evidence: Adversarial — the broader privacy contract (audit-privacy.mjs walking the bundle for any third-party CDN or telemetry endpoint) catches the high-impact cases. A defense-in-depth `event.isTrusted` check would be cheap but is not required for the MVP. Defer to a hardening pass.
+
+- source_spec: `_bmad-output/implementation-artifacts/3-2-drag-and-drop-handler-paste-handler.md`
+  summary: Image pastes (`clipboardData.files` contains an image) are silently dropped with no user feedback.
+  evidence: Edge Case Hunter — UX issue (user pastes screenshot, nothing happens). Not in scope for S03.2 (CSV-text-paste per FR-1). Defer to a UX-polish story that adds a "CSV text only — images not accepted" hint to the empty state copy (S03.5).
+
+- source_spec: `_bmad-output/implementation-artifacts/3-2-drag-and-drop-handler-paste-handler.md`
+  summary: Window-level paste handler calls `preventDefault()` on every paste, intercepting pastes into any focused `<input>` (password fields, devtools prompt, future form inputs).
+  evidence: Adversarial + Edge Case Hunter — the spec is intentional ("pasting is a window gesture"). A guard like `if (event.target !== document.body) return;` (or scoping the listener to only fire when focus is on body/dropzone) would be friendlier. Defer — would need spec update to change the intentional design.
+
+- source_spec: `_bmad-output/implementation-artifacts/3-2-drag-and-drop-handler-paste-handler.md`
+  summary: `handleDrop` does not check `disabled` state on the button; S03.2 ships with the button always enabled, but a future "loading" / "processing" state may want to disable drag-accept.
+  evidence: Edge Case Hunter — `disabled` state lands with the "processing" branch in E04 (S04.5 cancel from processing). The disabled-button guard would naturally land alongside that work. Defer to E04.
+
