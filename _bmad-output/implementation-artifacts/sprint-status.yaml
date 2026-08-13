@@ -60,7 +60,7 @@ development_status:
   1-8-pin-dev-dep-note-playwright-browser-binary: done
   1-9-bundle-budget-gate-200kb-gzipped: done
   1-10-transitive-telemetry-scanner: done
-  1-11-dependency-pinning-exact-versions-npm-ci: backlog
+  1-11-dependency-pinning-exact-versions-npm-ci: done
   epic-1-retrospective: optional
 
   # E02 — Visual tokens, theme, empty page chrome

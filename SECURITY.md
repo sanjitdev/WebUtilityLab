@@ -269,6 +269,83 @@ Auto-detectors false-positive on UI libraries that use `fetch()` for
 normal XHR; the maintainer's judgment is the simpler and more
 accurate gate.
 
+### Dependency pinning (S01.11)
+
+The dep-tree gates above (S01.7, S01.10) read `node_modules/` and
+assert the installed dep tree is clean. Those assertions are only
+meaningful if `node_modules/` itself is **reproducible across
+machines**. Reproducibility starts at install time, and the install
+posture is structural, not aspirational.
+
+**The pinning contract:**
+
+1. **`package.json` declares exact versions for every direct
+   devDependency.** No `^` / `~` / `>=` / `<` / `*` / `latest` /
+   ranges. Every dep value is a strict `X.Y.Z` (optionally with a
+   pre-release tag, e.g. `1.2.3-beta.1`). Verified by
+   `tests/dependency-pinning.test.ts` (AC1).
+2. **`package-lock.json` is committed to git** and never listed in
+   `.gitignore`. `lockfileVersion: 3` (npm 7+ v3 format). Every
+   `packages[]` entry has a `sha512` `integrity` hash so the
+   lockfile is a byte-stable install contract. Verified by
+   `tests/dependency-pinning.test.ts` (AC2).
+3. **CI uses `npm ci`** (not `npm install`) for installs. `npm ci`
+   installs strictly from the lockfile and errors out if
+   `package.json` and `package-lock.json` disagree. This is the
+   load-bearing enforcement: even if a contributor's local install
+   somehow drifted, CI catches the drift on the next push. Verified
+   by `tests/dependency-pinning.test.ts` (AC3).
+4. **`.npmrc` enforces `save-exact=true`** so a contributor running
+   `npm install <pkg> --save-dev` writes an exact version, never
+   `^x.y.z`. Also sets `package-lock=true` (defends against an
+   accidental contributor-side `package-lock false` setting) and
+   `engine-strict=true` (enforces the `engines.node` field). This
+   is the contributor-side sibling to CI's `npm ci`. Verified by
+   `tests/dependency-pinning.test.ts` (AC4).
+
+**Why this is structural, not aspirational.** Without the pinning
+contract, a future contributor could `npm install <pkg> --save-dev`
+and write `"^1.2.3"`. The next `npm install` on a different machine
+would pull `1.2.7` (the latest matching version), which could
+contain telemetry code that the lockfile doesn't reflect. S01.7's
+name-keyed denylist and S01.10's per-version scanner would then
+read a different `node_modules/` than the one that was actually
+audited — and the privacy claim would silently regress. The pinning
+contract makes the dep tree byte-identical across every install
+and every CI run.
+
+**How to verify.**
+
+```bash
+# AC1: no ^ / ~ / range in package.json
+grep -E '"[\^~]' package.json | grep -v '#'   # → no matches
+
+# AC2: lockfile is committed, not gitignored, lockfileVersion 3
+git ls-files --error-unmatch package-lock.json
+grep '^package-lock.json$' .gitignore          # → no matches
+node -e "console.log(require('./package-lock.json').lockfileVersion)"  # → 3
+
+# AC3: CI uses npm ci, not npm install
+grep 'run: npm install' .github/workflows/ci.yml | grep -v '^[[:space:]]*#'   # → no matches
+grep 'run: npm ci' .github/workflows/ci.yml                                 # → matches
+
+# AC4: .npmrc has save-exact=true
+grep '^save-exact=true' .npmrc                # → matches
+
+# Dry-run lockfile sync check (clean state: exits 0)
+npm ci --dry-run                              # → exit 0
+
+# Run the canonical gate
+npm test -- tests/dependency-pinning.test.ts  # → 13 tests pass
+```
+
+**What "Done criterion" for the pinning posture looks like.** The
+contract is load-bearing for the dep-tree gates; a regression in
+the contract (e.g. someone introduces a `^` range, removes the
+lockfile, or changes CI to `npm install`) is a privacy-relevance
+change, not a build-convenience change. The pinning test file is
+the canonical gate; CI runs it via `npm test`.
+
 ## Why this is structural, not aspirational
 
 The Privacy Baseline is enforced by **four independent gates**, each
