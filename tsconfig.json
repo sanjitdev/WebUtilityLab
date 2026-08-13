@@ -19,8 +19,7 @@
     "allowSyntheticDefaultImports": true,
     "skipLibCheck": true,
     "types": ["svelte", "vite/client", "node"]
-}
-,
-  "include": ["src/**/*.ts", "src/**/*.svelte", "tests/**/*.ts", "vite.config.ts", "scripts/**/*.mjs"],
+  },
+  "include": ["src/**/*.ts", "src/**/*.svelte", "tests/**/*.ts", "vite.config.ts", "scripts/**/*.mjs", "scripts/**/*.d.mts"],
   "exclude": ["node_modules", "dist"]
 }

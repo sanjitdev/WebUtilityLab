@@ -35,7 +35,7 @@ import {
   realpathSync,
 } from 'node:fs';
 import { join, extname, relative } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const here = fileURLToPath(new URL('.', import.meta.url));
 const repoRoot = join(here, '..');
@@ -175,6 +175,24 @@ function scanFile(file, allowExtensions) {
   return null;
 }
 
+/**
+ * Source-map ship-gate predicate. Returns true if `filename` matches
+ * the `.map` artifact pattern that the audit flags as a hidden-source-map
+ * regression. Exported for Vitest (Story 1.3).
+ *
+ * Matches any filename or path containing `.map` followed by `.` or
+ * end-of-string, case-insensitive. Works on full paths (the regex matches
+ * a substring) or bare basenames equally.
+ *
+ * @param {string} filename - bare filename or full path
+ * @returns {boolean}
+ */
+export function isSourceMapArtifact(filename) {
+  // Match `.map`, `.js.map`, `.css.map`, `.map.json`, or any filename
+  // containing `.map.` segment (e.g. `chunk-abc.map` directory).
+  return /\.map(\.|$)/i.test(filename);
+}
+
 function main() {
   /** @type {string[]} */
   const findings = [];
@@ -193,7 +211,7 @@ function main() {
   }
 
   // Ship-gate: zero `.map` files in dist/.
-  const maps = distFiles.filter((f) => /\.map(\.|$)/i.test(f) || f.toLowerCase().endsWith('.map'));
+  const maps = distFiles.filter(isSourceMapArtifact);
   if (maps.length > 0) {
     findings.push(
       `${maps.length} source-map file(s) in dist/ — hidden-source-map policy regressed: ${maps.join(', ')}`,
@@ -245,4 +263,17 @@ function main() {
   process.exit(0);
 }
 
-main();
+// Entry-point gate: only execute when this module is the script invoked
+// by Node. Importing the module from Vitest skips `main()`, so tests see
+// a pure module with no filesystem walks and no `process.exit` calls.
+function isMainEntry() {
+  try {
+    return import.meta.url === pathToFileURL(process.argv[1]).href;
+  } catch {
+    return false;
+  }
+}
+
+if (isMainEntry()) {
+  main();
+}
