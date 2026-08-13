@@ -2,7 +2,7 @@
 
 Status: done
 baseline_commit: fdb8a37329ed2db20bc2cce95a23a32a14b29f5d
-final_commit: <to be filled after push>
+final_commit: 928889c
 
 > **Loop protocol (mandatory).** This story must pass Review #1 (coderabbit), Review #2 (bmad-code-review), and the production-readiness gate before being marked `done`. See `docs/loop-protocol.md`. `S02.6` is the **editorial-posture sanity** story — the final story in E02 — and it closes the user-visible half of E02's privacy claim by pinning, via a single canonical test gate, that the page renders the system font stack, ships zero `@font-face` declarations, and the built `dist/index.html` carries zero outbound network requests. Before this story, the editorial claims ("system-ui only", "no web fonts", "no external requests") live in scattered comments and the existing `scripts/audit-privacy.mjs` source-grep, but there is no dedicated test file that locks the claim at the dev's day-to-day `npm test` surface — a future contributor could add a `<link href="https://fonts.googleapis.com/...">` to `index.html` (it lives at the repo root and is NOT walked by `audit-privacy.mjs`'s `src/` + `scripts/` walk — actually it IS scanned separately, see line 244-249; this is a defense-in-depth double-pin), and the gate would still pass as long as `audit-privacy.mjs` didn't trip (it would, but the failure mode would be a script-level error rather than a focused test failure). After S02.6, a focused test file `tests/editorial-posture.test.ts` asserts every clause of the editorial posture at `npm test` time, with granular per-clause failure diagnostics, and the gate fails fast at the dev's editor — not at the CI script exit code.
 
