@@ -2,7 +2,7 @@
 
 Status: done
 baseline_commit: d432d34 (S03.1 spec + sprint-status; pre-implementation)
-final_commit: <to be filled after push>
+final_commit: 78811db14b526b1ad4ee4b3b5ed21d100d74a6b1
 
 > **Loop protocol (mandatory).** This story must pass Review #1 (coderabbit), Review #2 (bmad-code-review), and the production-readiness gate before being marked `done`. See `docs/loop-protocol.md`. `S03.1` lands the **first half** of the E03 user-visible gesture: a real `<button>` element renders inside `<main class="page-main">`, hidden `<input type="file">` underneath, hover lifts to `--accent-soft` background with `--accent` border, dragover thickens the border. Clicking the button opens the native file picker. **This story does NOT handle file accept, drag-and-drop file accept, paste, the 50 MB cap check, the strict-brief error path, the aria-live announcement, or the empty-state copy** — those are S03.2 (drag/drop + paste), S03.3 (50 MB cap), S03.4 (aria-live announcement), S03.5 (empty-state copy), S03.6 (teaching cards), S03.7 (File reference → reducer), S03.8 (example CSV), S03.9 (strict-brief error path). S03.1 is the visual chrome + file picker only. Without S03.1, the page has an empty `<main>` placeholder — chrome without the gesture.
 
