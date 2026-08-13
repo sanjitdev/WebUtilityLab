@@ -2,7 +2,7 @@
 
 Status: done
 baseline_commit: 005e4b4 (E01 retrospective)
-final_commit: <to be filled after push>
+final_commit: 5dafdfc (pushed to main)
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
