@@ -116,4 +116,4 @@ Not yet open for contributions — the implementation hasn't started. When it do
 
 ## License
 
-MIT. See `LICENSE` (to be added at implementation start).
+MIT. See `LICENSE`.
