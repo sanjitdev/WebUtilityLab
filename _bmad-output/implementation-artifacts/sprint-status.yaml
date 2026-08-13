@@ -49,7 +49,7 @@ story_location: _bmad-output/implementation-artifacts
 
 development_status:
   # E01 — Repo scaffold & CI
-  epic-1: in-progress
+  epic-1: done
   1-1-initialize-vite-svelte5-typescript-project: done
   1-2-add-vitest-with-vite-worker-syntax: done
   1-3-configure-production-build-with-hidden-source-map: done
@@ -61,7 +61,7 @@ development_status:
   1-9-bundle-budget-gate-200kb-gzipped: done
   1-10-transitive-telemetry-scanner: done
   1-11-dependency-pinning-exact-versions-npm-ci: done
-  epic-1-retrospective: optional
+  epic-1-retrospective: done
 
   # E02 — Visual tokens, theme, empty page chrome
   epic-2: backlog
