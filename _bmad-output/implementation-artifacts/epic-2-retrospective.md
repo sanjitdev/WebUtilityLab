@@ -186,6 +186,10 @@ E03 is the **dropzone & file picker** epic — 9 stories landing the user-visibl
 
 None. E02 shipped against the spec; the plan for E03 is sound.
 
+**Significant discoveries that affect E13 (audit / hardening):**
+
+The E02 retrospective surfaced an honest coverage gap: the loop protocol reviews each story's **diff**, not the surrounding codebase. E01 infrastructure files (`vite.config.ts`, the 5 scripts in `scripts/`, `.github/workflows/ci.yml`, `tsconfig.json` path restrictions, `src/main.ts`, `index.html` `<head>` structure) were last reviewed in E01 and have been load-bearing through every epic since. Tracked as AI-2.7 for the E13 launch re-review sweep.
+
 ## Action items (new from E02)
 
 | ID | Story | Description | Status |
@@ -196,6 +200,7 @@ None. E02 shipped against the spec; the plan for E03 is sound.
 | AI-2.4 | E13 (S13.x — repo hygiene) | Fulfill AI-1.1 from E01 retrospective: write `docs/contributing.md` §"Adding a script to `scripts/`" — the obfuscation pattern from S01.5/S01.10. | open (carried) |
 | AI-2.5 | E13 (S13.x) | Fulfill AI-1.3 from E01 retrospective: add `scripts/audit-privacy.d.mts` type-declarations file (parity with the .d.mts files for check-deps, check-telemetry, check-bundle-size). | open (carried) |
 | AI-2.6 | E13 (S13.x) | Fulfill AI-1.4 from E01 retrospective: add `package.json` script alias `check:all` that runs all 7 gates in the right order (parity with `audit:all`). | open (carried) |
+| AI-2.7 | E13 launch | Re-review E01 infrastructure (vite.config.ts, vitest config, tsconfig path restrictions, package.json scripts, ci.yml, the 4 check scripts, build-cleanup, index.html `<head>`, src/main.ts). Last reviewed in E01; load-bearing for every epic since. | open |
 
 ## Action items (carried from E01, status update)
 

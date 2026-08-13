@@ -277,4 +277,10 @@ action_items:
     owner: "dev"
     status: open
     note: "Carried forward from AI-1.4"
+  - id: AI-2.7
+    epic: 2
+    action: "E13 launch — re-review E01 infrastructure (last reviewed in E01 only): vite.config.ts, vitest config, tsconfig.json path restrictions (AD-3), package.json scripts, .github/workflows/ci.yml, scripts/check-deps.mjs + scripts/check-telemetry.mjs + scripts/check-bundle-size.mjs + scripts/build-cleanup.mjs, index.html <head> structure, src/main.ts. These files are load-bearing for every epic since E01 but have not been re-reviewed since landing."
+    owner: "dev"
+    status: open
+    note: "Surfaced from honest audit of review coverage: every E02 story reviews its own diff; surrounding E01 infra is not re-reviewed."
 
