@@ -3,7 +3,7 @@
 Status: done
 baseline_commit: 73ab6b0 (S03.2 spec + sprint-status; pre-implementation)
 review_loop_iteration: 1
-final_commit: <to be filled after push>
+final_commit: 4d25a30
 
 > **Loop protocol (mandatory).** This story must pass Review #1 (3 parallel reviewers), Review #2 (coderabbit), and the production-readiness gate before being marked `done`. See `docs/loop-protocol.md`. `S03.2` lands the **second half** of the E03 user-visible gesture surface: drag-and-drop file accept + clipboard paste of CSV text. S03.1 shipped the visual chrome + the picker-opening gesture + the `.is-dragover` CSS pre-wire; S03.2 wires the **handlers** that toggle the class and accept dropped/pasted files. The component exposes an `onaccept` callback prop that the reducer wiring (S03.7) will subscribe to; **S03.2 itself does NOT touch the reducer, the worker, or `src/lib/*`** — the file is captured and surfaced via the callback, no further side effects in S03.2.
 
