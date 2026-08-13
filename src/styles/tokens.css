@@ -1,46 +1,133 @@
 /*
- * tokens.css — Design token stubs.
+ * tokens.css — Design token contract (S02.1).
  *
  * AD-8 (token discipline): ALL hex literals in the codebase live in this
- * file under `:root` (or `.dark` for the dark theme). No other file is
- * permitted to use a hex literal; every consumer references `var(--…)`.
+ * file under `:root` (light) and `.dark` (dark theme). No other source
+ * file in `src/` is permitted to use a hex literal; every consumer
+ * references `var(--…)`. The test at `tests/tokens-css.test.ts`
+ * enforces this by scanning `src/` for `#rrggbb` literals outside
+ * `tokens.css` and asserting zero hits.
  *
- * Story 1.1 ships the literal minimum so the empty-state wordmark has
- * usable typography and contrast. The full token system (DESIGN.md) —
- * ink / paper / accent / muted / focus, plus spacing, type scale, and
- * radii — is established in Story 2.1
- * (`2-1-copy-tokens-into-tokens-css`).
+ * The token inventory is hand-maintained and lifted verbatim from
+ * `DESIGN.md` §"Color tokens" (lines 10-54). The taxonomy is final;
+ * adding a new color is a design decision, not an implementation
+ * detail. If a future story needs a color that's not in DESIGN.md,
+ * flag and ask — do not invent.
  *
  * Privacy Baseline (PRD FR-23): no web fonts, no `@font-face`, no
- * external resources. System-ui only.
+ * external resources. System-ui only. The font-family values here are
+ * platform-resident; they are not loaded over the network.
+ *
+ * Precedence / order: the typography tokens come from
+ * DESIGN.md §"Typography", spacing from §"Spacing", radii from
+ * §"Rounded". The order in this file is: colors → typography →
+ * spacing → radii. Consumers reference by name; order is not
+ * material.
+ *
+ * Story 1.1 (S01.1) shipped four placeholder color tokens
+ * (`--ink`, `--paper`, `--muted`, `--accent`) and a minimal type
+ * scale. S02.1 replaces the entire file with the complete contract.
+ * Stubs (`--muted`, `--space-page-x`, `--space-page-y`,
+ * `--size-wordmark`, `--weight-wordmark`, `--tracking-wordmark`) are
+ * removed; their canonical successors (`--graphite`, `--space-page`,
+ * `--size-h1`, `--weight-h1`, `--tracking-h1`) replace them. The
+ * `--focus-*` and outline rule still live at the bottom of this file
+ * and own the AD-9 accessibility baseline; S02.5 expands the rule.
  */
 
 :root {
-  /* Color tokens (stubs; E02 will replace) */
-  --ink: #1a1a1a;
+  /* ── Color: neutrals ───────────────────────────────────── */
   --paper: #fafaf7;
-  --muted: #5a5a5a;
+  --ink: #1a1a1a;
+  --graphite: #5a5a5a;
+  --rule: #d8d6cf;
+  --soft: #f1efe9;
+
+  /* ── Color: brand + soft variant ───────────────────────── */
   --accent: #3a5a8a;
+  --accent-soft: #e6ecf5;
 
-  /* Typography tokens (DESIGN.md §"Typography") */
-  --font-system: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-    Roboto, Helvetica, Arial, sans-serif;
+  /* ── Color: semantic (err / warn / pii / ok) ───────────── */
+  --err: #a83232;
+  --warn: #8a6a1a;
+  --pii: #6a3a8a;
+  --ok: #2a6a3a;
 
-  /* Spacing scale (DESIGN.md §"Spacing"); E02 will normalize across stories */
-  --space-page-x: 1.5rem;
-  --space-page-y: 2.25rem;
+  /* ── Color: semantic soft variants ─────────────────────── */
+  --err-soft: #f4e2e2;
+  --warn-soft: #f4ecd9;
+  --pii-soft: #ece1f4;
+  --ok-soft: #dcecdf;
 
-  /* Type scale (DESIGN.md §"Type scale") */
-  --size-wordmark: 1.875rem;
-  --weight-wordmark: 600;
-  --tracking-wordmark: -0.015em;
+  /* ── Typography: families (system stack only) ───────────── */
+  --font-system: system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas,
+    "Liberation Mono", monospace;
+
+  /* ── Typography: sizes ─────────────────────────────────── */
+  --size-body: 1rem;
+  --size-h1: 1.875rem;
+  --size-h2: 1.5rem;
+  --size-data: 0.875rem;
+  --size-data-sample: 0.75rem;
+
+  /* ── Typography: weights ───────────────────────────────── */
+  --weight-body: 400;
+  --weight-h1: 600;
+  --weight-h2: 600;
+
+  /* ── Typography: tracking (letter-spacing) ─────────────── */
+  --tracking-h1: -0.015em;
+  --tracking-h2: -0.01em;
+
+  /* ── Spacing scale (DESIGN.md §"Spacing") ──────────────── */
+  --space-base: 1rem;
+  --space-section: 2.25rem;
+  --space-page: 1.5rem;
+  --space-card-padding: 1.25rem;
+
+  /* ── Layout ────────────────────────────────────────────── */
+  --width-page-max: 880px;
+
+  /* ── Radii (DESIGN.md §"Rounded") ──────────────────────── */
+  --radius-default: 3px;
+  --radius-card: 2px;
+  --radius-dropzone: 2px;
+  --radius-toggle: 4px;
+}
+
+.dark {
+  /* ── Color: neutrals (dark) ────────────────────────────── */
+  --paper: #0e1116;
+  --ink: #e8e6e1;
+  --graphite: #9a9892;
+  --rule: #2a2e35;
+  --soft: #161a21;
+
+  /* ── Color: brand + soft variant (dark) ────────────────── */
+  --accent: #7a9ad0;
+  --accent-soft: #1a2230;
+
+  /* ── Color: semantic (dark) ────────────────────────────── */
+  --err: #d97070;
+  --warn: #d4a85a;
+  --pii: #b48ad0;
+  --ok: #7ac090;
+
+  /* ── Color: semantic soft variants (dark) ──────────────── */
+  --err-soft: #2a1a1a;
+  --warn-soft: #2a231a;
+  --pii-soft: #221a2a;
+  --ok-soft: #1a2a1f;
 }
 
 /*
  * Focus-visible baseline (AD-9 accessibility).
  * Story 2.5 (`2-5-focus-ring-rule-2px-accent-2px-offset`) owns the full
- * rule; S01.1 ships a minimal placeholder so keyboard focus is at least
- * visible during the scaffold phase.
+ * rule; this minimal placeholder keeps keyboard focus visible during
+ * the scaffold phase. The 2px outline at 2px offset matches S02.5's
+ * spec exactly so no visual regression lands at the S02.5 boundary.
  */
 :focus-visible {
   outline: 2px solid var(--accent);

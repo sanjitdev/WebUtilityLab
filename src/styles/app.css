@@ -6,8 +6,13 @@
  * imported via tokens.css (AD-8); no inline `<style>` in components
  * (AD-7).
  *
- * E02 replaces this file with the full page chrome
- * (`2-4-page-chrome-semantic-header-nav-main-footer`).
+ * S02.1 update: the S01.1 stub token names (`--muted`, `--space-page-x`,
+ * `--space-page-y`, `--size-wordmark`, `--weight-wordmark`,
+ * `--tracking-wordmark`) are removed from `tokens.css`; this file
+ * now references the canonical token names (`--graphite`,
+ * `--space-page`, `--size-h1`, `--weight-h1`, `--tracking-h1`).
+ * No visual change. E02 S02.4 replaces this file with the full
+ * page chrome.
  */
 
 @import './tokens.css';
@@ -21,19 +26,19 @@
   display: flex;
   align-items: flex-start;
   justify-content: center;
-  padding: var(--space-page-y) var(--space-page-x);
+  padding: var(--space-section) var(--space-page);
   box-sizing: border-box;
 }
 
 .wordmark-header {
   width: 100%;
-  max-width: 880px;
+  max-width: var(--width-page-max);
 }
 
 .wordmark {
-  font-size: var(--size-wordmark);
-  font-weight: var(--weight-wordmark);
-  letter-spacing: var(--tracking-wordmark);
+  font-size: var(--size-h1);
+  font-weight: var(--weight-h1);
+  letter-spacing: var(--tracking-h1);
   margin: 0;
   display: flex;
   flex-wrap: wrap;
@@ -46,8 +51,8 @@
 }
 
 .wordmark-sep {
-  color: var(--muted);
-  font-weight: 400;
+  color: var(--graphite);
+  font-weight: var(--weight-body);
 }
 
 .wordmark-subtitle {
