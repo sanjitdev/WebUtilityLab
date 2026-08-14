@@ -370,14 +370,20 @@ describe('dropzone-accept (S03.7 accept path emits a File reference to the reduc
       expect(announcementIdx).toBeGreaterThan(-1);
       expect(dispatchIdx).toBeLessThan(announcementIdx);
     });
-    it('handleAccept still has the S03.4 early-return on oversize (defensive no-op preserved)', () => {
-      // The S03.4 aria-live announcement's defensive early-return
-      // on the oversize branch is preserved through the dispatch
-      // wiring. The dispatch itself is a no-op on oversize
-      // (reducer early-returns); the aria-live region does not
-      // need to announce (S03.4 contract — S03.9 will wire the
-      // strict-brief formatter for the over-cap rejection
-      // surface).
+    it('handleAccept body routes the oversize branch through formatStrictBrief (S03.9 inverted S03.4 boundary)', () => {
+      // S03.9 inverted the S03.4 boundary: the oversize branch is
+      // no longer a defensive no-op. The over-cap signal is routed
+      // through `formatStrictBrief` (src/lib/strict-brief.ts) and
+      // written to `liveAnnouncement` as `{ kind: 'strict-brief',
+      // message: <prose> }`. The aria-live region announces the
+      // locked prose verbatim (EXPERIENCE.md §Error message
+      // template).
+      //
+      // The reducer dispatch is preserved (S03.7 contract) — the
+      // dispatch is a no-op on oversize (reducer early-returns in
+      // its dispatch handler), but the App.svelte handleAccept
+      // now also writes the strict-brief announcement on the
+      // oversize branch BEFORE returning.
       const handleAcceptBody = (() => {
         const sigMatch = /\bfunction\s+handleAccept\s*\(source\s*:\s*OnAcceptSource\s*\)\s*:\s*void\s*\{/.exec(appSource);
         if (!sigMatch) return '';
@@ -391,9 +397,18 @@ describe('dropzone-accept (S03.7 accept path emits a File reference to the reduc
         }
         return appSource.slice(bodyStart, j);
       })();
-      expect(handleAcceptBody).toMatch(
+      // The S03.4 single-line early-return (`if (...) return;`) is GONE.
+      expect(handleAcceptBody).not.toMatch(
         /if\s*\(\s*source\.kind\s*===\s*['"]oversize['"]\s*\)\s*return\s*;/,
       );
+      // The oversize branch exists as a block that:
+      //   - writes liveAnnouncement with kind 'strict-brief'
+      //   - calls formatStrictBrief with { kind: 'oversize', size, cap }
+      //   - returns at the end (no fall-through to drop/paste)
+      expect(handleAcceptBody).toMatch(/if\s*\(\s*source\.kind\s*===\s*['"]oversize['"]\s*\)\s*\{/);
+      expect(handleAcceptBody).toMatch(/liveAnnouncement\s*=\s*\{\s*kind\s*:\s*['"]strict-brief['"]/);
+      expect(handleAcceptBody).toMatch(/formatStrictBrief\s*\(/);
+      expect(handleAcceptBody).toMatch(/kind\s*:\s*['"]oversize['"]/);
     });
   });
 
@@ -463,13 +478,17 @@ describe('dropzone-accept (S03.7 accept path emits a File reference to the reduc
     it('tests/dropzone-empty-state.test.ts (S03.5/S03.6) still exists with its description string', () => {
       expect(dropzoneEmptyStateTest).toMatch(/dropzone-empty-state \(S03\.5/);
     });
-    it('the S03.3 AC19m App.svelte boundary pins (onaccept={handleAccept} binding + oversize early-return) still pass', () => {
+    it('the S03.3 AC19m App.svelte boundary pins (onaccept={handleAccept} binding + oversize branch) still pass — S03.9 inverted the early-return into a strict-brief write', () => {
       // S03.7 is additive — the S03.3 inverted boundary pins
       // (App.svelte DOES pass onaccept={handleAccept}, mentions
-      // "oversize", has an explicit early-return on the oversize
-      // branch) must still hold. The handleAccept body now also
-      // has the reducer dispatch; the early-return on oversize
-      // is preserved.
+      // "oversize") must still hold. S03.9 further inverted the
+      // S03.3 "early-return on oversize" pin: the early-return
+      // is GONE — it now writes the strict-brief liveAnnouncement
+      // before returning. The "oversize" token still appears
+      // (in the parameter type union + in the strict-brief
+      // branch), the handleAccept body still has the dispatch,
+      // and the strict-brief formatter is called on the oversize
+      // branch.
       expect(app).toMatch(/<Dropzone\b[^>]*\bonaccept\s*=\s*\{\s*handleAccept\s*\}/);
       expect(appSource).toMatch(/\boversize\b/);
       const handleAcceptBody = (() => {
@@ -489,9 +508,13 @@ describe('dropzone-accept (S03.7 accept path emits a File reference to the reduc
         }
         return appSource.slice(bodyStart, j);
       })();
-      expect(handleAcceptBody).toMatch(
+      // S03.9 inversion: the single-line early-return is gone.
+      expect(handleAcceptBody).not.toMatch(
         /if\s*\(\s*source\.kind\s*===\s*['"]oversize['"]\s*\)\s*return\s*;/,
       );
+      // The oversize branch is a block: writes strict-brief liveAnnouncement.
+      expect(handleAcceptBody).toMatch(/formatStrictBrief\s*\(/);
+      expect(handleAcceptBody).toMatch(/liveAnnouncement\s*=\s*\{\s*kind\s*:\s*['"]strict-brief['"]/);
     });
   });
 });

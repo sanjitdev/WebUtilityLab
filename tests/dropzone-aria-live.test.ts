@@ -268,35 +268,57 @@ describe('dropzone-aria-live (S03.4 file-name reveal in aria-live region on acce
     });
   });
 
-  describe('AC20e: App.svelte does NOT format the oversize branch (defensive no-op)', () => {
-    it('handleAccept body early-returns on the oversize branch', () => {
+  describe('AC20e (S03.9 inverted): App.svelte ANNOUNCES the oversize branch via formatStrictBrief', () => {
+    // S03.9 inverted the S03.4 / S03.7 boundary pin. The over-cap
+    // branch is no longer a defensive no-op — it routes through
+    // formatStrictBrief and writes the strict-brief message to
+    // liveAnnouncement. The aria-live region announces the
+    // over-cap rejection (the screen-reader contract is preserved).
+    // The runtime-invariant docblock below is preserved verbatim
+    // from the S03.4 version; the S03.9 inversion adds new pins
+    // for the strict-brief format and removes the early-return pin.
+    it('handleAccept body writes liveAnnouncement on the oversize branch (not the early-return)', () => {
       const body = extractFunctionBody(appSource, 'handleAccept');
-      // `if (source.kind === 'oversize') return;` — the defensive
-      // no-op. S03.9's strict-brief path inherits the region and
-      // owns the over-cap announcement surface.
-      expect(body).toMatch(
+      // The over-cap branch is an `if` block that:
+      //   - dispatches to the reducer (already pinned in S03.7)
+      //   - writes liveAnnouncement = { kind: 'strict-brief', message: formatStrictBrief(...) }
+      //   - returns
+      // The S03.4 `if (source.kind === 'oversize') return;` early-return
+      // is GONE — S03.9 inverted that boundary.
+      expect(body).not.toMatch(
         /if\s*\(\s*source\.kind\s*===\s*['"]oversize['"]\s*\)\s*return\s*;/,
       );
+      expect(body).toMatch(/if\s*\(\s*source\.kind\s*===\s*['"]oversize['"]\s*\)/);
+      expect(body).toMatch(/liveAnnouncement\s*=\s*\{\s*kind\s*:\s*['"]strict-brief['"]/);
+      expect(body).toMatch(/formatStrictBrief\s*\(/);
     });
-    it('App.svelte does NOT mention formatStrictBrief (no premature E05/E12 wiring)', () => {
-      expect(appSource).not.toMatch(/\bformatStrictBrief\b/);
+    it('App.svelte DOES mention formatStrictBrief (S03.9 wired the formatter)', () => {
+      // S03.9 inverted the S03.4 "no premature E05/E12 wiring" pin.
+      // The formatter is now a real consumer — the import is
+      // load-bearing.
+      expect(appSource).toMatch(/\bformatStrictBrief\b/);
     });
-    it('App.svelte does NOT contain "File is X MB" / "limit is Y MB" prose (no premature rejection formatting)', () => {
-      expect(appSource).not.toMatch(/File is\s+\d+\s*MB/i);
-      expect(appSource).not.toMatch(/limit is\s+\d+\s*MB/i);
+    it('App.svelte announces the strict-brief prose (S03.9 wired the rejection message)', () => {
+      // The strict-brief template lives in src/lib/strict-brief.ts
+      // (not in App.svelte), but the formatter call passes the
+      // exact payload structure that produces the locked prose.
+      // The aria-live <output> renders liveAnnouncement.message
+      // verbatim on the strict-brief branch.
+      expect(appSource).toMatch(/formatStrictBrief\s*\(\s*\{/);
+      expect(appSource).toMatch(/kind\s*:\s*['"]oversize['"]/);
     });
     // Review #1 (verification-gap) finding: the prior AC20e
     // assertions verified the SOURCE-CODE shape (the early-return
     // exists) but not the RUNTIME BEHAVIOR. A regression that
     // added `liveAnnouncement = 'File rejected'` BEFORE the
     // early-return would still pass the source-grep test. Pin
-    // the runtime invariant: liveAnnouncement stays null on
-    // oversize; gets set to the drop/paste shape on drop/paste.
+    // the runtime invariant: liveAnnouncement gets the strict-brief
+    // shape on oversize; gets the drop/paste shape on drop/paste.
     //
     // These runtime tests import handleAccept via dynamic import of
     // a generated re-export module — App.svelte's handleAccept is
     // NOT a standalone export. The structural pin above (the
-    // early-return pattern in source) IS the verifiable invariant
+    // strict-brief call pattern in source) IS the verifiable invariant
     // for the component-internal function; the runtime test below
     // is a SIDE-CAR that proves the handleAccept LOGIC in isolation
     // by re-implementing it in the test file's harness. (The
@@ -314,20 +336,46 @@ describe('dropzone-aria-live (S03.4 file-name reveal in aria-live region on acce
       // pin above). Kept in sync via the source-shape test; if
       // handleAccept drifts, the structural test fails AND this
       // harness is updated. The harness proves the INVARIANT
-      // (oversize = no side effect; drop/paste = side effect).
+      // (oversize = strict-brief side effect; drop/paste = side effect).
+      // S03.9 inverted the S03.4 "oversize returns null" invariant —
+      // the over-cap branch now writes the strict-brief message.
+      const MB = 1024 * 1024;
+      const formatStrictBrief = (size: number, cap: number): string => {
+        const sizeMb = Math.ceil(size / MB);
+        const capMb = Math.ceil(cap / MB);
+        return `File is ${sizeMb} MB — limit is ${capMb} MB. Remove columns or split the file.`;
+      };
       const runHandleAccept = (
         source: AcceptSource,
-      ): { kind: 'drop'; name: string } | { kind: 'paste'; snippet: string } | null => {
-        if (source.kind === 'oversize') return null;
+      ):
+        | { kind: 'drop'; name: string }
+        | { kind: 'paste'; snippet: string }
+        | { kind: 'strict-brief'; message: string } => {
+        if (source.kind === 'oversize') {
+          return {
+            kind: 'strict-brief',
+            message: formatStrictBrief(source.size, source.cap),
+          };
+        }
         if (source.kind === 'drop') {
           return { kind: 'drop', name: source.file.name };
         }
-        return { kind: 'paste', snippet: source.text.length > 40 ? source.text.slice(0, 40) + '…' : source.text };
+        return {
+          kind: 'paste',
+          snippet: source.text.length > 40 ? source.text.slice(0, 40) + '…' : source.text,
+        };
       };
 
-      it('oversize returns null (no announcement; S03.9 owns that surface)', () => {
-        const result = runHandleAccept({ kind: 'oversize', size: 60 * 1024 * 1024, cap: 50 * 1024 * 1024 });
-        expect(result).toBeNull();
+      it('oversize returns { kind: "strict-brief", message } with the strict-brief prose', () => {
+        const result = runHandleAccept({
+          kind: 'oversize',
+          size: 60 * MB,
+          cap: 50 * MB,
+        });
+        expect(result).toEqual({
+          kind: 'strict-brief',
+          message: 'File is 60 MB — limit is 50 MB. Remove columns or split the file.',
+        });
       });
       it('drop returns { kind: "drop", name } with the file name', () => {
         const file = new File(['x'], 'vendor_export.csv', { type: 'text/csv' });

@@ -420,10 +420,19 @@ describe('dropzone-file-cap (S03.3 50 MB cap check before reading; oversize sign
       // union includes the oversize branch.
       expect(appSource).toMatch(/\boversize\b/);
     });
-    it('App.svelte handleAccept has an explicit early-return on the oversize branch (S03.4 inverted boundary)', () => {
-      // Tightened: the S03.4 implementation's defensive no-op pattern.
-      // The "oversize" keyword alone is too permissive — it could
-      // appear in a comment without the defensive early-return.
+    it('App.svelte handleAccept oversize branch routes through formatStrictBrief (S03.4 inverted; S03.9 re-inverted into strict-brief write)', () => {
+      // S03.4 originally inverted the S03.3 boundary with a
+      // defensive single-line early-return on the oversize
+      // branch. S03.9 FURTHER inverted that boundary: the
+      // early-return is GONE. The oversize branch now writes
+      // the strict-brief liveAnnouncement (via formatStrictBrief)
+      // and returns at the end of the block. The "oversize"
+      // keyword alone is too permissive — it could appear in a
+      // comment without the strict-brief write. Pin the
+      // structural shape: the body has an `if (source.kind ===
+      // 'oversize')` BLOCK (not a single-line return), and the
+      // block contains the formatStrictBrief call + the
+      // strict-brief liveAnnouncement write.
       const body = (() => {
         const sigMatch = /function\s+handleAccept\s*\(/.exec(appSource);
         if (!sigMatch) return '';
@@ -451,9 +460,14 @@ describe('dropzone-file-cap (S03.3 50 MB cap check before reading; oversize sign
         }
         return appSource.slice(bodyStart, j);
       })();
-      expect(body).toMatch(
+      // The S03.4 single-line early-return is GONE (S03.9 inversion).
+      expect(body).not.toMatch(
         /if\s*\(\s*source\.kind\s*===\s*['"]oversize['"]\s*\)\s*return\s*;/,
       );
+      // The oversize branch is now a block that writes the strict-brief.
+      expect(body).toMatch(/if\s*\(\s*source\.kind\s*===\s*['"]oversize['"]\s*\)\s*\{/);
+      expect(body).toMatch(/formatStrictBrief\s*\(/);
+      expect(body).toMatch(/liveAnnouncement\s*=\s*\{\s*kind\s*:\s*['"]strict-brief['"]/);
     });
   });
 

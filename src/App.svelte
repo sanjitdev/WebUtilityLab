@@ -47,15 +47,22 @@
    * reads aloud.
    *
    * The oversize branch (`{ kind: 'oversize'; size; cap }`) is a
-   * defensive no-op in S03.4. S03.9's strict-brief formatter owns
-   * the over-cap rejection surface (it imports `formatStrictBrief`
-   * from `src/lib/strict-brief.ts` per AI-2.2); S03.4 stands up
+   * strict-brief announcement in S03.9. The over-cap file is NEVER
+   * read (the S03.3 cap check rejects on size metadata alone); the
+   * strict-brief formatter receives `{ size, cap }` and returns the
+   * locked prose — the aria-live region announces the message
+   * verbatim. E12 widens the StrictBrief union with `encoding` /
+   * `malformed` branches when the worker's error envelope lands.
+   * (S03.4 originally stood up the announcement surface as a
+   * defensive no-op; S03.9 inverted the boundary and wired the
+   * formatter.)
    * the announcement surface; S03.9 inherits it.
    */
   import ThemeToggle from './components/ThemeToggle.svelte';
   import Dropzone from './components/Dropzone.svelte';
   import { pasteSnippet } from './lib/aria-live';
   import { createReducer } from './lib/reducer.svelte';
+  import { formatStrictBrief } from './lib/strict-brief';
   import type { OnAcceptSource } from './lib/types';
   import { makeExampleFile } from './lib/example-csv';
 
@@ -84,7 +91,8 @@
   type Announcement =
     | null
     | { kind: 'drop'; name: string }
-    | { kind: 'paste'; snippet: string };
+    | { kind: 'paste'; snippet: string }
+    | { kind: 'strict-brief'; message: string };
   let liveAnnouncement = $state<Announcement>(null);
 
   // S03.7: dropzone-accept consumer. The S03.4 surface (aria-live
@@ -109,7 +117,24 @@
   //     see FUTURE refinement if visual banner lands)
   function handleAccept(source: OnAcceptSource): void {
     reducer.dispatch({ kind: 'accept', source });
-    if (source.kind === 'oversize') return;
+    if (source.kind === 'oversize') {
+      // S03.9: strict-brief over-cap rejection surface. The over-cap
+      // file is NEVER read (the S03.3 cap check rejects on size
+      // metadata alone). The strict-brief formatter receives the
+      // raw `{ size, cap }` and returns the locked prose — the
+      // aria-live region announces the message verbatim. E12 widens
+      // the StrictBrief union with `encoding` / `malformed` branches
+      // when the worker's error envelope lands.
+      liveAnnouncement = {
+        kind: 'strict-brief',
+        message: formatStrictBrief({
+          kind: 'oversize',
+          size: source.size,
+          cap: source.cap,
+        }),
+      };
+      return;
+    }
     if (source.kind === 'drop') {
       liveAnnouncement = { kind: 'drop', name: source.file.name };
       return;
@@ -183,8 +208,10 @@
       {''}
     {:else if liveAnnouncement.kind === 'drop'}
       File accepted: <code>{liveAnnouncement.name}</code>
-    {:else}
+    {:else if liveAnnouncement.kind === 'paste'}
       Text pasted: <code>{liveAnnouncement.snippet}</code>
+    {:else}
+      {liveAnnouncement.message}
     {/if}
   </output>
 
