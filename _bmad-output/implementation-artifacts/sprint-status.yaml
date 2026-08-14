@@ -1,5 +1,5 @@
 # generated: 2026-08-12
-# last_updated: 2026-08-14
+# last_updated: 2026-08-14 (S03.9 done)
 # project: WebUtilityLab
 # project_key: NOKEY
 # tracking_system: file-system
@@ -43,6 +43,7 @@
 
 generated: 2026-08-12
 last_updated: 2026-08-14
+# S03.9 done 2026-08-14 — see 3-9-strict-brief-error-path-uses-formatstrictbrief.md
 # S03.8 done 2026-08-14 — see 3-8-example-csv-inlined-at-build-time.md
 # S03.7 done 2026-08-14 — see 3-7-accept-path-emits-file-reference-to-reducer.md
 # S02.6 story created 2026-08-13 — see 2-6-editorial-posture-sanity-system-ui-no-font-face.md
@@ -92,7 +93,7 @@ development_status:
   3-6-three-teaching-cards-below-drop: done
   3-7-accept-path-emits-file-reference-to-reducer: done
   3-8-example-csv-inlined-at-build-time: done
-  3-9-strict-brief-error-path-uses-formatstrictbrief: backlog
+  3-9-strict-brief-error-path-uses-formatstrictbrief: done
   epic-3-retrospective: optional
 
   # E04 — Pre-flight estimate & refusal state

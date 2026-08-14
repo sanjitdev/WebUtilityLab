@@ -1,8 +1,9 @@
 # Story 3.9: Strict-brief error path uses formatStrictBrief (S03.9)
 
-Status: ready-for-dev
+Status: done
 baseline_commit: 54e76ba (S03.8 done — example CSV inlined at build time)
-review_loop_iteration: 0
+final_commit: da6f08d (S03.9 Review #2: docblock accuracy + tautology removal)
+review_loop_iteration: 2
 
 > **Loop protocol (mandatory).** This story must pass Review #1 (3 parallel reviewers), Review #2 (coderabbit), and the production-readiness gate before being marked `done`. See `docs/loop-protocol.md`. `S03.9` is the **strict-brief over-cap rejection surface**: the over-cap file rejection (currently a silent no-op in `App.svelte`) becomes a visible, screen-reader-announced, strict-brief-formatted error message. The over-cap path is the first place the strict-brief template lands in the user-facing surface because the trigger is deterministic (a 50 MB file cap check fires synchronously, no parse work, no detection rules) — strict-brief correctness is easier to verify in isolation before E12's error envelope pipeline wires it to the worker side.
 
@@ -117,12 +118,90 @@ so that **I know exactly what's wrong (the file is X MB, the limit is Y MB) and 
 
 ## Debug Log References
 
-*(populated at loop closure)*
+No debugger sessions were required — the formatter is a pure function with a deterministic trigger (S03.3's cap check fires synchronously on size metadata alone). The wire-up test in `tests/dropzone-oversize-strict-brief.test.ts` exercises the structural shape end-to-end without a runtime browser context.
 
 ## Completion Notes List
 
-*(populated at loop closure)*
+### Implementation (commit 19d5544)
 
-## File List
+**`src/lib/strict-brief.ts` (NEW)** — Pure formatter. Discriminated-union payload (`StrictBrief = { kind: 'oversize'; size: number; cap: number }`). E12 will widen the union with `encoding` and `malformed` branches when the worker's error envelope lands. The formatter's branches:
 
-*(populated at loop closure)*
+- `oversize`: `formatOversize(size, cap)` — Math.ceil rounds the size up to the nearest MB. The cap is parameterised so a future cap-change story only edits one place. Output: `"File is X MB — limit is Y MB. Remove columns or split the file."` (spaced em-dash, period termination, imperative next action per EXPERIENCE.md).
+- Exhaustiveness guard: `void brief; throw new Error(...)` — runtime safety net (NOT a compile-time check; verified this in Review #2).
+
+**`src/App.svelte` (MODIFIED)** — Three structural changes:
+
+1. Added `import { formatStrictBrief } from './lib/strict-brief';`.
+2. Widened `Announcement` union with `{ kind: 'strict-brief'; message: string }`.
+3. The over-cap branch (was S03.4 defensive `return;`; S03.9 inverts the boundary) now writes the strict-brief liveAnnouncement BEFORE returning:
+   ```ts
+   if (source.kind === 'oversize') {
+     liveAnnouncement = {
+       kind: 'strict-brief',
+       message: formatStrictBrief({ kind: 'oversize', size: source.size, cap: source.cap }),
+     };
+     return;
+   }
+   ```
+4. `<output>` template: split `{:else}` into `{:else if liveAnnouncement.kind === 'paste'}` then `{:else}` rendering `liveAnnouncement.message` (TS narrowing collapses the strict-brief branch to the catch-all).
+
+**Test additions:**
+- `tests/strict-brief.test.ts` (NEW, 18 tests after Review #2 removed 1 tautology): full-string equality for 50 MiB+1 / 75 MiB / 100 MiB / boundary / hypothetical 25 MiB cap parameterisation, spaced em-dash pin (rejects `-` and `–`), Math.ceil rounding (50.5 MiB → "51 MB"), 12-pattern Privacy Baseline scan, AD-8 hex-literal scan, no-DOM dependency check (no document/window/localStorage), unknown-kind-throws exhaustiveness guard.
+- `tests/dropzone-oversize-strict-brief.test.ts` (NEW, 17 tests after Review #1): the App.svelte wire-up. Signature-aware brace walker extracts `handleAccept` body. 4 loose regex assertions on the multi-line formatter call (`formatStrictBrief(`, `kind: 'oversize'`, `size: source.size`, `cap: source.cap`). Review #1 added: anchored-to-last-`{:else}` pin, message-inside-`<output>` pin, no-`<code>`-wrap pin (screen-reader char-by-char risk), tightened `message: formatStrictBrief(...)` regex.
+
+**Test modifications (prior-story boundary inversions):**
+- `tests/dropzone-aria-live.test.ts` AC20e: inverted the S03.4 "oversize is defensive no-op" pin into "App.svelte ANNOUNCES the oversize branch via formatStrictBrief". Runtime harness mirrors the new handleAccept body.
+- `tests/dropzone-accept.test.ts` AC23d + AC23f: inverted the "early-return on oversize" pin into "strict-brief formatter is called + liveAnnouncement.write".
+- `tests/dropzone-file-cap.test.ts` AC19m: same inversion.
+
+### Review #1 patches (commit 9b16e28)
+
+Three reviewers returned:
+
+- **Privacy Baseline reviewer**: APPROVE. All 12-pattern scans clean. Intentional size-in-message disclosure is editorial content (per spec), not metadata leak.
+- **Verification-gap reviewer**: APPROVE-WITH-FIXES. Found 3 gaps:
+  1. The naive `{:else}` catch-all regex could match `{:else if drop}` followed by content then `{/if}`. Anchored to LAST `{:else}` (no trailing `if`).
+  2. No pin that the `<output>` element is the strict-brief renderer (a regression could route to a `<div aria-live="assertive">`). Added a regex pinning `{liveAnnouncement.message}` between `<output` and `</output>`.
+  3. The strict-brief write regex `liveAnnouncement\s*=\s*\{\s*kind\s*:\s*['"]strict-brief['"]\s*,\s*message\s*:` matched `message:` followed by ANY value. Tightened to also require `message: formatStrictBrief(`.
+- **Blind-hunter reviewer**: APPROVE-WITH-FIXES. Found 3 critical issues:
+  1. App.svelte docblock promised "over-cap signals will be assertive in S03.9" but the implementation pins `aria-live="polite"` for ALL branches. Resolved by clarifying that polite covers drop + paste + strict-brief uniformly (the rejection is informational, not an interrupt).
+  2. Orphan trailing line "the announcement surface; S03.9 inherits it." (dangling fragment). Removed.
+  3. Editorial voice docblock "em-dash is reserved for strict-brief format" read ambiguously. Reworded to clarify the em-dash appears INSIDE strict-brief output, NOT in drop/paste branches.
+
+Review #1 also added a defensive pin: the strict-brief branch does NOT wrap the message in `<code>` (screen readers spell `<code>` content char-by-char — wrapping "51 MB" in `<code>` would make the screen reader say "five one M B").
+
+### Review #2 patches (commit da6f08d)
+
+coderabbit returned APPROVE-WITH-FIXES with three findings:
+
+1. **Exhaustiveness docblock overstated the type-system guarantee** (verified via TypeScript narrowing test). The original docblock claimed "TypeScript narrows `brief` to `never` here when the union widens" — i.e., that adding a future branch to `StrictBrief` without updating the formatter would be a compile error. Verified this is wrong: TS does NOT narrow `brief` to `never` after the early-return from the `oversize` if-check, even with `void brief`. A future union widening compiles cleanly; only the runtime throw catches it. Rewrote the docblock to clarify the throw is a RUNTIME safety net, NOT a compile-time exhaustiveness pin. A future contributor who adds a new branch to `StrictBrief` should ALSO add a `case` here.
+2. **Boundary-case docblock contradicted the assertion** — claimed "no spurious 'Remove columns' because no file is actually rejected" but the formatter always appends the action. Tightened to "the formatter is signature-blind: it always emits the action regardless of whether the file is actually over cap; the cap check enforces the gate."
+3. **Tautological test removed** — "the formatter accepts the `oversize` discriminator" used the same (75 MiB, 50 MiB) input already pinned by full-string equality at AC25a item 2 and asserted only `toContain('File is')` (weaker pin, no new information). Deleted; the remaining unknown-kind-throws test is the load-bearing runtime guard.
+
+### Production gate
+
+Final state:
+- **915 tests pass** across 24 test files (was 914 at baseline; net +1 from S03.9).
+- `npm run check` — 0 errors, 1 pre-existing ThemeToggle warning (out of S03.9 scope).
+- `npm run audit:privacy` — OK. 3 dist files scanned. 0 forbidden primitives.
+- `npm run audit:behavior` — OK. 3 allowed requests, 0 anomalous, 0 service workers, all landmarks present.
+- `npm run check:bundle` — OK. 17 KB gz total / 200 KB budget. The formatter adds ~250 bytes.
+- `npm run build` — Clean. Source-maps + example-fixture artifacts removed.
+
+### Out-of-scope confirmations (verified at loop closure)
+
+- The reducer's `oversize` branch remains a no-op (state stays at `empty`) — the S03.7 contract holds. E05's S05.3a widens the state union with `refusal` and adds the over-cap transition.
+- The visible banner for the strict-brief is deferred to E04/E10. S03.9 routes the strict-brief through the existing aria-live region only.
+- The `encoding` / `malformed` branches are deferred to E12 (where the worker's error envelope drives them).
+
+## File List (final)
+
+* `src/lib/strict-brief.ts` (NEW)
+* `src/App.svelte` (MODIFIED — import + handleAccept body + Announcement union + <output> template branch + docblock corrections)
+* `tests/strict-brief.test.ts` (NEW, 17 tests after Review #2 removed 1 tautology)
+* `tests/dropzone-oversize-strict-brief.test.ts` (NEW, 17 tests including 2 Review #1 additions)
+* `tests/dropzone-aria-live.test.ts` (MODIFIED — AC20e inverted)
+* `tests/dropzone-accept.test.ts` (MODIFIED — AC23d/AC23f inverted)
+* `tests/dropzone-file-cap.test.ts` (MODIFIED — AC19m inverted)
+* `_bmad-output/implementation-artifacts/sprint-status.yaml` (status flip)
+* `_bmad-output/implementation-artifacts/3-9-strict-brief-error-path-uses-formatstrictbrief.md` (this file — completion notes)
