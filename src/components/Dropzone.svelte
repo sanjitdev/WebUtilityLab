@@ -254,6 +254,15 @@
     border-color: var(--graphite);
     border-radius: var(--radius-dropzone);
     cursor: pointer;
+    /* Defense-in-depth for the "Browse files" anchor scroll target
+       (S03.5). The global `scroll-padding-top` in app.css reserves
+       space at the top of the viewport; scroll-margin-top on the
+       button itself is a second line of defense so the dropzone
+       button is never occluded by the header chrome when the
+       anchor scrolls it into view. Per S03.5 review #1 (edge-case
+       #1). The value matches the global scroll-padding-top
+       (var(--space-section) = 2.25rem) so the two offsets agree. */
+    scroll-margin-top: var(--space-section);
   }
   .dropzone:hover {
     background: var(--accent-soft);

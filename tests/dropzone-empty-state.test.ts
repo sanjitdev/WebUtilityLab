@@ -99,6 +99,16 @@ describe('dropzone-empty-state (S03.5 empty-state copy from EXPERIENCE.md: headl
     it('the lede has the empty-state-lede class for the muted prose treatment', () => {
       expect(appSource).toMatch(/<p[^>]*class\s*=\s*["']empty-state-lede["']/);
     });
+    it('the lede is a SINGLE <p> element (not split into two paragraphs)', () => {
+      // Per review #1 verification-gap #2: a regression that splits
+      // the lede into two paragraphs (one for file-format guardrails,
+      // one for the privacy signal) would pass the verbatim-string
+      // match above but break the editorial-voice contract. The
+      // EXPERIENCE.md line 43 prose is one sentence-pair; the
+      // single-<p> shape is the S03.5 contract.
+      const ledeMatches = appSource.match(/<p[^>]*class\s*=\s*["']empty-state-lede["']/g);
+      expect(ledeMatches?.length ?? 0).toBe(1);
+    });
   });
 
   describe('AC21c: "Try the example" button is disabled + aria-disabled="true"', () => {
@@ -120,12 +130,32 @@ describe('dropzone-empty-state (S03.5 empty-state copy from EXPERIENCE.md: headl
     it('the Try the example button has explicit aria-disabled="true" (belt-and-braces)', () => {
       // WAI-ARIA says `aria-disabled="true"` on a `<button disabled>`
       // is redundant (the `disabled` attribute already implies it),
-      // but S03.5 keeps both for cross-browser consistency.
+      // but S03.5 keeps both for cross-browser consistency. Rationale
+      // documented in App.svelte's template-comment docblock.
       const match = appSource.match(
         /<button[^>]*type\s*=\s*["']button["'][^>]*>\s*Try the example\s*<\/button>/,
       );
       expect(match).not.toBeNull();
       expect(match![0]).toMatch(/aria-disabled\s*=\s*["']true["']/);
+    });
+    it('the Try the example button has NO event handler binding (S03.8 wires it)', () => {
+      // Per review #1 verification-gap #3: the button is
+      // `disabled` in S03.5; it must NOT carry a click handler
+      // binding (no `onclick`, no `on:click`, no
+      // `on:click={noop}`, no inline `addEventListener`). The
+      // contract is "the affordance exists; S03.8 wires the
+      // handler" — a regression that adds a no-op handler while
+      // keeping `disabled` would pass the disabled pin but break
+      // the S03.5/S03.8 contract.
+      const match = appSource.match(
+        /<button[^>]*type\s*=\s*["']button["'][^>]*>\s*Try the example\s*<\/button>/,
+      );
+      expect(match).not.toBeNull();
+      const buttonTag = match![0];
+      // Svelte 5 + Svelte 4 + native event-attribute surface.
+      expect(buttonTag).not.toMatch(/\bonclick\s*=/);
+      expect(buttonTag).not.toMatch(/\bon:click\s*=/);
+      expect(buttonTag).not.toMatch(/\bon:click\b/);
     });
   });
 
@@ -174,6 +204,32 @@ describe('dropzone-empty-state (S03.5 empty-state copy from EXPERIENCE.md: headl
       const inputTag = dropzoneSource.match(/<input[^>]*id\s*=\s*["']file-input["']/);
       expect(inputTag).not.toBeNull();
     });
+    it('id="dropzone" appears EXACTLY ONCE in Dropzone.svelte (no element collision)', () => {
+      // Per review #1 blind-hunter M2: the original pin would still
+      // pass if a second element (e.g., the hidden <input>) ALSO
+      // gained id="dropzone" — `id` attributes must be unique in
+      // the DOM. Pin the count is exactly 1 to catch a duplicate-id
+      // regression.
+      const matches = dropzoneSource.match(/\bid\s*=\s*["']dropzone["']/g);
+      expect(matches?.length ?? 0).toBe(1);
+    });
+    it('the dropzone button has scroll-margin-top (anchor-scroll offset, defense-in-depth)', () => {
+      // Per review #1 edge-case #1: the "Browse files" anchor
+      // smooth-scrolls to the dropzone button. Without a scroll
+      // offset, the button can land flush against the top edge
+      // and the header chrome can occlude it. The global
+      // `scroll-padding-top` in app.css is the primary offset;
+      // `scroll-margin-top` on the button itself is the second
+      // line of defense (Chrome, Firefox, Safari all honor it).
+      const buttonTag = dropzoneSource.match(/<button[^>]*id\s*=\s*["']dropzone["']/);
+      expect(buttonTag).not.toBeNull();
+      // The button is rendered inside Dropzone.svelte's component-
+      // scoped <style> block; the style rule references the
+      // `.dropzone` class selector. The contract is: the rule
+      // `.dropzone { …; scroll-margin-top: var(--space-section); }`
+      // exists at least once in the component-scoped CSS.
+      expect(dropzoneSource).toMatch(/scroll-margin-top\s*:\s*var\(--space-section\)/);
+    });
   });
 
   describe('AC21g: three teaching cards are rendered as <section class="empty-state-card"> with <h3> headings', () => {
@@ -191,6 +247,23 @@ describe('dropzone-empty-state (S03.5 empty-state copy from EXPERIENCE.md: headl
       // app.css applies the 3-column layout. The container is
       // scoped to the cards (not the headline/lede/CTAs).
       expect(appSource).toMatch(/<div[^>]*class\s*=\s*["']empty-state-cards["']/);
+    });
+    it('the three cards appear in the locked order: "What we detect" → "What we show you" → "What you can do"', () => {
+      // Per review #1 verification-gap #1: the test pins each
+      // heading text exists, but a regression that swaps the
+      // order (e.g., "What we detect" / "What you can do" / "What
+      // we show you") would still pass all three independent
+      // heading pins. The Experience.md §Information Architecture
+      // line 24 lists the cards in a specific order; pin that
+      // order with index-position assertions.
+      const detectIdx = appSource.search(/<h3>\s*What we detect\s*<\/h3>/);
+      const showIdx = appSource.search(/<h3>\s*What we show you\s*<\/h3>/);
+      const doIdx = appSource.search(/<h3>\s*What you can do\s*<\/h3>/);
+      expect(detectIdx).toBeGreaterThan(-1);
+      expect(showIdx).toBeGreaterThan(-1);
+      expect(doIdx).toBeGreaterThan(-1);
+      expect(detectIdx).toBeLessThan(showIdx);
+      expect(showIdx).toBeLessThan(doIdx);
     });
   });
 
@@ -294,6 +367,56 @@ describe('dropzone-empty-state (S03.5 empty-state copy from EXPERIENCE.md: headl
     });
     it('tests/dropzone-aria-live.test.ts (S03.4) still exists with its description string', () => {
       expect(dropzoneAriaLiveTest).toMatch(/dropzone-aria-live \(S03\.4/);
+    });
+  });
+
+  describe('AC21m: responsive collapse + reduced-motion + scroll offset + token discipline', () => {
+    it('app.css defines the 3-column grid for .empty-state-cards', () => {
+      // Per review #1 should-fix: pin the 3-column grid template
+      // exists in app.css (the rule that arranges the three cards
+      // side-by-side on wide viewports).
+      expect(appCssSource).toMatch(/\.empty-state-cards\s*\{[^}]*grid-template-columns\s*:\s*repeat\(3,\s*1fr\)/);
+    });
+    it('app.css defines the responsive collapse strictly below 720px', () => {
+      // Per review #1 edge-case #2: the spec says "below ~720px".
+      // The S03.5 contract: collapse fires strictly below 720px
+      // (so 720px itself is still 3 columns — the off-by-one
+      // boundary is explicit). The breakpoint uses `max-width:
+      // 719px` (NOT 720px) so the rule does NOT fire at 720.
+      expect(appCssSource).toMatch(/@media\s*\(\s*max-width\s*:\s*719px\s*\)/);
+      // Negative pin: the rule must NOT use 720 (which would
+      // include the 720 boundary as the collapse trigger).
+      expect(appCssSource).not.toMatch(/@media\s*\(\s*max-width\s*:\s*720px\s*\)/);
+    });
+    it('app.css defines the smooth-scroll on html with reduced-motion override', () => {
+      // Per review #1 should-fix: pin the smooth-scroll contract
+      // is explicit (not implicit) and the reduced-motion override
+      // exists. The "Browse files" anchor relies on
+      // `scroll-behavior: smooth`; users with reduced-motion
+      // preference see instant jumps.
+      expect(appCssSource).toMatch(/html\s*\{[^}]*scroll-behavior\s*:\s*smooth/);
+      expect(appCssSource).toMatch(/@media\s*\(\s*prefers-reduced-motion\s*:\s*reduce\s*\)/);
+      expect(appCssSource).toMatch(/@media\s*\(\s*prefers-reduced-motion\s*:\s*reduce\s*\)[^{]*\{[^}]*scroll-behavior\s*:\s*auto/);
+    });
+    it('app.css defines scroll-padding-top on html (anchor-scroll offset)', () => {
+      // Per review #1 edge-case #1: the smooth-scroll anchor
+      // targets the dropzone button; without scroll-padding-top,
+      // the dropzone can land flush against the top edge and the
+      // header can occlude it. The padding is the primary offset;
+      // scroll-margin-top on the button itself is the secondary
+      // (covered by the AC21f pin above).
+      expect(appCssSource).toMatch(/html\s*\{[^}]*scroll-padding-top\s*:/);
+    });
+    it('.empty-state-card uses var(--paper) + var(--rule) + var(--space-base) (token discipline)', () => {
+      // Per review #1 should-fix: pin the card surface uses tokens
+      // for background / border / padding. AD-8 says all values
+      // must come from tokens.css; the card surface is the most
+      // prominent S03.5 visual addition.
+      const cardRule = appCssSource.match(/\.empty-state-card\s*\{[^}]*\}/);
+      expect(cardRule).not.toBeNull();
+      expect(cardRule![0]).toMatch(/background\s*:\s*var\(--paper\)/);
+      expect(cardRule![0]).toMatch(/border\s*:\s*1px\s+solid\s+var\(--rule\)/);
+      expect(cardRule![0]).toMatch(/padding\s*:\s*var\(--space-base\)/);
     });
   });
 });

@@ -218,10 +218,15 @@ body {
  *     What we detect / What we show you / What you can do (FR-2 /
  *     FR-3 / FR-5 category names, mono via <code>)
  *
- * The cards stack to 1 column below ~720px (mobile-first collapse
- * per AD-7 responsive floor). The "Browse files" anchor smooth-
- * scrolls to the dropzone (gated by prefers-reduced-motion: reduce
- * per AD-9 a11y floor).
+ * The cards stack to 1 column strictly below 720px viewport width
+ * (mobile-first collapse per AD-7 responsive floor). The
+ * breakpoint uses `max-width: 719px` so the collapse fires at
+ * viewport widths < 720px and the 3-column grid stays at exactly
+ * 720px and above. The 720px boundary itself is "above the mobile
+ * breakpoint" per the design spec; 3 columns at exactly 720px is
+ * the desired off-by-one contract. The "Browse files" anchor
+ * smooth-scrolls to the dropzone (gated by prefers-reduced-motion:
+ * reduce per AD-9 a11y floor).
  */
 .empty-state-headline {
   margin-block: 0 var(--space-base);
@@ -239,6 +244,11 @@ body {
 .empty-state-ctas {
   display: flex;
   align-items: center;
+  /* 0.5rem = half of --space-base. No --space-half token exists;
+     the value is a relative sub-spacing for the inline separator's
+     breathing room and is consistent with the wordmark gap rule
+     above (which also uses 0.5rem). The half-base value is the
+     editorial posture's "tight but not cramped" cadence. */
   gap: 0.5rem;
   margin-block: 0 var(--space-base);
   flex-wrap: wrap;
@@ -253,6 +263,15 @@ body {
 
 .empty-state-card h3 {
   margin-block: 0 var(--space-base);
+  /* 1.125rem — between --size-body (1rem) and --size-h2 (1.5rem).
+     No --size-h3 token exists in tokens.css; the value is a
+     typographic intermediate for the card sub-heading. The
+     editorial voice favors a clear hierarchy: h1 > h2 > h3 in
+     the page outline, but the card's h3 is intentionally smaller
+     than the page-section h2 (it sits BELOW the page-section
+     headline, not at the same level). Magic value is acceptable
+     per AD-8 (which forbids hex literals, not all numeric values);
+     flagged for a future S-XX token addition. */
   font-size: 1.125rem;
   font-weight: var(--weight-h2);
   color: var(--ink);
@@ -260,12 +279,20 @@ body {
 
 .empty-state-card ul {
   margin: 0;
-  padding-left: 1.25rem;
+  /* 1.25rem = --space-card-padding (a token!). The token is for
+     component-level padding; we re-use it here for the list's
+     left indent, which is the same numeric value and the same
+     semantic intent (insetting content from a surface edge). */
+  padding-left: var(--space-card-padding);
   color: var(--graphite);
   font-size: var(--size-data);
 }
 
 .empty-state-card li {
+  /* 0.25rem = quarter of --space-base. No --space-quarter token
+     exists; the value is the editorial "snug list" cadence — the
+     8/4/5 category names are tight but distinct lines. Same
+     rational as the ctas gap above. */
   margin-block: 0.25rem;
 }
 
@@ -276,7 +303,7 @@ body {
   margin-top: var(--space-section);
 }
 
-@media (max-width: 720px) {
+@media (max-width: 719px) {
   .empty-state-cards {
     grid-template-columns: 1fr;
   }
@@ -287,9 +314,25 @@ body {
  * prefers-reduced-motion per AD-9 a11y floor (the only motion is
  * the scroll, not a transition; users who opted out get instant
  * anchor jumps).
+ *
+ * `scroll-padding-top` reserves vertical space at the top of the
+ * viewport so the anchor scrolled-into-view (the dropzone `<button
+ * id="dropzone">`) sits BELOW the header chrome — without the
+ * padding, the dropzone can land flush against the top edge and
+ * the header can occlude it. The padding is gated on the SAME
+ * reduced-motion media query as the scroll-behavior override so
+ * users who opted out of motion get the same scroll-pad as the
+ * default (positioning is independent of motion preference).
+ *
+ * The dropzone button also carries `scroll-margin-top` (see
+ * Dropzone.svelte's component-scoped <style>) as a second line of
+ * defense — Chrome, Firefox, and Safari all honor scroll-margin-top
+ * for the same purpose; having both means the offset works even if
+ * one of the two is overridden in a future cross-browser fix.
  */
 html {
   scroll-behavior: smooth;
+  scroll-padding-top: var(--space-section);
 }
 
 @media (prefers-reduced-motion: reduce) {

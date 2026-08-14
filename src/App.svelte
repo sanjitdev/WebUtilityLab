@@ -121,8 +121,29 @@
        sit ABOVE the dropzone; the three teaching cards sit BELOW.
        S03.7's state machine will morph this content (empty → active
        → results); S03.5 ships the static visible content per
-       EXPERIENCE.md §Information Architecture. -->
+       EXPERIENCE.md §Information Architecture.
+
+       "Try the example" is `disabled` + `aria-disabled="true"` with
+       NO event handler binding (S03.8 wires the click handler;
+       see AC21c test for the no-handler pin). The disabled +
+       aria-disabled redundancy is intentional:
+         - `disabled` makes the button un-clickable AND unfocusable
+           in HTML; the user cannot tab to it.
+         - `aria-disabled="true"` is belt-and-braces for AT users
+           — some browsers announce the disabled state via the
+           attribute; the explicit ARIA attribute ensures the
+           announcement is consistent regardless of CSS overrides
+           to the user-agent default `:disabled` styling.
+       S03.8 will remove `disabled` and bind the example-CSV click
+       handler; until then, the button is the static "this is the
+       CTA, S03.8 wires it" affordance. The AC21c test pins BOTH
+       attributes AND the absence of any handler binding. -->
   <h2 class="empty-state-headline">Drop a CSV to find out what's wrong with it.</h2>
+  <!-- S03.5: the lede is a SINGLE <p> element. The verbatim prose
+       from EXPERIENCE.md line 43 stays in one paragraph; a
+       regression that splits it into two <p> elements (e.g., one
+       for the file-format guardrails, one for the privacy signal)
+       fails the AC21b single-paragraph pin. -->
   <p class="empty-state-lede">Files up to 50 MB, UTF-8, with or without a BOM. We don’t upload — this happens in your browser.</p>
   <div class="empty-state-ctas">
     <button type="button" disabled aria-disabled="true">Try the example</button>
