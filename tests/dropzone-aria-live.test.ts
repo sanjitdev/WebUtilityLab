@@ -167,11 +167,6 @@ describe('dropzone-aria-live (S03.4 file-name reveal in aria-live region on acce
       const body = extractFunctionBody(appSource, 'handleAccept');
       // Negative pin: no `File accepted — ` (em-dash form).
       expect(body).not.toMatch(/File accepted\s*—\s*/);
-      // Negative pin: the runtime string never contains em-dash.
-      // This is the docblock claim "colon separator (NOT em-dash)"
-      // verified against the actual announcement string, not just
-      // the source-code shape (verification-gap Review #1 finding).
-      expect('File accepted: foo.csv').not.toMatch(/—/);
     });
     it('handleAccept body uses sentence case "File accepted" (NOT "File Accepted")', () => {
       const body = extractFunctionBody(appSource, 'handleAccept');
@@ -374,8 +369,12 @@ describe('dropzone-aria-live (S03.4 file-name reveal in aria-live region on acce
     it('ThemeToggle.svelte still applies class="visually-hidden" to the announcement <span> (regression pin)', () => {
       expect(themeToggleSource).toMatch(/class\s*=\s*["']visually-hidden["']/);
     });
-    it('App.svelte applies class="visually-hidden" to the new <output> aria-live region', () => {
-      expect(appSource).toMatch(/<output[^>]*class\s*=\s*["']visually-hidden["']/);
+    it('App.svelte applies class="visually-hidden" to the new <output> aria-live region (subsumed by AC20g)', () => {
+      // Review #2 (coderabbit) finding: this assertion was redundant
+      // with AC20g's stricter regex (`<output[^>]*class="visually-hidden"[^>]*aria-live="polite"[^>]*aria-atomic="true"`)
+      // which already proves the visually-hidden class is on the
+      // <output>. The AC20g regex IS the canonical pin for this
+      // application site. Removed.
     });
   });
 

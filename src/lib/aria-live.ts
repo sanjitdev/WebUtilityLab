@@ -34,13 +34,12 @@
 /**
  * Snippet the pasted text for the aria-live announcement.
  *
- * Returns the input verbatim if `text.length <= 40`; otherwise
- * returns `text.slice(0, 40) + '…'` (the first 40 chars plus a
- * single-character ellipsis). The result is plain text — no
- * surrounding quotes, no markup. The mono treatment in the
+ * Returns the input verbatim if `text.length <= SNIPPET_CAP`; otherwise
+ * returns `text.slice(0, SNIPPET_CAP) + '…'` (the first SNIPPET_CAP
+ * chars plus a single-character ellipsis). The result is plain text
+ * — no surrounding quotes, no markup. The mono treatment in the
  * announcement region is a CSS-level concern (the surrounding
- * `<code>` element in App.svelte's template), not a function
- * concern.
+ * `<code>` element in App.svelte's template), not a function concern.
  *
  * The function is total: it accepts any string (including
  * empty string, multi-line text, and text with control
@@ -50,6 +49,10 @@
  * — but the S03.2 paste heuristic already filters out empty
  * pastes, so this branch is unreachable in practice.
  */
+
+/** Snippet cap, in UTF-16 code units. Editorial voice bound; S03.4 spec. */
+export const SNIPPET_CAP = 40;
+
 export function pasteSnippet(text: string): string {
-  return text.length > 40 ? text.slice(0, 40) + '…' : text;
+  return text.length > SNIPPET_CAP ? text.slice(0, SNIPPET_CAP) + '…' : text;
 }

@@ -35,7 +35,7 @@ so that **PRD's AD-9 a11y floor ("every input gesture is mirrored to assistive t
    <span class="visually-hidden" aria-live="polite">{liveText}</span>
    ```
    S03.4's region uses the same `visually-hidden` class (defined in ThemeToggle's `<style>` block; S03.4 either re-defines the class in a new component's `<style>` block OR — preferred — extracts `.visually-hidden` into `src/styles/app.css` and removes the duplicate from ThemeToggle's component CSS). **Decision (per loop): extract `.visually-hidden` to `src/styles/app.css`** so all three uses (ThemeToggle's announcement + Dropzone's hidden input + S03.4's announcement region) share one definition. The component-scoped `.visually-hidden` in Dropzone (lines 268-278) and ThemeToggle (lines 91-101) is removed; the global class in `app.css` is the source of truth. Tests pin: `tests/dropzone.test.ts` AC17e (the existing pin) verifies the visually-hidden class still exists in the DOM; S03.4's new test file adds a regression pin asserting the class is now defined in `app.css` (NOT in the component scope). The visual treatment is unchanged (1px clip rect, position absolute, etc.) — only the location of the definition moves.
-6. **Empty initial state.** The aria-live region's text content is an empty string on first paint. The region is rendered into the DOM but contains no visible/audible content until the first `onaccept` callback fires. Screen readers don't announce empty regions; the empty initial state is the correct baseline.
+6. **Empty initial state.** The aria-live region's text content is empty on first paint (the `liveAnnouncement` `$state` is initialized to `null`; the template renders an empty string inside the `<output>` so the region is in the DOM but contains no content). Screen readers don't announce empty regions; the empty initial state is the correct baseline. Review #1 fix: original spec said `$state('')` (empty string); the implementation uses `$state<Announcement>(null)` (a structured 3-state union) — see Task 2.1 below.
 7. **No new dependencies.** S03.4 is component + App.svelte + small utility module only; no `package.json` entries.
 8. **Privacy Baseline preserved.** No `fetch` / `XMLHttpRequest` / `navigator.sendBeacon` / `EventSource` / `new Function` / `eval` / dynamic `import()` in any S03.4-touched file. The `App.svelte` handleAccept function is local-only (reads `file.name` from a closure-scoped File — does not call any network API). The new aria-live utility module (if S03.4 extracts one; spec choice below) is pure functions, no DOM access except where explicitly typed (the `liveRegion: HTMLElement` argument). `audit-privacy.mjs` stays green.
 9. **Tests** at `tests/dropzone-aria-live.test.ts` (NEW). Mirrors the `node:fs` + `node:path` + `node:url` + `vitest` convention. Source-grep on `src/App.svelte`, `src/components/Dropzone.svelte`, `src/components/ThemeToggle.svelte`, `src/lib/aria-live.ts` (NEW; if extracted), `src/styles/app.css`. Coverage (10 AC20a-AC20j describe blocks):
@@ -123,21 +123,29 @@ so that **PRD's AD-9 a11y floor ("every input gesture is mirrored to assistive t
         liveAnnouncement = 'Text pasted: ' + snippet;
       }
       ```
-      The `liveAnnouncement` variable is `$state('')` declared at the top of the script block. The discriminated-union parameter type mirrors Dropzone's `onaccept` union EXACTLY (the type duplication is intentional — S03.4's `handleAccept` is a consumer; the type is the contract).
-    - Declare `let liveAnnouncement = $state('')` (Svelte 5 `$state` rune). The variable's initial value is `''` (empty string; aria-live region is silent on first paint).
+      The `liveAnnouncement` variable is `$state<Announcement>(null)` declared at the top of the script block. `Announcement` is a 3-state discriminated union (`null` | `{ kind: 'drop'; name }` | `{ kind: 'paste'; snippet }`); the initial value is `null` (region silent on first paint). The structured shape lets the template wrap the filename/snippet in `<code>` for the mono treatment (per EXPERIENCE.md §Editorial voice). Review #1 fix: original spec said `$state('')` (empty string), but Review #1 (verification-gap) found that a structured discriminated union is more semantically correct — the empty string would have been a 4th ambiguous state. The handleAccept parameter type mirrors Dropzone's `onaccept` union EXACTLY (the type duplication is intentional — S03.4's `handleAccept` is a consumer; the type is the contract).
+    - Declare `let liveAnnouncement = $state<Announcement>(null)` where `type Announcement = null | { kind: 'drop'; name: string } | { kind: 'paste'; snippet: string }`. The variable's initial value is `null` (the aria-live region is silent on first paint; no announcement yet).
   - [ ] 2.2 TEMPLATE BLOCK additions:
     - Change `<Dropzone />` to `<Dropzone onaccept={handleAccept} />` (wire the S03.4 consumer).
     - Add the aria-live region. Two spec choices considered:
       - (a) Inside `<main>` next to the dropzone. Pros: keeps the announcement near its source. Cons: the announcement leaks into the dropzone's semantic neighborhood; some screen readers conflate regions that are physically close.
       - (b) Inside `<header>` next to ThemeToggle's announcement. Pros: groups all aria-live regions in the page header; mirrors ThemeToggle's existing pattern.
-      - **(c) Decision: inside `<main>`** but AFTER the dropzone, not inside it. The region's proximity to the dropzone is the right semantic neighborhood (the announcement IS the dropzone's status). The region is permanently `visually-hidden` (screen-reader-only; the visible banner is downstream). Format:
+      - **(c) Decision: inside `<main>`** but AFTER the dropzone, not inside it. The region's proximity to the dropzone is the right semantic neighborhood (the announcement IS the dropzone's status). The region is permanently `visually-hidden` (screen-reader-only; the visible banner is downstream). Format (Review #1 fix — the liveAnnouncement is a structured discriminated union, not a plain string; the template wraps filename/snippet in `<code>` for the mono treatment):
         ```svelte
         <main id="main" tabindex="-1" class="page-main">
           <Dropzone onaccept={handleAccept} />
-          <output class="visually-hidden" aria-live="polite" aria-atomic="true">{liveAnnouncement}</output>
+          <output class="visually-hidden" aria-live="polite" aria-atomic="true">
+            {#if liveAnnouncement === null}
+              {''}
+            {:else if liveAnnouncement.kind === 'drop'}
+              File accepted: <code>{liveAnnouncement.name}</code>
+            {:else}
+              Text pasted: <code>{liveAnnouncement.snippet}</code>
+            {/if}
+          </output>
         </main>
         ```
-        The `<output>` element is the semantic choice (it's the canonical "result of a user action" element per WHATWG). `role="status"` is implicit on `<output>` (the implicit role of `<output>` is `status`); the explicit `aria-live="polite"` ensures the region announces politely (NOT assertively — over-cap signals would be `assertive`; S03.4's accept announcements are `polite`). `aria-atomic="true"` means the entire region is re-announced on every change (NOT just the diff — important for `polite` announcements where the user may not have heard the previous one).
+        The `<output>` element is the semantic choice (it's the canonical "result of a user action" element per WHATWG). `role="status"` is implicit on `<output>` (the implicit role of `<output>` is `status`); the explicit `aria-live="polite"` ensures the region announces politely (NOT assertively — over-cap signals would be `assertive`; S03.4's accept announcements are `polite`). `aria-atomic="true"` means the entire region is re-announced on every change (NOT just the diff — important for `polite` announcements where the user may not have heard the previous one). The `{''}` interpolation in the null branch is load-bearing: it forces the empty branch to render SOMETHING so Svelte doesn't strip the conditional from the DOM (some screen readers treat an empty element as not-a-region).
   - [ ] 2.3 Update the docblock at the top of App.svelte: note that S03.4 wires the onaccept consumer and adds the aria-live announcement region; S03.7 will eventually consume the same callback via the reducer (the wiring remains App.svelte-side; the reducer becomes the consumer-of-the-reducer).
   - [ ] 2.4 NO other changes to App.svelte. The `<header>`, `<footer>`, and skip-link are unchanged.
 
@@ -159,7 +167,7 @@ so that **PRD's AD-9 a11y floor ("every input gesture is mirrored to assistive t
   - [ ] 5.5 AC20d: App.svelte announces paste snippet, max 40 chars + ellipsis. Grep `appSource` for `text\.slice\(0,\s*40\)\s*\+\s*['"]…['"]` (the slice + ellipsis pattern). Plus a runtime assertion: simulate a 100-char paste and verify the snippet is ≤ 40 chars (the runtime check would be a unit test on the snippet function if S03.4 extracts one; spec choice below). **Spec choice: extract the snippet logic to a tiny utility** (`src/lib/aria-live.ts` with `pasteSnippet(text: string): string`) so the runtime test is a real unit test on the function. App.svelte imports and calls it.
   - [ ] 5.6 AC20e: App.svelte does NOT format the oversize branch. Grep `appSource` for `if\s*\(\s*source\.kind\s*===\s*['"]oversize['"]\s*\)\s*return` (the defensive early-return). Plus: `appSource` does NOT contain `formatStrictBrief`, `File is X MB`, `limit is Y MB`, `oversize.*size.*cap` (no premature strict-brief wiring).
   - [ ] 5.7 AC20f: visually-hidden class extracted to src/styles/app.css. Grep `appCssSource` for `.visually-hidden\s*\{` (the class definition exists in the global stylesheet). AND `dropzoneSource` does NOT match `\bvisually-hidden\s*\{` (the component-scoped duplicate is gone). Same pin for `themeToggleSource`.
-  - [ ] 5.8 AC20g: aria-live region element exists in App.svelte template. Grep `appSource` for `<output[^>]*class="visually-hidden"[^>]*aria-live="polite"[^>]*aria-atomic="true"[^>]*>` (the element with all three attributes). The element wraps `{liveAnnouncement}` (the Svelte interpolation).
+  - [ ] 5.8 AC20g: aria-live region element exists in App.svelte template. Grep `appSource` for `<output[^>]*class="visually-hidden"[^>]*aria-live="polite"[^>]*aria-atomic="true"[^>]*>` (the element with all three attributes). The element contains a `{#if liveAnnouncement === null}` conditional that renders the three states (null → empty, drop → `File accepted: <code>...`, paste → `Text pasted: <code>...`).
   - [ ] 5.9 AC20h: no Svelte 4 `on:` syntax. Grep `appSource` for negative matches on `\bon\s*:\s*accept\b` and `\bon\s*:\s*drop\b`.
   - [ ] 5.10 AC20i: no forbidden source patterns in NEW code. Mirrors S03.3 AC19l. Forbidden list: `\bfetch\(`, `XMLHttpRequest`, `EventSource`, `sendBeacon`, `navigator\.sendBeacon`, `new Function`, `\beval\b`, dynamic `import\(`, `\bFileReader\b`, `\breadAsText\b`, etc. Scanned on `appSource` AND `src/lib/aria-live.ts` (the new utility module, if extracted).
   - [ ] 5.11 AC20j: prior-story boundary pins preserved. Grep `tests/dropzone.test.ts` for `dropzone \(S03\.1`; grep `tests/dropzone-drag-paste.test.ts` for `dropzone-drag-paste \(S03\.2 drag-and-drop`; grep `tests/dropzone-file-cap.test.ts` for `dropzone-file-cap \(S03\.3 50 MB cap check`. Each prior-story test file must still exist and contain its description string.
@@ -182,12 +190,12 @@ so that **PRD's AD-9 a11y floor ("every input gesture is mirrored to assistive t
 
 | File | Status | Surface S03.4 changes |
 |---|---|---|
-| `src/App.svelte` | **MODIFIED** | Wires `<Dropzone onaccept={handleAccept} />` for the first time. Adds `handleAccept` function (handles all 3 onaccept kinds; announces on drop + paste; no-ops on oversize). Adds `<output>` aria-live region inside `<main>` after the dropzone. ~20 lines net added. |
+| `src/App.svelte` | **MODIFIED** | Wires `<Dropzone onaccept={handleAccept} />` for the first time. Adds `handleAccept` function (handles all 3 onaccept kinds; announces on drop + paste; no-ops on oversize). Adds `<output>` aria-live region inside `<main>` after the dropzone with a structured template (`{#if}...{:else if}...{:else}...{/if}`) wrapping filename/snippet in `<code>` for mono treatment. ~80 lines net added (script block + type + handler + docblock; template gains the structured conditional). |
 | `src/styles/app.css` | **MODIFIED** | Adds `.visually-hidden { ... }` definition (the global source of truth). |
 | `src/components/Dropzone.svelte` | **MODIFIED** | Removes the component-scoped `.visually-hidden` definition from `<style>` block (the class is now global). The hidden `<input>` still uses `class="visually-hidden"`. |
 | `src/components/ThemeToggle.svelte` | **MODIFIED** | Removes the component-scoped `.visually-hidden` definition from `<style>` block. The announcement `<span>` still uses `class="visually-hidden"`. |
-| `src/lib/aria-live.ts` | **NEW** (spec choice) | Tiny utility module exporting `pasteSnippet(text: string): string`. Pure function, no DOM. Enables a runtime unit test on the snippet logic. ~10 lines. |
-| `tests/dropzone-aria-live.test.ts` | **NEW** | 10 AC20a-AC20j describe blocks; ~40 tests. Mirrors the existing test convention. |
+| `src/lib/aria-live.ts` | **NEW** (spec choice) | Tiny utility module exporting `pasteSnippet(text: string): string` and the `SNIPPET_CAP = 40` constant. Pure function, no DOM. Enables a runtime unit test on the snippet logic. ~20 lines. |
+| `tests/dropzone-aria-live.test.ts` | **NEW** | 10 AC20a-AC20j describe blocks; 71 sub-assertions. Mirrors the existing test convention. |
 
 ### Files S03.4 does NOT touch (avoid scope creep)
 
@@ -265,17 +273,24 @@ claude-opus-4.8 (puku-cli router)
 
 ### Debug Log References
 
-- `npm test` → 543/543 pass (485 prior + 58 new S03.4). The 58 new
+- `npm test` → 556/556 pass (485 prior + 71 new S03.4 = 58 from `40f9108`
+  initial impl + 13 from `9af4dfb` Review #1 fixes). The 71 new
   tests cover AC20a-AC20j (10 describe blocks; the higher-than-
-  estimated count comes from the AC20f (6 sub-pins for the visually-
-  hidden extraction), AC20i (14 forbidden-patterns × 2 source files),
-  AC20d (5 runtime boundary pins for pasteSnippet), and AC20j (4 prior-
-  story pin preservation checks).
+  estimated count comes from the AC20f (CSS property coverage × 9 +
+  3 application-site pins), AC20i (12 forbidden-patterns × 2 source
+  files = 24, expanded by Review #1 to include WebSocket + new
+  EventSource()), AC20d (runtime boundary pins for pasteSnippet
+  including 41-char exact-output and explicit U+2026 codepoint),
+  AC20e (the handleAccept runtime harness: oversize null + drop +
+  paste structured shapes), and AC20j (prior-story pin preservation
+  + boundary inversion docblocks).
 - `npm run check` → svelte-check 0 errors + 1 pre-existing warning in
   ThemeToggle.svelte (state_referenced_locally for `mode`; not
   introduced by S03.4 — present before S03.4's commit). tsc 0 errors.
-- `npm run build` → 12.62 KB gz JS / 14.70 KB gz total / 0 source maps
-  after build-cleanup.
+- `npm run build` → 13.36 KB gz JS / 15.41 KB gz total / 0 source maps
+  after build-cleanup. Review #1 added ~0.4 KB for the structured
+  announcement discriminated union + the template conditional; still
+  ~93% under the 200 KB budget.
 - `npm run check:bundle` → under 200 KB gzipped budget.
 - `npm run audit:privacy` → 3 dist files / 27 forbidden hosts / 6
   forbidden source calls / OK.
@@ -298,8 +313,13 @@ claude-opus-4.8 (puku-cli router)
   prop type exactly — the duplication is intentional for S03.4; S03.7
   will extract a shared `OnAcceptSource` type when the reducer lands.
 
-- **`<output class="visually-hidden" aria-live="polite" aria-atomic="true">{liveAnnouncement}</output>`** lives inside `<main>`
-  after the dropzone. The semantic choice (`<output>` not `<div
+- **`<output class="visually-hidden" aria-live="polite" aria-atomic="true">` with a structured template** lives inside `<main>`
+  after the dropzone. Review #1 fix: the liveAnnouncement is a
+  3-state discriminated union (`null` | `{ kind: 'drop'; name }` |
+  `{ kind: 'paste'; snippet }`), not a plain string; the template
+  conditionally renders the three states, wrapping filename and
+  snippet in `<code>` for the mono treatment per EXPERIENCE.md
+  §Editorial voice. The semantic choice (`<output>` not `<div
   role="status">`) honors WHATWG's "result of a user action"
   semantics; the implicit ARIA role of `<output>` is `status` per
   WAI-ARIA. `aria-atomic="true"` ensures the entire region is re-

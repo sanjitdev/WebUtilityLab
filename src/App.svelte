@@ -64,8 +64,9 @@
   // filename wrapped in `<code>` for the mono treatment per
   // EXPERIENCE.md §Editorial voice "mono for data". The `<code>`
   // is invisible inside the visually-hidden parent (no visual
-  // effect today) but the DOM is honest about the editorial
-  // treatment; a future visible banner inherits the structure.
+  // effect today) but the DOM is the source of truth for the
+  // editorial treatment; visual rendering may be added in
+  // S03.9/E04 without touching this template.
   type Announcement =
     | null
     | { kind: 'drop'; name: string }
@@ -89,7 +90,7 @@
     source:
       | { kind: 'drop'; file: File }
       | { kind: 'paste'; text: string; filename?: string }
-      | { kind: 'oversize'; size: number; cap: number },
+      | { kind: 'oversize'; size: number; cap: number }
   ): void {
     if (source.kind === 'oversize') return;
     if (source.kind === 'drop') {
@@ -119,6 +120,10 @@
   <Dropzone onaccept={handleAccept} />
   <output class="visually-hidden" aria-live="polite" aria-atomic="true">
     {#if liveAnnouncement === null}
+      <!-- Empty branch — the {''} interpolation below is load-bearing
+           (forces Svelte to render SOMETHING into the <output>; without
+           it, the {#if} block collapses and some screen readers treat
+           the empty element as not-a-region). -->
       {''}
     {:else if liveAnnouncement.kind === 'drop'}
       File accepted: <code>{liveAnnouncement.name}</code>
