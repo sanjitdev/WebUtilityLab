@@ -70,12 +70,20 @@ describe('strict-brief formatter (S03.9; AC25a + AC25c — strict-brief over-cap
       );
     });
 
-    it('boundary case (size === cap, exactly 50 MiB) renders gracefully', () => {
-      // The cap check is inclusive — size === cap returns `ok`, so
-      // this case never reaches the formatter in practice. The
-      // formatter handles it gracefully anyway: "File is 50 MB —
-      // limit is 50 MB." (no overflow text, no spurious "Remove
-      // columns" because no file is actually rejected).
+    it('boundary case (size === cap, exactly 50 MiB) is signature-blind — formatter always appends the action', () => {
+      // The cap check is inclusive — size === cap returns `ok` from
+      // `assertWithinFileCap`, so this case NEVER reaches the
+      // formatter in production. The formatter is signature-blind:
+      // it always emits the action ("Remove columns or split the
+      // file.") regardless of whether the file is actually over
+      // cap. The responsibility split is documented at the top of
+      // `src/lib/strict-brief.ts` — the cap check enforces the
+      // gate; the formatter just renders the prose.
+      //
+      // Review #2 (coderabbit) finding: the prior docblock promised
+      // "no spurious 'Remove columns' because no file is actually
+      // rejected" — but the formatter ALWAYS appends the action.
+      // Tightened the docblock to reflect reality.
       const out = formatStrictBrief({
         kind: 'oversize',
         size: 50 * MB,
@@ -214,23 +222,19 @@ describe('strict-brief formatter (S03.9; AC25a + AC25c — strict-brief over-cap
   });
 
   describe('AC25a item 1: discriminated-union payload contract', () => {
-    it('the formatter accepts the `oversize` discriminator', () => {
-      // TypeScript pins this at compile time. The runtime test is a
-      // safety net for a future regression that drops the kind check
-      // and falls through to the throw.
-      const result = formatStrictBrief({
-        kind: 'oversize',
-        size: 75 * MB,
-        cap: 50 * MB,
-      });
-      expect(result).toContain('File is');
-    });
-
     it('an unknown kind throws (exhaustiveness guard)', () => {
       // The `_exhaustive: never` cast catches a future union widening
       // at compile time. At runtime, the unknown-kind throw is the
       // safety net. Cast through `unknown` because TypeScript would
       // otherwise reject the test input.
+      //
+      // Review #2 (coderabbit) finding: the prior test "the formatter
+      // accepts the `oversize` discriminator" was tautological — it
+      // used the same (75 MiB, 50 MiB) input already pinned by the
+      // full-string equality at AC25a item 2 and asserted only
+      // `toContain('File is')` (a weaker pin that adds no information).
+      // Removed. The "oversize" branch's contract is fully exercised
+      // by AC25a item 2's four full-string-equality tests.
       const malformed = { kind: 'unknown', size: 1, cap: 2 } as unknown as Parameters<typeof formatStrictBrief>[0];
       expect(() => formatStrictBrief(malformed)).toThrow();
     });

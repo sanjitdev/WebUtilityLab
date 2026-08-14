@@ -70,12 +70,21 @@ export function formatStrictBrief(brief: StrictBrief): string {
   if (brief.kind === 'oversize') {
     return formatOversize(brief.size, brief.cap);
   }
-  // Exhaustiveness check: TypeScript narrows `brief` to `never` here
-  // when the union widens. A future branch addition that forgets to
-  // update this function becomes a compile error, not a silent
-  // fall-through. The `void brief` discards the never assertion at
-  // runtime (it's a compile-time-only check) so the throw below is
-  // unreachable but still useful for the unknown-kind runtime test.
+  // Exhaustiveness guard (RUNTIME only — not a compile-time check).
+  //
+  // TypeScript does NOT narrow `brief` to `never` here even after
+  // the early-return from the `oversize` branch: a future union
+  // widening that adds `'encoding'` / `'malformed'` branches
+  // would compile cleanly (the `if` check is still exhaustive
+  // for the CURRENT union; the runtime throw is reached for
+  // FUTURE kinds). The `void brief` does not change narrowing
+  // either — it only suppresses an unused-locals warning.
+  //
+  // The runtime throw is therefore the safety net for future
+  // union widening, NOT a compile-time exhaustiveness pin.
+  // The corresponding runtime test (`an unknown kind throws`)
+  // exercises this guard. A future contributor who adds a new
+  // branch to `StrictBrief` should ALSO add a `case` here.
   void brief;
   throw new Error(`Unknown strict-brief kind: ${JSON.stringify(brief)}`);
 }
