@@ -58,3 +58,17 @@ Icon?
 # we don't want it committed. The committed workflow is `ci.yml`.
 .github/workflows/*.local.yml
 .github/workflows/*.local.yaml
+
+# graphify — knowledge graph pipeline outputs
+# The merged knowledge graph + reports are tracked; intermediate
+# caches, backups, and chunk files are regenerable.
+graphify-out/cache/
+graphify-out/2026-08-14/
+graphify-out/.graphify_chunk_*.json
+graphify-out/.graphify_extract.json
+graphify-out/.graphify_root
+graphify-out/.graphify_labels.json
+graphify-out/.graphify_labels.json.sig
+graphify-out/.graphify_analysis.json
+graphify-out/.graphify_clusters.json
+graphify-out/graph.html
