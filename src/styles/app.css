@@ -203,3 +203,97 @@ body {
   white-space: nowrap;
   border: 0;
 }
+
+/*
+ * Empty-state surface — S03.5 lands the visible content that sits
+ * above and below the dropzone on first paint (per EXPERIENCE.md
+ * §Information Architecture line 24):
+ *   - headline (<h2>): JTBD sentence prefix
+ *   - lede (<p class="empty-state-lede">): file-format guardrails
+ *     + privacy signal (verbatim from EXPERIENCE.md line 43)
+ *   - CTAs (<div class="empty-state-ctas">): "Try the example"
+ *     (disabled primary, wired in S03.8) + "Browse files" anchor
+ *     (smooth-scrolls to the dropzone)
+ *   - three teaching cards (<div class="empty-state-cards">):
+ *     What we detect / What we show you / What you can do (FR-2 /
+ *     FR-3 / FR-5 category names, mono via <code>)
+ *
+ * The cards stack to 1 column below ~720px (mobile-first collapse
+ * per AD-7 responsive floor). The "Browse files" anchor smooth-
+ * scrolls to the dropzone (gated by prefers-reduced-motion: reduce
+ * per AD-9 a11y floor).
+ */
+.empty-state-headline {
+  margin-block: 0 var(--space-base);
+  font-size: var(--size-h2);
+  font-weight: var(--weight-h2);
+  letter-spacing: var(--tracking-h2);
+  color: var(--ink);
+}
+
+.empty-state-lede {
+  margin-block: 0 var(--space-base);
+  color: var(--graphite);
+}
+
+.empty-state-ctas {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-block: 0 var(--space-base);
+  flex-wrap: wrap;
+}
+
+.empty-state-card {
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-default);
+  padding: var(--space-base);
+}
+
+.empty-state-card h3 {
+  margin-block: 0 var(--space-base);
+  font-size: 1.125rem;
+  font-weight: var(--weight-h2);
+  color: var(--ink);
+}
+
+.empty-state-card ul {
+  margin: 0;
+  padding-left: 1.25rem;
+  color: var(--graphite);
+  font-size: var(--size-data);
+}
+
+.empty-state-card li {
+  margin-block: 0.25rem;
+}
+
+.empty-state-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-base);
+  margin-top: var(--space-section);
+}
+
+@media (max-width: 720px) {
+  .empty-state-cards {
+    grid-template-columns: 1fr;
+  }
+}
+
+/*
+ * Smooth-scroll for the "Browse files" anchor — gated by
+ * prefers-reduced-motion per AD-9 a11y floor (the only motion is
+ * the scroll, not a transition; users who opted out get instant
+ * anchor jumps).
+ */
+html {
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}

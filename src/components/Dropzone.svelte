@@ -213,6 +213,7 @@
 </script>
 
 <button
+  id="dropzone"
   type="button"
   class="dropzone"
   class:is-dragover={isDragging}

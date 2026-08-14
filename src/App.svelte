@@ -117,6 +117,19 @@
 </header>
 
 <main id="main" tabindex="-1" class="page-main">
+  <!-- S03.5: visible empty-state content. The headline + lede + CTAs
+       sit ABOVE the dropzone; the three teaching cards sit BELOW.
+       S03.7's state machine will morph this content (empty → active
+       → results); S03.5 ships the static visible content per
+       EXPERIENCE.md §Information Architecture. -->
+  <h2 class="empty-state-headline">Drop a CSV to find out what's wrong with it.</h2>
+  <p class="empty-state-lede">Files up to 50 MB, UTF-8, with or without a BOM. We don’t upload — this happens in your browser.</p>
+  <div class="empty-state-ctas">
+    <button type="button" disabled aria-disabled="true">Try the example</button>
+    <span aria-hidden="true">·</span>
+    <a href="#dropzone">Browse files</a>
+  </div>
+
   <Dropzone onaccept={handleAccept} />
   <output class="visually-hidden" aria-live="polite" aria-atomic="true">
     {#if liveAnnouncement === null}
@@ -131,6 +144,45 @@
       Text pasted: <code>{liveAnnouncement.snippet}</code>
     {/if}
   </output>
+
+  <!-- S03.5: three teaching cards. Each card is a <section> with an
+       <h3> heading + a <ul> of category names wrapped in <code>
+       (mono for data per EXPERIENCE.md §Editorial voice). The 8 + 4
+       + 5 names are the locked FR-2 / FR-3 / FR-5 categories. -->
+  <div class="empty-state-cards">
+    <section class="empty-state-card">
+      <h3>What we detect</h3>
+      <ul>
+        <li><code>duplicates</code></li>
+        <li><code>missing values</code></li>
+        <li><code>invalid emails</code></li>
+        <li><code>invalid dates</code></li>
+        <li><code>inconsistent categorical</code></li>
+        <li><code>outliers</code></li>
+        <li><code>suspicious columns</code></li>
+        <li><code>PII</code></li>
+      </ul>
+    </section>
+    <section class="empty-state-card">
+      <h3>What we show you</h3>
+      <ul>
+        <li><code>completeness</code></li>
+        <li><code>validity</code></li>
+        <li><code>uniqueness</code></li>
+        <li><code>consistency</code></li>
+      </ul>
+    </section>
+    <section class="empty-state-card">
+      <h3>What you can do</h3>
+      <ul>
+        <li><code>dedupe</code></li>
+        <li><code>fill missing</code></li>
+        <li><code>validate</code></li>
+        <li><code>normalize categorical</code></li>
+        <li><code>redact PII</code></li>
+      </ul>
+    </section>
+  </div>
 </main>
 
 <footer class="page-footer">
