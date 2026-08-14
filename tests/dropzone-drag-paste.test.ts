@@ -239,7 +239,16 @@ describe('dropzone-drag-paste (S03.2 drag-and-drop + paste handlers, onaccept un
       const body = extractFunctionBody(dropzoneSource, 'handleDrop');
       // Optional chaining `onaccept?.(...)` — escape the `?`.
       // The payload is built with single quotes in the source.
-      expect(body).toMatch(/onaccept\?\.\(\{ kind: 'drop', file \}\)/);
+      // S03.3 widens the regex to accept both the S03.2 shorthand
+      // (`{ kind: 'drop', file }`) and the S03.3 explicit form
+      // (`{ kind: 'drop', file: result.file }`). The discriminator
+      // `result.kind` is the source of truth for the under-cap vs
+      // over-cap branch; the payload file field is either the
+      // shorthand `file` or the explicit `result.file` (a dotted
+      // identifier chain).
+      expect(body).toMatch(
+        /onaccept\?\.\(\{\s*kind:\s*['"]drop['"]\s*,\s*file(?:\s*:\s*\w+(?:\.\w+)*)?\s*\}\)/,
+      );
     });
     it('handleDrop does NOT wrap the onaccept call in dead code (M3)', () => {
       // The substring check above would still match `if (false) {
