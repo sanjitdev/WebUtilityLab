@@ -184,8 +184,8 @@
        elements — no hover, no focus, no <details>/<summary>
        (those patterns are reserved for E10 problem cards). -->
   <div class="empty-state-cards">
-    <section class="empty-state-card">
-      <h3>What we detect</h3>
+    <section class="empty-state-card" aria-labelledby="card-detect-heading">
+      <h3 id="card-detect-heading">What we detect</h3>
       <p class="empty-state-card-lede">Each anomaly is reported with its row, column, the value, the rule that was broken, and a one-sentence explanation.</p>
       <ul>
         <li><code>duplicates</code></li>
@@ -198,8 +198,8 @@
         <li><code>PII</code></li>
       </ul>
     </section>
-    <section class="empty-state-card">
-      <h3>What we show you</h3>
+    <section class="empty-state-card" aria-labelledby="card-show-heading">
+      <h3 id="card-show-heading">What we show you</h3>
       <p class="empty-state-card-lede">A 0–100 score with a red, amber, or green band and a per-category breakdown across the four values.</p>
       <ul>
         <li><code>completeness</code></li>
@@ -208,8 +208,8 @@
         <li><code>consistency</code></li>
       </ul>
     </section>
-    <section class="empty-state-card">
-      <h3>What you can do</h3>
+    <section class="empty-state-card" aria-labelledby="card-do-heading">
+      <h3 id="card-do-heading">What you can do</h3>
       <p class="empty-state-card-lede">All toggles default off; the original and the proposed cleaned version are shown side by side before you confirm.</p>
       <ul>
         <li><code>dedupe</code></li>

@@ -299,6 +299,16 @@ body {
   margin-block: 0 var(--space-base);
   color: var(--graphite);
   font-size: var(--size-data);
+  /* Per review #1 edge-case #4: the longest body-prose sentence
+     ("Each anomaly is reported…") is ~120 chars; without an
+     overflow guard, a future regression that introduces a long
+     URL-like token (e.g., `one-sentence-explanation` → no break)
+     could overflow the card at narrow viewports. `overflow-wrap:
+     anywhere` lets long tokens wrap cleanly without affecting the
+     normal word-wrap. The width budget is enforced by the card's
+     padding (`var(--space-base)` on all sides) plus the responsive
+     1-column collapse below 720px (see AC21m). */
+  overflow-wrap: anywhere;
 }
 
 .empty-state-card ul {

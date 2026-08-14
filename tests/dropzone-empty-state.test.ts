@@ -238,9 +238,13 @@ describe('dropzone-empty-state (S03.5 empty-state copy from EXPERIENCE.md: headl
       expect(matches?.length ?? 0).toBe(3);
     });
     it('each card has an <h3> heading with the locked editorial wording', () => {
-      expect(appSource).toMatch(/<h3>\s*What we detect\s*<\/h3>/);
-      expect(appSource).toMatch(/<h3>\s*What we show you\s*<\/h3>/);
-      expect(appSource).toMatch(/<h3>\s*What you can do\s*<\/h3>/);
+      // The <h3> elements now carry `id="card-…-heading"` so
+      // `aria-labelledby` can reference them (review #1
+      // blind-hunter #2: <section> a11y). The regex tolerates
+      // attributes between `<h3` and `>`.
+      expect(appSource).toMatch(/<h3[^>]*>\s*What we detect\s*<\/h3>/);
+      expect(appSource).toMatch(/<h3[^>]*>\s*What we show you\s*<\/h3>/);
+      expect(appSource).toMatch(/<h3[^>]*>\s*What you can do\s*<\/h3>/);
     });
     it('the three cards are wrapped in a <div class="empty-state-cards"> grid container', () => {
       // The grid container holds the three cards; the rule in
@@ -255,10 +259,11 @@ describe('dropzone-empty-state (S03.5 empty-state copy from EXPERIENCE.md: headl
       // we show you") would still pass all three independent
       // heading pins. The Experience.md §Information Architecture
       // line 24 lists the cards in a specific order; pin that
-      // order with index-position assertions.
-      const detectIdx = appSource.search(/<h3>\s*What we detect\s*<\/h3>/);
-      const showIdx = appSource.search(/<h3>\s*What we show you\s*<\/h3>/);
-      const doIdx = appSource.search(/<h3>\s*What you can do\s*<\/h3>/);
+      // order with index-position assertions. Tolerates <h3 id="…">
+      // attributes between `<h3` and `>`.
+      const detectIdx = appSource.search(/<h3[^>]*>\s*What we detect\s*<\/h3>/);
+      const showIdx = appSource.search(/<h3[^>]*>\s*What we show you\s*<\/h3>/);
+      const doIdx = appSource.search(/<h3[^>]*>\s*What you can do\s*<\/h3>/);
       expect(detectIdx).toBeGreaterThan(-1);
       expect(showIdx).toBeGreaterThan(-1);
       expect(doIdx).toBeGreaterThan(-1);
@@ -471,24 +476,47 @@ describe('dropzone-empty-state (S03.5 empty-state copy from EXPERIENCE.md: headl
         /Each anomaly is reported with its row, column, the value, the rule that was broken, and a one-sentence explanation\./,
       );
     });
-    it('the body prose is a single <p class="empty-state-card-lede"> element', () => {
+    it('the body prose is a single <p class="empty-state-card-lede"> element (multi-class regex form)', () => {
       // Mirror the AC21b single-<p> pin: a regression that splits
       // the body into multiple paragraphs (or nests <p> elements)
       // fails the structural pin. The body is one declarative
-      // sentence, one <p>.
-      const ledeMatches = appSource.match(/<p[^>]*class\s*=\s*["']empty-state-card-lede["']/g);
+      // sentence, one <p>. The regex uses `\bempty-state-card-lede\b`
+      // word-boundary form so a multi-class attribute like
+      // `class="empty-state-card-lede variant-x"` still matches.
+      const ledeMatches = appSource.match(/<p[^>]*class\s*=\s*["'][^"']*\bempty-state-card-lede\b[^"']*["']/g);
       expect(ledeMatches?.length ?? 0).toBeGreaterThanOrEqual(1);
-      expect(appSource).toMatch(/<p[^>]*class\s*=\s*["']empty-state-card-lede["'][^>]*>\s*Each anomaly is reported with its row, column, the value, the rule that was broken, and a one-sentence explanation\.\s*<\/p>/);
+      expect(appSource).toMatch(/<p[^>]*class\s*=\s*["'][^"']*\bempty-state-card-lede\b[^"']*["'][^>]*>\s*Each anomaly is reported with its row, column, the value, the rule that was broken, and a one-sentence explanation\.\s*<\/p>/);
     });
-    it('the "What we detect" body prose renders BEFORE the <ul> of FR-2 category names', () => {
-      // AC22f: within each card, the order is <h3> → <p> → <ul>.
-      // The body prose sits between the heading and the list.
-      const detectCardStart = appSource.indexOf('<h3>What we detect</h3>');
-      const detectListStart = appSource.indexOf('<li><code>duplicates</code></li>');
-      const detectBodyIdx = appSource.indexOf('Each anomaly is reported with its row');
+    it('the body prose lives INSIDE the "What we detect" <section> (cross-card context pin)', () => {
+      // Per review #1 verification-gap #5: each FR-2 / FR-3 /
+      // FR-5 prose must live in its expected card section. A
+      // regression that swaps the body sentences across cards
+      // (e.g., "All toggles default off…" under "What we
+      // detect") passes the verbatim-prose pins but breaks the
+      // FR-7 teaching surface contract. Scope to the card's
+      // <section> and assert the body is inside it.
+      const detectSection = appSource.match(/<section[^>]*class\s*=\s*["']empty-state-card["'][\s\S]*?<h3[^>]*>\s*What we detect\s*<\/h3>[\s\S]*?<\/section>/);
+      expect(detectSection).not.toBeNull();
+      expect(detectSection![0]).toMatch(/Each anomaly is reported with its row/);
+    });
+    it('the "What we detect" body prose renders BEFORE the <ul> of FR-2 category names (intra-card scoped)', () => {
+      // AC22f + review #1: scope the position check to the current
+      // card section. A regression that places the body outside the
+      // card would fail this pin. Also anchor on the FR-2 category
+      // <code>duplicates</code> so a nested-<ul> regression doesn't
+      // false-positive.
+      const detectCardStart = appSource.search(/<h3[^>]*>\s*What we detect\s*<\/h3>/);
+      const cardStart = appSource.lastIndexOf('<section', detectCardStart);
+      const cardEnd = appSource.indexOf('</section>', detectCardStart);
+      const detectListStart = appSource.indexOf('<li><code>duplicates</code></li>', detectCardStart);
+      const detectBodyIdx = appSource.indexOf('Each anomaly is reported with its row', detectCardStart);
       expect(detectCardStart).toBeGreaterThan(-1);
+      expect(cardStart).toBeGreaterThan(-1);
+      expect(cardEnd).toBeGreaterThan(detectCardStart);
       expect(detectListStart).toBeGreaterThan(-1);
-      expect(detectBodyIdx).toBeGreaterThan(detectCardStart);
+      expect(detectBodyIdx).toBeGreaterThan(detectListStart === -1 ? detectCardStart : 0);
+      // Body must be INSIDE the section AND before the first FR-2 <li>.
+      expect(detectBodyIdx).toBeLessThan(cardEnd);
       expect(detectBodyIdx).toBeLessThan(detectListStart);
     });
   });
@@ -504,24 +532,43 @@ describe('dropzone-empty-state (S03.5 empty-state copy from EXPERIENCE.md: headl
         /A 0\u2013100 score with a red, amber, or green band and a per-category breakdown across the four values\./,
       );
     });
-    it('the body prose is a single <p class="empty-state-card-lede"> element', () => {
+    it('the body prose is a single <p class="empty-state-card-lede"> element (multi-class regex form)', () => {
       const showBodyIdx = appSource.indexOf('A 0\u2013100 score with a red, amber, or green band and a per-category breakdown across the four values.');
       expect(showBodyIdx).toBeGreaterThan(-1);
       // The body prose must be inside a <p class="empty-state-card-lede"> element.
       // Find the nearest opening <p> tag before the body and verify the class.
+      // Multi-class attribute form (per review #1 edge-case #1):
+      // the regex uses `\bempty-state-card-lede\b` so multi-class
+      // values like `class="empty-state-card-lede variant-x"` still match.
       const beforeBody = appSource.substring(0, showBodyIdx);
       const pOpenIdx = beforeBody.lastIndexOf('<p ');
       expect(pOpenIdx).toBeGreaterThan(-1);
       const pOpenTag = appSource.substring(pOpenIdx, appSource.indexOf('>', pOpenIdx) + 1);
-      expect(pOpenTag).toMatch(/class\s*=\s*["']empty-state-card-lede["']/);
+      expect(pOpenTag).toMatch(/class\s*=\s*["'][^"']*\bempty-state-card-lede\b[^"']*["']/);
     });
-    it('the "What we show you" body prose renders BEFORE the <ul> of FR-3 category names', () => {
-      const showCardStart = appSource.indexOf('<h3>What we show you</h3>');
-      const showListStart = appSource.indexOf('<li><code>completeness</code></li>');
-      const showBodyIdx = appSource.indexOf('A 0\u2013100 score with a red, amber, or green band');
+    it('the body prose lives INSIDE the "What we show you" <section> (cross-card context pin)', () => {
+      // Mirror AC22a: scope the prose to its expected card section.
+      // A regression that swaps body sentences across cards fails this pin.
+      const showSection = appSource.match(/<section[^>]*class\s*=\s*["']empty-state-card["'][\s\S]*?<h3[^>]*>\s*What we show you\s*<\/h3>[\s\S]*?<\/section>/);
+      expect(showSection).not.toBeNull();
+      expect(showSection![0]).toMatch(/A 0\u2013100 score with a red, amber, or green band/);
+    });
+    it('the "What we show you" body prose renders BEFORE the <ul> of FR-3 category names (intra-card scoped)', () => {
+      // Mirror the AC22a intra-card pin: scope to the current
+      // <section> boundary AND anchor on the FR-3 category
+      // <code>completeness</code> so nested-<ul> regressions
+      // don't false-positive.
+      const showCardStart = appSource.search(/<h3[^>]*>\s*What we show you\s*<\/h3>/);
+      const cardStart = appSource.lastIndexOf('<section', showCardStart);
+      const cardEnd = appSource.indexOf('</section>', showCardStart);
+      const showListStart = appSource.indexOf('<li><code>completeness</code></li>', showCardStart);
+      const showBodyIdx = appSource.indexOf('A 0\u2013100 score with a red, amber, or green band', showCardStart);
       expect(showCardStart).toBeGreaterThan(-1);
+      expect(cardStart).toBeGreaterThan(-1);
+      expect(cardEnd).toBeGreaterThan(showCardStart);
       expect(showListStart).toBeGreaterThan(-1);
       expect(showBodyIdx).toBeGreaterThan(showCardStart);
+      expect(showBodyIdx).toBeLessThan(cardEnd);
       expect(showBodyIdx).toBeLessThan(showListStart);
     });
   });
@@ -540,41 +587,79 @@ describe('dropzone-empty-state (S03.5 empty-state copy from EXPERIENCE.md: headl
         /All toggles default off; the original and the proposed cleaned version are shown side by side before you confirm\./,
       );
     });
-    it('the body prose is a single <p class="empty-state-card-lede"> element', () => {
+    it('the body prose is a single <p class="empty-state-card-lede"> element (multi-class regex form)', () => {
       const doBodyIdx = appSource.indexOf('All toggles default off; the original and the proposed cleaned version are shown side by side before you confirm.');
       expect(doBodyIdx).toBeGreaterThan(-1);
+      // Multi-class attribute form (per review #1 edge-case #1):
+      // the regex uses `\bempty-state-card-lede\b` so multi-class
+      // values like `class="empty-state-card-lede variant-x"` still match.
       const beforeBody = appSource.substring(0, doBodyIdx);
       const pOpenIdx = beforeBody.lastIndexOf('<p ');
       expect(pOpenIdx).toBeGreaterThan(-1);
       const pOpenTag = appSource.substring(pOpenIdx, appSource.indexOf('>', pOpenIdx) + 1);
-      expect(pOpenTag).toMatch(/class\s*=\s*["']empty-state-card-lede["']/);
+      expect(pOpenTag).toMatch(/class\s*=\s*["'][^"']*\bempty-state-card-lede\b[^"']*["']/);
     });
-    it('the "What you can do" body prose renders BEFORE the <ul> of FR-5 cleaning actions', () => {
-      const doCardStart = appSource.indexOf('<h3>What you can do</h3>');
-      const doListStart = appSource.indexOf('<li><code>dedupe</code></li>');
-      const doBodyIdx = appSource.indexOf('All toggles default off');
+    it('the body prose lives INSIDE the "What you can do" <section> (cross-card context pin)', () => {
+      // Mirror AC22a/b: scope the prose to its expected card section.
+      // A regression that swaps body sentences across cards fails this pin.
+      const doSection = appSource.match(/<section[^>]*class\s*=\s*["']empty-state-card["'][\s\S]*?<h3[^>]*>\s*What you can do\s*<\/h3>[\s\S]*?<\/section>/);
+      expect(doSection).not.toBeNull();
+      expect(doSection![0]).toMatch(/All toggles default off/);
+    });
+    it('the "What you can do" body prose renders BEFORE the <ul> of FR-5 cleaning actions (intra-card scoped)', () => {
+      // Mirror the AC22a/b intra-card pin: scope to the current
+      // <section> boundary AND anchor on the FR-5 category
+      // <code>dedupe</code> so nested-<ul> regressions don't
+      // false-positive.
+      const doCardStart = appSource.search(/<h3[^>]*>\s*What you can do\s*<\/h3>/);
+      const cardStart = appSource.lastIndexOf('<section', doCardStart);
+      const cardEnd = appSource.indexOf('</section>', doCardStart);
+      const doListStart = appSource.indexOf('<li><code>dedupe</code></li>', doCardStart);
+      const doBodyIdx = appSource.indexOf('All toggles default off', doCardStart);
       expect(doCardStart).toBeGreaterThan(-1);
+      expect(cardStart).toBeGreaterThan(-1);
+      expect(cardEnd).toBeGreaterThan(doCardStart);
       expect(doListStart).toBeGreaterThan(-1);
       expect(doBodyIdx).toBeGreaterThan(doCardStart);
+      expect(doBodyIdx).toBeLessThan(cardEnd);
       expect(doBodyIdx).toBeLessThan(doListStart);
     });
   });
 
-  describe('AC22d: structural consistency — exactly three <p class="empty-state-card-lede"> elements', () => {
-    it('App.svelte contains exactly three <p class="empty-state-card-lede"> elements', () => {
-      // One body-prose paragraph per card. A regression that
-      // adds a fourth body-prose paragraph (e.g., a "Privacy"
-      // card that duplicates the page-level lede) would fail
-      // this pin. The count is load-bearing for the FR-7
-      // teaching surface.
-      const matches = appSource.match(/<p[^>]*class\s*=\s*["']empty-state-card-lede["']/g);
+  describe('AC22d: structural consistency — exactly three <p class="empty-state-card-lede"> elements (one per card)', () => {
+    // Per review #1 edge-case #1 (multi-class attribute fragility)
+    // + verification-gap #1 (per-section count resilience): the
+    // original regex required the EXACT attribute
+    // `class="empty-state-card-lede"` (no sibling classes). The
+    // `\b` word-boundary form allows a multi-class value like
+    // `class="empty-state-card-lede variant-x"`. Each locked card
+    // heading must have exactly one body-prose sibling; a 4th
+    // paragraph anywhere or a regression that consolidates prose
+    // into one section fails the per-section pin.
+    const cardLedeClassRegex = /<p[^>]*class\s*=\s*["'][^"']*\bempty-state-card-lede\b[^"']*["']/g;
+    it('App.svelte contains exactly three <p class="…empty-state-card-lede…"> elements', () => {
+      const matches = appSource.match(cardLedeClassRegex);
       expect(matches?.length ?? 0).toBe(3);
+    });
+    it('each card section contains EXACTLY ONE body-prose <p> (per-section count)', () => {
+      // Iterate over the three card sections and assert each
+      // has exactly one body-prose <p>. A regression that adds
+      // a 4th body-prose paragraph inside an existing section
+      // (e.g., a "Privacy" sub-lede added to "What you can do")
+      // fails the per-section count even if the global count
+      // happens to stay at 3.
+      const cardSections = appSource.match(/<section[^>]*class\s*=\s*["']empty-state-card["'][\s\S]*?<\/section>/g) ?? [];
+      expect(cardSections.length).toBe(3);
+      for (const sec of cardSections) {
+        const ps = sec.match(cardLedeClassRegex);
+        expect(ps?.length ?? 0).toBe(1);
+      }
     });
     it('each body-prose <p> is a single child (not nested)', () => {
       // The body prose is one declarative sentence per card;
       // the <p> element has no nested elements (no <code>,
       // no <span>, no <strong>). Plain text only.
-      const matches = appSource.match(/<p[^>]*class\s*=\s*["']empty-state-card-lede["'][^>]*>[\s\S]*?<\/p>/g) ?? [];
+      const matches = appSource.match(/<p[^>]*class\s*=\s*["'][^"']*\bempty-state-card-lede\b[^"']*["'][^>]*>[\s\S]*?<\/p>/g) ?? [];
       expect(matches.length).toBe(3);
       for (const match of matches) {
         // Strip the opening <p ...> tag and closing </p>; the
@@ -593,57 +678,87 @@ describe('dropzone-empty-state (S03.5 empty-state copy from EXPERIENCE.md: headl
     ];
     for (const sentence of bodySentences) {
       it(`the body prose "${sentence.substring(0, 20)}..." is plain text (NOT inside <code>)`, () => {
-        // The mono treatment is reserved for the 17 category
-        // names (per EXPERIENCE.md §Editorial voice "mono for
-        // data"). The body prose is prose, not data. A
-        // regression that wraps the body prose in <code>
-        // would break the editorial voice.
-        //
-        // Find the sentence in the source and verify the
-        // surrounding context is <p>, not <code>.
-        const idx = appSource.indexOf(sentence);
+        // Per review #1 verification-gap #2: the original pin
+        // scoped the walk-back via `lastPOpen > lastCodeOpen`
+        // ONLY when `lastPOpen > -1`. If a regression wraps the
+        // body in `<code>…</code>` with no `<p>` wrapper,
+        // `lastPOpen` is `-1`, the inner assertions are SKIPPED,
+        // and the test passes wrongly. The fix: assert both
+        // directions unconditionally — NO `<code>` may open
+        // before the sentence, AND a `<p>` MUST open before it.
+        // Scope the walk-back to the current card section
+        // (review #1 edge-case #6) so unrelated `<code>` tags in
+        // the <output> block don't trigger a false positive on
+        // body prose that crosses a card boundary.
+        const headingIdx = (() => {
+          if (sentence.startsWith('Each anomaly')) return appSource.search(/<h3[^>]*>\s*What we detect\s*<\/h3>/);
+          if (sentence.startsWith('A 0\u2013100')) return appSource.search(/<h3[^>]*>\s*What we show you\s*<\/h3>/);
+          return appSource.search(/<h3[^>]*>\s*What you can do\s*<\/h3>/);
+        })();
+        const cardStart = appSource.lastIndexOf('<section', headingIdx);
+        const idx = appSource.indexOf(sentence, headingIdx);
         expect(idx).toBeGreaterThan(-1);
-        // Walk back to find the nearest enclosing tag.
-        const beforeSentence = appSource.substring(0, idx);
-        const lastCodeOpen = beforeSentence.lastIndexOf('<code>');
-        const lastPClose = beforeSentence.lastIndexOf('</p>');
-        const lastPOpen = beforeSentence.lastIndexOf('<p ');
-        // The nearest enclosing open tag must be <p>, not <code>.
-        // (lastPClose may be -1 if the sentence is the first
-        // content in its <p>; lastPOpen is the start of the
-        // current <p>.)
-        if (lastPOpen > -1) {
-          expect(lastPOpen).toBeGreaterThan(lastCodeOpen);
-          expect(lastPOpen).toBeGreaterThan(lastPClose);
-        }
+        const beforeSentence = appSource.substring(cardStart, idx);
+        // Direct assertion: NO `<code>` may open in the card
+        // section before the body sentence. The body is prose;
+        // mono is for data (the 17 category names). A regression
+        // wrapping the body in `<code>` would put `<code>` BEFORE
+        // the body in the section.
+        expect(beforeSentence.lastIndexOf('<code>')).toBe(-1);
+        expect(beforeSentence.lastIndexOf('<code ')).toBe(-1);
+        // Direct assertion: a `<p>` MUST open before the body in
+        // the card section. The body sits inside `<p
+        // class="empty-state-card-lede">`.
+        expect(beforeSentence.lastIndexOf('<p ')).toBeGreaterThan(-1);
       });
     }
   });
 
-  describe('AC22f: body-prose position ordering — heading → body → list', () => {
-    it('"What we detect" card reads: <h3> → <p> → <ul>', () => {
-      const detectH3 = appSource.indexOf('<h3>What we detect</h3>');
-      const detectP = appSource.indexOf('Each anomaly is reported');
-      const detectUl = appSource.indexOf('<ul>', detectH3);
-      expect(detectH3).toBeGreaterThan(-1);
-      expect(detectP).toBeGreaterThan(detectH3);
-      expect(detectUl).toBeGreaterThan(detectP);
+  describe('AC22f: body-prose position ordering — heading → body → list (intra-card scoped)', () => {
+    // Per review #1 edge-case #2: the original pin computed the
+    // intra-card position by `indexOf('<ul>', h3Idx)`, which finds
+    // the FIRST <ul> at-or-after the heading. For the 2nd and 3rd
+    // cards, the body's `indexOf` was unscoped (no fromIndex) and
+    // could match an EARLIER occurrence. A regression that places
+    // body prose AFTER the first card's <ul> but before the 2nd
+    // card's heading would pass the original pin. Scope every
+    // search to within the current <section class="empty-state-card">
+    // boundary AND anchor the <ul> on the specific category <code>
+    // token (the FIRST <ul> after a card's <h3> could be a nested
+    // <ul> in some future regression — pinning on the category
+    // <code> rules that out).
+    const cardBody = (headingText: string, anchor: string, prose: string): void => {
+      const h3Idx = appSource.search(new RegExp(`<h3[^>]*>\\s*${headingText}\\s*</h3>`));
+      expect(h3Idx).toBeGreaterThan(-1);
+      const cardStart = appSource.lastIndexOf('<section', h3Idx);
+      const cardEnd = appSource.indexOf('</section>', h3Idx);
+      expect(cardStart).toBeGreaterThan(-1);
+      expect(cardEnd).toBeGreaterThan(h3Idx);
+      const section = appSource.substring(cardStart, cardEnd);
+      // Anchor on the specific category <code> for this card —
+      // eliminates nested-<ul> false positives AND scopes the
+      // <ul> location to the current card.
+      const ulIdx = section.indexOf(`<li><code>${anchor}</code></li>`);
+      expect(ulIdx).toBeGreaterThan(-1);
+      const ulTag = section.lastIndexOf('<ul>', ulIdx);
+      expect(ulTag).toBeGreaterThan(-1);
+      const proseIdx = section.indexOf(prose);
+      expect(proseIdx).toBeGreaterThan(-1);
+      // All indices are section-relative (zero-based). <h3> is
+      // at `h3Idx - cardStart`, body at `proseIdx`, <ul> at
+      // `ulTag`. Order: <h3> → <p> → <ul>, all in the section.
+      const h3Rel = h3Idx - cardStart;
+      expect(proseIdx).toBeGreaterThan(h3Rel);
+      expect(ulTag).toBeGreaterThan(proseIdx);
+    };
+    it('"What we detect" card reads: <h3> → <p> → <ul> (anchored on <code>duplicates</code>)', () => {
+      cardBody('What we detect', 'duplicates', 'Each anomaly is reported');
     });
-    it('"What we show you" card reads: <h3> → <p> → <ul>', () => {
-      const showH3 = appSource.indexOf('<h3>What we show you</h3>');
-      const showP = appSource.indexOf('A 0\u2013100 score with a red, amber, or green band');
-      const showUl = appSource.indexOf('<ul>', showH3);
-      expect(showH3).toBeGreaterThan(-1);
-      expect(showP).toBeGreaterThan(showH3);
-      expect(showUl).toBeGreaterThan(showP);
+    it('"What we show you" card reads: <h3> → <p> → <ul> (anchored on <code>completeness</code>)', () => {
+      cardBody('What we show you', 'completeness', 'A 0\u2013100 score with a red, amber, or green band');
     });
-    it('"What you can do" card reads: <h3> → <p> → <ul>', () => {
-      const doH3 = appSource.indexOf('<h3>What you can do</h3>');
-      const doP = appSource.indexOf('All toggles default off');
-      const doUl = appSource.indexOf('<ul>', doH3);
-      expect(doH3).toBeGreaterThan(-1);
-      expect(doP).toBeGreaterThan(doH3);
-      expect(doUl).toBeGreaterThan(doP);
+    it('"What you can do" card reads: <h3> → <p> → <ul> (anchored on <code>dedupe</code>)', () => {
+      cardBody('What you can do', 'dedupe', 'All toggles default off');
     });
   });
 
@@ -657,6 +772,16 @@ describe('dropzone-empty-state (S03.5 empty-state copy from EXPERIENCE.md: headl
       expect(cardLedeRule![0]).toMatch(/color\s*:\s*var\(--graphite\)/);
       expect(cardLedeRule![0]).toMatch(/font-size\s*:\s*var\(--size-data\)/);
       expect(cardLedeRule![0]).toMatch(/margin-block\s*:\s*0\s+var\(--space-base\)/);
+    });
+    it('app.css defines overflow-wrap on .empty-state-card-lede (narrow-viewport guard)', () => {
+      // Per review #1 edge-case #4: the longest body-prose
+      // sentence (~120 chars) wraps cleanly at narrow viewports
+      // (the card collapses to 1 column at <720px). The
+      // `overflow-wrap: anywhere` rule prevents long-token
+      // overflow regressions in future body-prose edits.
+      const cardLedeRule = appCssSource.match(/\.empty-state-card-lede\s*\{[^}]*\}/);
+      expect(cardLedeRule).not.toBeNull();
+      expect(cardLedeRule![0]).toMatch(/overflow-wrap\s*:\s*anywhere/);
     });
   });
 
@@ -690,5 +815,47 @@ describe('dropzone-empty-state (S03.5 empty-state copy from EXPERIENCE.md: headl
         expect(appCssSource).not.toMatch(regex);
       });
     }
+  });
+
+  describe('AC22i: a11y sectioning — each <section class="empty-state-card"> has aria-labelledby referencing its <h3> id', () => {
+    // Per review #1 blind-hunter #2: a `<section>` without an
+    // accessible name renders as a generic "region" landmark
+    // for assistive tech. The `<h3>` inside the section is the
+    // natural name source, but assistive tech does not
+    // auto-derive aria-label from an inner heading. The S03.6
+    // fix: `aria-labelledby="card-…-heading"` on each section
+    // + matching `id="card-…-heading"` on each <h3>. This
+    // gives the screen-reader a clean "What we detect, region"
+    // landmark per card.
+    it('the "What we detect" section has aria-labelledby referencing the heading id', () => {
+      const detectSection = appSource.match(/<section[^>]*class\s*=\s*["']empty-state-card["'][\s\S]*?<\/section>/);
+      expect(detectSection).not.toBeNull();
+      expect(detectSection![0]).toMatch(/aria-labelledby\s*=\s*["']card-detect-heading["']/);
+      expect(detectSection![0]).toMatch(/<h3[^>]*id\s*=\s*["']card-detect-heading["']/);
+    });
+    it('the "What we show you" section has aria-labelledby referencing the heading id', () => {
+      const showSection = appSource.match(/<section[^>]*class\s*=\s*["']empty-state-card["'][\s\S]*?<\/section>/g);
+      expect(showSection).not.toBeNull();
+      const showCard = showSection!.find((s) => s.includes('What we show you'));
+      expect(showCard).toBeDefined();
+      expect(showCard).toMatch(/aria-labelledby\s*=\s*["']card-show-heading["']/);
+      expect(showCard).toMatch(/<h3[^>]*id\s*=\s*["']card-show-heading["']/);
+    });
+    it('the "What you can do" section has aria-labelledby referencing the heading id', () => {
+      const doSection = appSource.match(/<section[^>]*class\s*=\s*["']empty-state-card["'][\s\S]*?<\/section>/g);
+      expect(doSection).not.toBeNull();
+      const doCard = doSection!.find((s) => s.includes('What you can do'));
+      expect(doCard).toBeDefined();
+      expect(doCard).toMatch(/aria-labelledby\s*=\s*["']card-do-heading["']/);
+      expect(doCard).toMatch(/<h3[^>]*id\s*=\s*["']card-do-heading["']/);
+    });
+    it('the three labelledby ids are unique across the App.svelte surface', () => {
+      // A regression that copies the same id onto multiple
+      // headings would break the aria-labelledby reference
+      // (assisted tech would announce the WRONG card name on
+      // the WRONG region). Pin the three ids are unique.
+      const idMatches = appSource.match(/id\s*=\s*["']card-(detect|show|do)-heading["']/g);
+      expect(idMatches?.length ?? 0).toBe(3);
+    });
   });
 });
