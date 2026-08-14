@@ -246,7 +246,7 @@ describe('dropzone-accept (S03.7 accept path emits a File reference to the reduc
     });
   });
 
-  describe('AC23c-runtime: reducer behaviour at vitest runtime (createReducer() exercises)', () => {
+  describe('AC23f-runtime: reducer behaviour at vitest runtime (AC23f item 17)', () => {
     // Spec AC23f item 17 explicitly mandates runtime vitest tests:
     // "Tests import createReducer, call dispatch({ kind: 'accept',
     //  source: { kind: 'drop', file } }), and assert state.phase
@@ -316,25 +316,6 @@ describe('dropzone-accept (S03.7 accept path emits a File reference to the reduc
       a.dispatch({ kind: 'accept', source: { kind: 'drop', file } });
       expect(a.state.phase).toBe('active');
       expect(b.state.phase).toBe('empty');
-    });
-    it('dispatch does NOT read the file (Privacy Baseline — only the .size / .name / .type metadata touched)', () => {
-      // The reducer's drop branch stores the File reference and
-      // returns; it never calls file.text / arrayBuffer / stream.
-      // We can't observe the negative directly (no read = no side
-      // effect), but the pin is that the File reference is held
-      // intact and the reducer returns without throwing — if it
-      // DID read the file, the test would still pass (the read is
-      // silent). The spec's defense-in-depth guarantees (dropzone
-      // gate + reducer no-op on oversize) are the auditor's
-      // strongest signal. This test simply pins runtime sanity.
-      const r = createReducer();
-      const file = new File(['a,b'], 'x.csv', { type: 'text/csv' });
-      r.dispatch({ kind: 'accept', source: { kind: 'drop', file } });
-      expect(r.state.phase).toBe('active');
-      if (r.state.phase === 'active') {
-        expect(r.state.file).toBe(file);
-        expect(r.state.file.size).toBe(3);
-      }
     });
   });
 

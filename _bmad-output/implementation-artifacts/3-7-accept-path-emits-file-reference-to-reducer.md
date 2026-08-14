@@ -4,20 +4,20 @@ Status: ready-for-dev
 baseline_commit: 5f8f66b (S03.6 done — three teaching cards with body prose)
 review_loop_iteration: 0
 
-> **Loop protocol (mandatory).** This story must pass Review #1 (3 parallel reviewers), Review #2 (coderabbit), and the production-readiness gate before being marked `done`. See `docs/loop-protocol.md`. `S03.7` is the **reducer-shell landing**: the dropzone's accept path (drag/drop + paste + picker change) becomes the **input boundary** for a reducer that lives in `src/lib/reducer.ts`. The reducer holds the `File` reference in app memory without reading it; the `Worker` side (E05 S05.5) will eventually consume the reference and stream its bytes via AD-2. **No read happens in S03.7** — the bytes stay inside the `File` object that lives on the heap; S03.7's reducer captures the reference and emits a state-machine transition (`empty → active`). The actual reading + BOM detection + tokenization are E06's job.
+> **Loop protocol (mandatory).** This story must pass Review #1 (3 parallel reviewers), Review #2 (coderabbit), and the production-readiness gate before being marked `done`. See `docs/loop-protocol.md`. `S03.7` is the **reducer-shell landing**: the dropzone's accept path (drag/drop + paste + picker change) becomes the **input boundary** for a reducer that lives in `src/lib/reducer.svelte.ts`. The reducer holds the `File` reference in app memory without reading it; the `Worker` side (E05 S05.5) will eventually consume the reference and stream its bytes via AD-2. **No read happens in S03.7** — the bytes stay inside the `File` object that lives on the heap; S03.7's reducer captures the reference and emits a state-machine transition (`empty → active`). The actual reading + BOM detection + tokenization are E06's job.
 >
 > **Cross-story contracts.** S03.7 sits between the gesture layer (S03.1-S03.6) and the state-machine layer (E05 S05.3a-S05.3c, S05.6). S03.7's deliverable is the **shell** of the reducer — a typed `AppState` + `dispatch` API that E05 will fill in with happy-path + error transitions. S03.7 ships:
 >
 > 1. **`<input onchange={handlePickerChange}>` binding in Dropzone.svelte** — closes the S03.3 cross-story contract ("S03.7 wires the picker change handler at the same time it wires the reducer consumer"). The `void handlePickerChange;` suppression line lands here.
 > 2. **`OnAcceptSource` discriminated-union type extracted to `src/lib/types.ts`** — eliminates the duplicated-parameter-type risk S03.4's docblock warned about ("the duplication is intentional for S03.4; S03.7's reducer will extract a shared `OnAcceptSource` type"). The `Dropzone.svelte` `onaccept` prop type AND `App.svelte`'s `handleAccept` parameter type both import from `src/lib/types.ts`.
-> 3. **`src/lib/reducer.ts` reducer-shell** — defines `AppState` (a discriminated union with at minimum `{ phase: 'empty' }` and `{ phase: 'active'; file: File; source: OnAcceptSource }`) and a `dispatch(action)` function that mutates state via a Svelte 5 `$state` rune. **S03.7 ships the `empty → active` happy-path transition only**; E05's S05.3b lands the rest (`active → processing | refusal`, etc.).
+> 3. **`src/lib/reducer.svelte.ts` reducer-shell** — defines `AppState` (a discriminated union with at minimum `{ phase: 'empty' }` and `{ phase: 'active'; file: File; source: OnAcceptSource }`) and a `dispatch(action)` function that mutates state via a Svelte 5 `$state` rune. The `.svelte.ts` extension is **mandatory** — Svelte 5's compiler only recognises `$state` runes in `.svelte` and `.svelte.ts`/`.svelte.js` files. **S03.7 ships the `empty → active` happy-path transition only**; E05's S05.3b lands the rest (`active → processing | refusal`, etc.).
 > 4. **`App.svelte` subscribes to the reducer via runes** — `handleAccept` now calls `dispatch({ kind: 'accept', source })` AND continues the S03.4 aria-live announcement. The aria-live announcement is **additive** (it doesn't disappear in S03.7) — S03.7 doesn't replace the S03.4 surface, it evolves it.
 
 ## Story
 
 As a **developer building E05 (state machine + reducer) on top of E03's gesture surface**,
 
-I want **the dropzone's accept path to emit a typed `File` reference to a reducer that lives in `src/lib/reducer.ts`, with the App.svelte page state transitioning from `empty` to `active` on accept**,
+I want **the dropzone's accept path to emit a typed `File` reference to a reducer that lives in `src/lib/reducer.svelte.ts`, with the App.svelte page state transitioning from `empty` to `active` on accept**,
 
 so that **E05's reducer (S05.3a-S05.3c) has a typed boundary to consume (the `AppState` + `dispatch` API), and the dropzone stays decoupled from the worker side (the reducer holds the `File` reference; the worker will request the bytes via `postMessage` + `FileReader` / `file.stream()` in E06)**. The reducer-shell in S03.7 is the **input boundary** for E05; the actual reading + BOM detection + tokenization are E06 S06.1-S06.5's job. S03.7's reducer does NOT read the file; the bytes stay inside the `File` object on the heap until E06's parser subscribes to it.
 
@@ -58,9 +58,9 @@ so that **E05's reducer (S05.3a-S05.3c) has a typed boundary to consume (the `Ap
    - The raw `| { kind: 'drop'; file: File }` literal no longer appears in either module's source (it lives ONLY in `src/lib/types.ts`).
 6. **The S03.4 cross-story contract pin in `tests/dropzone-aria-live.test.ts` is preserved.** The S03.4 spec wrote: "the duplication is intentional for S03.4; S03.7's reducer will extract a shared `OnAcceptSource` type to `src/lib/` when the reducer lands." S03.7 satisfies that contract — the duplication is gone, the type is in `src/lib/types.ts`, and the prior `dropzone-aria-live.test.ts` AC20a-AC20j pins still pass.
 
-### AC23c — `src/lib/reducer.ts` reducer-shell
+### AC23c — `src/lib/reducer.svelte.ts` reducer-shell
 
-7. **A new module `src/lib/reducer.ts` exports the reducer-shell.** The module is the **typed boundary** between the dropzone's accept path and E05's state machine. S03.7 ships:
+7. **A new module `src/lib/reducer.svelte.ts` exports the reducer-shell.** The module is the **typed boundary** between the dropzone's accept path and E05's state machine. The `.svelte.ts` extension is **required** for `$state` rune support (Svelte 5's compiler only transforms runes in `.svelte` and `.svelte.{ts,js}` files; the plugin registered in `vite.config.ts` handles the transformation). S03.7 ships:
    ```ts
    import type { OnAcceptSource } from './types';
 
@@ -160,7 +160,7 @@ so that **E05's reducer (S05.3a-S05.3c) has a typed boundary to consume (the `Ap
 
 ### AC23e — Privacy Baseline + AD-8 preserved
 
-14. **Zero hex literals, zero forbidden source patterns.** The new `src/lib/types.ts` and `src/lib/reducer.ts` files contain:
+14. **Zero hex literals, zero forbidden source patterns.** The new `src/lib/types.ts` and `src/lib/reducer.svelte.ts` files contain:
     - No `fetch`, no `XMLHttpRequest`, no `EventSource`, no `WebSocket`, no `sendBeacon`, no `navigator.sendBeacon`, no `new Function`, no `eval`, no dynamic `import()`, no `FileReader`, no `readAsText`, no `readAsArrayBuffer`.
     - The reducer's `paste` branch uses `new Blob([...], { type: 'text/csv' })` + `new File([blob], ...)` to synthesise a File from pasted text. These are NOT in the forbidden list (the `File` constructor and `Blob` constructor are local in-memory APIs, not network primitives). **The pin:** the synthesised File is an in-memory object; no network IO.
     - No hex literals (AD-8).
@@ -171,11 +171,11 @@ so that **E05's reducer (S05.3a-S05.3c) has a typed boundary to consume (the `Ap
 16. **A new test file `tests/dropzone-accept.test.ts` (or extended `tests/dropzone-file-cap.test.ts`)** pins the S03.7 surface. The test file describes the AC23 boundary. Test count target: 30+ new assertions across AC23a-AC23f describe blocks. Specifically:
     - AC23a: Dropzone.svelte binds `onchange={handlePickerChange}` on the `<input>`; the `void handlePickerChange;` suppression line is GONE; the cap gate still routes the picker path through `assertWithinFileCap`.
     - AC23b: `src/lib/types.ts` exists and exports `OnAcceptSource`; both Dropzone.svelte and App.svelte import from it; the raw `| { kind: 'drop'; file: File }` literal appears ONLY in `src/lib/types.ts` (not in the component files).
-    - AC23c: `src/lib/reducer.ts` exists; `createReducer()` returns `{ state, dispatch }`; `dispatch({ kind: 'accept', source: { kind: 'drop', file } })` transitions `state.phase` from `'empty'` to `'active'`; the state holds the `File` reference without reading it; the oversize branch leaves the state at `'empty'`.
+    - AC23c: `src/lib/reducer.svelte.ts` exists; `createReducer()` returns `{ state, dispatch }`; `dispatch({ kind: 'accept', source: { kind: 'drop', file } })` transitions `state.phase` from `'empty'` to `'active'`; the state holds the `File` reference without reading it; the oversize branch leaves the state at `'empty'`.
     - AC23d: App.svelte imports `createReducer` from `'../lib/reducer'`; App.svelte's `handleAccept` calls `reducer.dispatch({ kind: 'accept', source })` BEFORE the aria-live announcement; the dispatch ordering is load-bearing (state must capture before the announcement, so any race-condition regression that announces before the state transition fails the pin).
     - AC23e: zero hex literals; zero forbidden source patterns in the new files.
     - AC23f: prior-story boundary pins preserved (S03.1, S03.2, S03.3, S03.4, S03.5, S03.6).
-17. **Vitest runtime assertions for the reducer-shell.** The reducer-shell is testable at the vitest level (no DOM, no Svelte runtime needed for the pure reducer logic). Tests import `createReducer`, call `dispatch({ kind: 'accept', source: { kind: 'drop', file } })`, and assert `state.phase === 'active'` AND `state.file === file`. A second test pins the oversize branch: `state.phase === 'empty'` after `dispatch({ kind: 'accept', source: { kind: 'oversize', size, cap } })`.
+17. **Vitest runtime assertions for the reducer-shell.** The reducer-shell is testable at the vitest level (no DOM needed; the file uses `src/lib/reducer.svelte.ts` so the `$state` rune is transformed by `@sveltejs/vite-plugin-svelte` (registered in `vite.config.ts`) — the test runs in the node environment with the transformed reducer code). Tests import `createReducer` from `'../src/lib/reducer.svelte'` (vite resolves the `.svelte` import to `.svelte.ts`), call `dispatch({ kind: 'accept', source: { kind: 'drop', file } })`, and assert `state.phase === 'active'` AND `state.file === file`. A second test pins the oversize branch: `state.phase === 'empty'` after `dispatch({ kind: 'accept', source: { kind: 'oversize', size, cap } })`. The runtime tests live in `tests/dropzone-accept.test.ts` under an `AC23f-runtime` describe block alongside the AC23a-AC23f static-source pins.
 
 ## Cross-story contract notes
 
