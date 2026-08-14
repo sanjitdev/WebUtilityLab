@@ -577,12 +577,12 @@ describe('dropzone-empty-state (S03.5 empty-state copy from EXPERIENCE.md: headl
     it('App.svelte contains the locked verbatim body-prose sentence', () => {
       // Verbatim from S03.6 spec AC3: "All toggles default off;
       // the original and the proposed cleaned version are shown
-      // side by side before you confirm." Curly apostrophe NOT
-      // required (no "you're" / "don't" / etc. in this sentence);
-      // the curly apostrophe pin is for the second sentence of
-      // the FR-5 reversibility view prose. The em-dash is NOT
-      // used here — "side by side" is rendered with spaces, no
-      // hyphen, no em-dash.
+      // side by side before you confirm." The sentence is ASCII-
+      // clean: no curly apostrophe (no "you're" / "don't" /
+      // etc. in this sentence), no em-dash (the phrase "side by
+      // side" uses spaces, not a hyphen or em-dash), no
+      // terminal punctuation other than the period. Pin
+      // character-for-character.
       expect(appSource).toMatch(
         /All toggles default off; the original and the proposed cleaned version are shown side by side before you confirm\./,
       );
@@ -696,8 +696,18 @@ describe('dropzone-empty-state (S03.5 empty-state copy from EXPERIENCE.md: headl
           return appSource.search(/<h3[^>]*>\s*What you can do\s*<\/h3>/);
         })();
         const cardStart = appSource.lastIndexOf('<section', headingIdx);
+        const cardEnd = appSource.indexOf('</section>', headingIdx);
         const idx = appSource.indexOf(sentence, headingIdx);
+        expect(headingIdx).toBeGreaterThan(-1);
+        expect(cardStart).toBeGreaterThan(-1);
+        expect(cardEnd).toBeGreaterThan(headingIdx);
         expect(idx).toBeGreaterThan(-1);
+        // Per review #2: assert the body prose is INSIDE the
+        // card section. A regression placing the body OUTSIDE
+        // (after `</section>`) would still pass the `<code>`
+        // walk-back (empty beforeSentence) — the `idx < cardEnd`
+        // boundary check catches that.
+        expect(idx).toBeLessThan(cardEnd);
         const beforeSentence = appSource.substring(cardStart, idx);
         // Direct assertion: NO `<code>` may open in the card
         // section before the body sentence. The body is prose;
@@ -828,23 +838,28 @@ describe('dropzone-empty-state (S03.5 empty-state copy from EXPERIENCE.md: headl
     // gives the screen-reader a clean "What we detect, region"
     // landmark per card.
     it('the "What we detect" section has aria-labelledby referencing the heading id', () => {
-      const detectSection = appSource.match(/<section[^>]*class\s*=\s*["']empty-state-card["'][\s\S]*?<\/section>/);
-      expect(detectSection).not.toBeNull();
-      expect(detectSection![0]).toMatch(/aria-labelledby\s*=\s*["']card-detect-heading["']/);
-      expect(detectSection![0]).toMatch(/<h3[^>]*id\s*=\s*["']card-detect-heading["']/);
+      // Per review #2: the original pin used `appSource.match` on
+      // the FIRST section, which would still match if the
+      // labelledby id pointed at a different heading's text. Scope
+      // to the section that ACTUALLY contains the "What we detect"
+      // heading — the labelledby must reference THAT section's
+      // <h3> id, not any <h3 id="…"> anywhere in the document.
+      const allSections = appSource.match(/<section[^>]*class\s*=\s*["']empty-state-card["'][\s\S]*?<\/section>/g) ?? [];
+      const detectCard = allSections.find((s) => s.includes('What we detect'));
+      expect(detectCard).toBeDefined();
+      expect(detectCard).toMatch(/aria-labelledby\s*=\s*["']card-detect-heading["']/);
+      expect(detectCard).toMatch(/<h3[^>]*id\s*=\s*["']card-detect-heading["']/);
     });
     it('the "What we show you" section has aria-labelledby referencing the heading id', () => {
-      const showSection = appSource.match(/<section[^>]*class\s*=\s*["']empty-state-card["'][\s\S]*?<\/section>/g);
-      expect(showSection).not.toBeNull();
-      const showCard = showSection!.find((s) => s.includes('What we show you'));
+      const allSections = appSource.match(/<section[^>]*class\s*=\s*["']empty-state-card["'][\s\S]*?<\/section>/g) ?? [];
+      const showCard = allSections.find((s) => s.includes('What we show you'));
       expect(showCard).toBeDefined();
       expect(showCard).toMatch(/aria-labelledby\s*=\s*["']card-show-heading["']/);
       expect(showCard).toMatch(/<h3[^>]*id\s*=\s*["']card-show-heading["']/);
     });
     it('the "What you can do" section has aria-labelledby referencing the heading id', () => {
-      const doSection = appSource.match(/<section[^>]*class\s*=\s*["']empty-state-card["'][\s\S]*?<\/section>/g);
-      expect(doSection).not.toBeNull();
-      const doCard = doSection!.find((s) => s.includes('What you can do'));
+      const allSections = appSource.match(/<section[^>]*class\s*=\s*["']empty-state-card["'][\s\S]*?<\/section>/g) ?? [];
+      const doCard = allSections.find((s) => s.includes('What you can do'));
       expect(doCard).toBeDefined();
       expect(doCard).toMatch(/aria-labelledby\s*=\s*["']card-do-heading["']/);
       expect(doCard).toMatch(/<h3[^>]*id\s*=\s*["']card-do-heading["']/);
