@@ -23,12 +23,14 @@
    * no gesture is silent on screen readers" (ARCHITECTURE-SPINE).
    * The <output> element is the semantic "result of a user action"
    * per WHATWG; its implicit ARIA role is `status`. Explicit
-   * `aria-live="polite"` ensures the announcement is polite (NOT
-   * assertive — over-cap signals will be assertive in S03.9).
-   * `aria-atomic="true"` re-announces the entire region on every
-   * textContent change (not just the diff). The region is
-   * permanently `visually-hidden` (screen-reader-only); the visible
-   * banner is a S03.9 / E04 surface, not S03.4.
+   * `aria-live="polite"` ensures the announcement is polite for
+   * happy-path drops/pastes AND for over-cap strict-brief rejections
+   * (the rejection is informational, not an interrupt — assertive
+   * would be inappropriate here). `aria-atomic="true"` re-announces
+   * the entire region on every textContent change (not just the
+   * diff). The region is permanently `visually-hidden`
+   * (screen-reader-only); the visible banner is a S03.9 / E04
+   * surface, not S03.4.
    *
    * `handleAccept` is the FIRST onaccept consumer in the app
    * (S03.2 left the prop unbound; S03.3 preserved that bound;
@@ -56,7 +58,6 @@
    * (S03.4 originally stood up the announcement surface as a
    * defensive no-op; S03.9 inverted the boundary and wired the
    * formatter.)
-   * the announcement surface; S03.9 inherits it.
    */
   import ThemeToggle from './components/ThemeToggle.svelte';
   import Dropzone from './components/Dropzone.svelte';
@@ -110,7 +111,9 @@
   // Editorial voice (EXPERIENCE.md):
   //   - sentence case ("File accepted:", NOT "File Accepted:")
   //   - colon separator (NOT em-dash — em-dash is reserved for
-  //     findings / rules per strict-brief format)
+  //     the strict-brief error template output, NOT for drop/paste
+  //     branches; the formatter renders the em-dash INSIDE the
+  //     strict-brief message)
   //   - paste snippet uses `…` (NOT three-dot ASCII)
   //   - filename stays raw (the mono treatment is the <code>
   //     element wrapping the filename in the rendered DOM;

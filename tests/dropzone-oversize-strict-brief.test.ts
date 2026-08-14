@@ -84,11 +84,20 @@ describe('dropzone-oversize-strict-brief (S03.9; AC25b + AC25d — over-cap reje
       expect(body).toMatch(/cap\s*:\s*source\.cap/);
     });
 
-    it('the over-cap branch writes liveAnnouncement with kind: "strict-brief"', () => {
+    it('the over-cap branch writes liveAnnouncement with kind: "strict-brief" AND message: formatStrictBrief(...)', () => {
       // The over-cap branch must set liveAnnouncement.kind to
       // "strict-brief" — NOT "drop" or "paste" (those are separate
       // branches). The pin: the body contains the assignment with
-      // the strict-brief discriminator.
+      // the strict-brief discriminator AND the `message` field is
+      // sourced from `formatStrictBrief(...)` (not a hardcoded
+      // string).
+      //
+      // Review #1 (verification-gap): the original regex
+      // `/liveAnnouncement\s*=\s*\{\s*kind\s*:\s*['"]strict-brief['"]\s*,\s*message\s*:/`
+      // matched `message:` followed by ANY value — a regression
+      // that hardcoded `message: 'manual'` would still pass.
+      // Tighten: require `message: formatStrictBrief(` in the
+      // same property assignment.
       const sigMatch =
         /\bfunction\s+handleAccept\s*\(\s*source\s*:\s*OnAcceptSource\s*\)\s*:\s*void\s*\{/.exec(
           appSource,
@@ -103,8 +112,15 @@ describe('dropzone-oversize-strict-brief (S03.9; AC25b + AC25d — over-cap reje
         if (braceDepth > 0) j++;
       }
       const body = appSource.slice(bodyStart, j);
+      // The strict-brief discriminator.
       expect(body).toMatch(
         /liveAnnouncement\s*=\s*\{\s*kind\s*:\s*['"]strict-brief['"]\s*,\s*message\s*:/,
+      );
+      // The message field is sourced from formatStrictBrief(...) —
+      // NOT a hardcoded string. Multi-line tolerant (the formatter
+      // call may span lines).
+      expect(body).toMatch(
+        /message\s*:\s*formatStrictBrief\s*\(/,
       );
     });
 
@@ -165,14 +181,55 @@ describe('dropzone-oversize-strict-brief (S03.9; AC25b + AC25d — over-cap reje
       // The template's strict-brief branch renders the formatter
       // output as text content (not wrapped in <code> — the
       // message is prose, not data). The pin: `liveAnnouncement.message`
-      // appears inside the final {:else} block of the {#if ... {:else if} ... {:else}}
-      // chain.
+      // appears inside the FINAL {:else} block of the
+      // {#if ... {:else if} ... {:else}} chain.
+      //
+      // Review #1 (verification-gap): the naive regex
+      // `\{:else\s*\}([\s\S]*?)\{\/if\}` matches the FIRST
+      // `{:else if ...}` followed by an `{/if}` somewhere later,
+      // which could catch a mislabelled branch. Anchor the pin
+      // to the LAST `{:else}` (no trailing `if`) before `{/if}`.
       const branchMatch =
-        /\{:else\s*\}([\s\S]*?)\{\/if\}/.exec(
+        /[\s\S]*\{:else\s*\}([\s\S]*?)\{\/if\}/.exec(
           appSource,
         );
       expect(branchMatch).not.toBeNull();
       expect(branchMatch![1]).toContain('liveAnnouncement.message');
+    });
+
+    it('the strict-brief message is rendered inside the <output> element (not a different element)', () => {
+      // Review #1 (verification-gap): a regression that moves
+      // the strict-brief content to a different element (e.g.,
+      // a <div aria-live="assertive">) would still pass the
+      // source-shape pins above but route the announcement away
+      // from the screen-reader-only <output> region. The pin:
+      // `{liveAnnouncement.message}` appears between <output and
+      // </output> tags (whitespace-tolerant across newlines).
+      const outputMatch =
+        /<output\b[\s\S]*?>([\s\S]*?)<\/output>/.exec(appSource);
+      expect(outputMatch).not.toBeNull();
+      expect(outputMatch![1]).toContain('liveAnnouncement.message');
+    });
+
+    it('the strict-brief branch does NOT wrap the message in <code> (prose, not data)', () => {
+      // The strict-brief message is plain editorial prose; the
+      // mono treatment (<code>) is reserved for filenames /
+      // paste snippets (data). Screen readers spell out content
+      // inside <code> character-by-character — wrapping "51 MB"
+      // in <code> would make the screen reader say "five one M B"
+      // (5 characters). The pin: the <output> block contains
+      // `{liveAnnouncement.message}` NOT wrapped in a <code> tag.
+      const outputMatch =
+        /<output\b[\s\S]*?>([\s\S]*?)<\/output>/.exec(appSource);
+      expect(outputMatch).not.toBeNull();
+      const outputBody = outputMatch![1];
+      // The message textContent reference appears, but no <code>
+      // tag is on the same line as the message reference.
+      const messageLineMatch = outputBody
+        .split('\n')
+        .find((line) => line.includes('liveAnnouncement.message'));
+      expect(messageLineMatch).toBeDefined();
+      expect(messageLineMatch).not.toMatch(/<code\b/);
     });
   });
 
