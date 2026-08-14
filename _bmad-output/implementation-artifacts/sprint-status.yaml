@@ -44,6 +44,7 @@
 generated: 2026-08-12
 last_updated: 2026-08-14
 # S03.6 done 2026-08-14 — see 3-6-three-teaching-cards-below-drop.md
+# S03.7 in-progress 2026-08-14 — see 3-7-accept-path-emits-file-reference-to-reducer.md
 # S02.6 story created 2026-08-13 — see 2-6-editorial-posture-sanity-system-ui-no-font-face.md
 # S03.2 done 2026-08-13 — see 3-2-drag-and-drop-handler-paste-handler.md
 # S03.3 done 2026-08-14 — see 3-3-50-mb-cap-check-before-reading.md
@@ -89,7 +90,7 @@ development_status:
   3-4-file-name-reveal-in-aria-live-region: done
   3-5-empty-state-copy-from-experience-md: done
   3-6-three-teaching-cards-below-drop: done
-  3-7-accept-path-emits-file-reference-to-reducer: backlog
+  3-7-accept-path-emits-file-reference-to-reducer: in-progress
   3-8-example-csv-inlined-at-build-time: backlog
   3-9-strict-brief-error-path-uses-formatstrictbrief: backlog
   epic-3-retrospective: optional
