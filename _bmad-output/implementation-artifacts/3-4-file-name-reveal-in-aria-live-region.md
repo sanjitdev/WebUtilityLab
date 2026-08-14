@@ -1,9 +1,9 @@
 # Story 3.4: File-name reveal in aria-live region on accept (S03.4)
 
-Status: ready-for-dev
+Status: done
 baseline_commit: e0dfd45 (S03.3 loop closure — 50 MB cap lands, sprint-status flipped to done; S03.4 picks up from here)
 review_loop_iteration: 1
-final_commit: <to be filled after push>
+final_commit: 40f9108 (S03.4 loop closure — aria-live region lands; .visually-hidden extracted to global stylesheet; sprint-status flipped to done)
 
 > **Loop protocol (mandatory).** This story must pass Review #1 (3 parallel reviewers), Review #2 (coderabbit), and the production-readiness gate before being marked `done`. See `docs/loop-protocol.md`. `S03.4` lands the **announcement surface** of the E03 gesture — every successful file accept (drag-drop OR picker OR paste) surfaces the file name (or pasted text snippet) in an `aria-live="polite"` region so screen readers announce it. S03.1 shipped the visual chrome + the picker-opening gesture; S03.2 wired drag-and-drop + paste handlers and exposed `onaccept`; S03.3 added the 50 MB cap check; S03.4 now wires the consumer side: App.svelte (or a new component) renders an aria-live region that updates on `onaccept` callbacks. **S03.4 does NOT touch the reducer, the worker, or any of the parsing logic** — S03.7 owns the reducer wiring; S03.4 only renders the announcement surface and connects it to the existing `onaccept` prop. S03.4 also does NOT add a "rejection" announcement for over-cap files (S03.4 announces successful accepts only); S03.9's strict-brief path (or S03.7's reducer) handles the over-cap announcement when that lands. S03.4 is the **announcement layer for accepts**; the rejection path is downstream.
 
@@ -261,16 +261,110 @@ The fifth most likely finding: **The `handleAccept` parameter type duplication.*
 
 ### Agent Model Used
 
-TBD (filled at implementation time)
+claude-opus-4.8 (puku-cli router)
 
 ### Debug Log References
 
-TBD
+- `npm test` → 543/543 pass (485 prior + 58 new S03.4). The 58 new
+  tests cover AC20a-AC20j (10 describe blocks; the higher-than-
+  estimated count comes from the AC20f (6 sub-pins for the visually-
+  hidden extraction), AC20i (14 forbidden-patterns × 2 source files),
+  AC20d (5 runtime boundary pins for pasteSnippet), and AC20j (4 prior-
+  story pin preservation checks).
+- `npm run check` → svelte-check 0 errors + 1 pre-existing warning in
+  ThemeToggle.svelte (state_referenced_locally for `mode`; not
+  introduced by S03.4 — present before S03.4's commit). tsc 0 errors.
+- `npm run build` → 12.62 KB gz JS / 14.70 KB gz total / 0 source maps
+  after build-cleanup.
+- `npm run check:bundle` → under 200 KB gzipped budget.
+- `npm run audit:privacy` → 3 dist files / 27 forbidden hosts / 6
+  forbidden source calls / OK.
+- `npm run audit:behavior` → 3 allowed requests / 0 anomalous / 0
+  service workers / OK.
+- `npm run check:deps` → 42 packages scanned / 0 denylisted.
+- `npm run check:telemetry` → 91 packages scanned / 0 forbidden
+  patterns / 0 denylisted.
 
 ### Completion Notes List
 
-TBD
+- **App.svelte wires the onaccept consumer for the first time.** S03.2
+  left the prop unbound (the gesture surface is the unit). S03.3
+  preserved that bound. S03.4 inverts the boundary: `<Dropzone
+  onaccept={handleAccept} />` is the S03.4 mount. `handleAccept`
+  handles all three onaccept kinds (drop, paste, oversize) but only
+  announces on drop + paste; the oversize branch is a defensive
+  no-op (S03.9's strict-brief path owns that surface). The
+  discriminated-union parameter type mirrors Dropzone's `onaccept`
+  prop type exactly — the duplication is intentional for S03.4; S03.7
+  will extract a shared `OnAcceptSource` type when the reducer lands.
+
+- **`<output class="visually-hidden" aria-live="polite" aria-atomic="true">{liveAnnouncement}</output>`** lives inside `<main>`
+  after the dropzone. The semantic choice (`<output>` not `<div
+  role="status">`) honors WHATWG's "result of a user action"
+  semantics; the implicit ARIA role of `<output>` is `status` per
+  WAI-ARIA. `aria-atomic="true"` ensures the entire region is re-
+  announced on every textContent change (not just the diff — important
+  for `polite` announcements where the user may not have heard the
+  previous one). The region is permanently `visually-hidden` (screen-
+  reader-only); the visible banner is downstream (S03.9 / E04).
+
+- **`.visually-hidden` extracted to `src/styles/app.css`.** The
+  component-scoped definitions in `Dropzone.svelte` (S03.1) and
+  `ThemeToggle.svelte` (S02.3) were duplicates of the canonical
+  screen-reader-only pattern (position absolute, 1px clip rect, etc.).
+  S03.4 makes the global stylesheet the single source of truth; the
+  application sites (the hidden `<input>` in Dropzone, the
+  announcement `<span>` in ThemeToggle, the new `<output>` region in
+  App.svelte) are unchanged.
+
+- **`src/lib/aria-live.ts` (NEW) exports `pasteSnippet(text: string)`.**
+  Pure function; boundary semantics: cap is INCLUSIVE at 40 chars —
+  a paste of exactly 40 chars returns verbatim (no ellipsis); a paste
+  of 41 chars returns `text.slice(0, 40) + '…'`. The ellipsis uses
+  `…` (U+2026), NOT three-dot ASCII. The function is unit-tested at
+  `tests/dropzone-aria-live.test.ts` AC20d.
+
+- **Boundary inversions documented in prior-story test files.**
+  S03.1 AC17l `<Dropzone /> appears between <main and </main>` —
+  regex widened from `<Dropzone\s*\/?>` to `<Dropzone\b[^>]*>` so the
+  S03.4 opening tag with the `onaccept` attribute is matched.
+  S03.2 AC18n `App.svelte still does NOT pass an onaccept callback` —
+  flipped to assert the S03.4 reality (App.svelte DOES pass onaccept)
+  with a docblock explaining the S03.4 inversion. S03.3 AC19m same
+  pattern (App.svelte DOES pass onaccept, App.svelte DOES mention
+  "oversize" via handleAccept's discriminated-union parameter type).
+  The historical docblocks preserve the per-story regression-tracking
+  surface: a future contributor reviewing the diff sees both the
+  prior-story boundary AND the current-story inversion at the same
+  test location.
+
+- **Editorial voice bound.** "File accepted: " uses colon
+  separator (NOT em-dash — em-dash is reserved for strict-brief
+  findings per E10/E12). Sentence case (NOT Title Case). "Text
+  pasted: <snippet>" uses U+2026 ellipsis on truncation.
+
+- **No visible surface.** S03.4 is purely the screen-reader-only
+  announcement surface. No visible banner, no visible chip, no
+  visible "File accepted: foo.csv" anywhere in the page chrome. The
+  visible banner is downstream (S03.9 / E04).
+
+- **Privacy Baseline preserved.** Zero network calls (no fetch /
+  XMLHttpRequest / sendBeacon / EventSource / navigator.sendBeacon
+  in any S03.4-touched file). The `aria-live` module is pure
+  functions; the App.svelte consumer reads `file.name` from a
+  closure-scoped File (no network API). `audit-privacy.mjs` stays
+  green.
 
 ### File List
 
-TBD
+- `src/App.svelte` — MODIFIED. Wires `<Dropzone onaccept={handleAccept} />` for the first time. Adds `handleAccept` function (handles all 3 onaccept kinds; announces on drop + paste; no-ops on oversize). Adds `<output>` aria-live region inside `<main>` after the dropzone. ~50 lines net added (script block grew from imports-only to imports + state + handler + docblock).
+- `src/styles/app.css` — MODIFIED. Adds `.visually-hidden { ... }` definition (the global source of truth) + an explanatory docblock.
+- `src/components/Dropzone.svelte` — MODIFIED. Removes the component-scoped `.visually-hidden` definition from `<style>` block (lines 266-276); adds a comment explaining the extraction. The hidden `<input>` still uses `class="visually-hidden"`.
+- `src/components/ThemeToggle.svelte` — MODIFIED. Removes the component-scoped `.visually-hidden` definition from `<style>` block (lines 91-101); adds a comment explaining the extraction. The announcement `<span>` still uses `class="visually-hidden"`.
+- `src/lib/aria-live.ts` — NEW. ~45 lines (docblock + `pasteSnippet` function). Pure function, no DOM.
+- `tests/dropzone-aria-live.test.ts` — NEW. ~340 lines. 10 AC20a-AC20j describe blocks; 58 sub-assertions.
+- `tests/dropzone.test.ts` — MODIFIED. AC17l regex widened (`<Dropzone\s*\/?>` → `<Dropzone\b[^>]*>`) with docblock explaining the S03.4 inversion.
+- `tests/dropzone-drag-paste.test.ts` — MODIFIED. AC18n flipped from "App.svelte does NOT pass onaccept" to "App.svelte DOES pass onaccept={handleAccept}" with docblock explaining the S03.4 inversion.
+- `tests/dropzone-file-cap.test.ts` — MODIFIED. AC19m flipped from "App.svelte does NOT pass onaccept / does NOT mention oversize" to "App.svelte DOES pass onaccept / DOES mention oversize" with docblock explaining the S03.4 inversion.
+- `_bmad-output/implementation-artifacts/3-4-file-name-reveal-in-aria-live-region.md` — this story file, updated with completion notes.
+- `_bmad-output/implementation-artifacts/sprint-status.yaml` — `3-4-file-name-reveal-in-aria-live-region: done` (from `backlog`).
