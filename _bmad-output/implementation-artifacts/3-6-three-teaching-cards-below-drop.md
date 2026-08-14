@@ -200,12 +200,41 @@ claude-opus-4.8 (puku-cli router)
 
 ### Debug Log References
 
-*(populated at loop closure)*
+- None — implementation + reviews + gates all clean.
 
 ### Completion Notes List
 
-*(populated at loop closure)*
+**S03.6 done 2026-08-14.**
+
+Four commits landed (in order):
+1. `95f69ab` — ready-for-dev (spec landed)
+2. `5fab037` — implementation (App.svelte + app.css + 46 new test assertions)
+3. `3e46510` — Review #1 (3 reviewers in parallel; applied 3 MUST-FIX + 6 SHOULD-FIX)
+4. `19908de` — Review #2 (coderabbit in fresh context; applied 2 MUST-FIX + 1 SHOULD-FIX)
+
+**Production surface:**
+- `src/App.svelte` — adds 3 `<p class="empty-state-card-lede">` body-prose paragraphs (one per card) between each `<h3>` heading and `<ul>` of category names; adds `aria-labelledby` to each `<section class="empty-state-card">` + matching `id` on each `<h3>` (AD-9 a11y landmark names).
+- `src/styles/app.css` — adds `.empty-state-card-lede` rule with `var(--graphite)`, `var(--size-data)`, `var(--space-base)`, plus `overflow-wrap: anywhere` (narrow-viewport guard for the ~120-char body sentence at the <720px collapse).
+
+**Test surface (686 tests pass; was 631 before S03.6):**
+- AC22a / AC22b / AC22c — verbatim body-prose pins for each card (FR-2 / FR-3 / FR-5 prose).
+- AC22d — exactly three `<p class="empty-state-card-lede">` elements (multi-class regex form, per-section count resilience).
+- AC22e — body prose NOT inside `<code>` (false-positive fix: same-line `<code>` regression now fails; scoped to current card section).
+- AC22f — `<h3>` → `<p>` → `<ul>` order (intra-card scope; category-`<code>` anchor for nested-`<ul>` resilience).
+- AC22g — `.empty-state-card-lede` CSS rule uses tokens + `overflow-wrap: anywhere`.
+- AC22h — zero hex literals + zero forbidden source patterns (Privacy Baseline + AD-8).
+- AC22i — each `<section>` has `aria-labelledby` referencing its `<h3>` `id`; three labelledby ids are unique across App.svelte.
+
+**Review findings applied:**
+- Review #1 MUST-FIX (3): AC22f inter-card vs intra-card distance; AC22e silent-skip false positive; AC22f nested-`<ul>` fragility.
+- Review #1 SHOULD-FIX (6): multi-class regex; per-section count resilience; cross-card prose context; section-scoped walk-back; overflow-wrap guard; section a11y.
+- Review #2 MUST-FIX (2): AC22i detect-card pin scoped to matching card; AC22e body-inside-section guard.
+- Review #2 SHOULD-FIX (1): AC22c docstring removed false curly-apostrophe claim.
 
 ### File List
 
-*(populated at loop closure)*
+- `src/App.svelte` (modified — body prose + aria-labelledby + id)
+- `src/styles/app.css` (modified — `.empty-state-card-lede` rule + overflow-wrap)
+- `tests/dropzone-empty-state.test.ts` (modified — AC22a-AC22i + AC22g-followup)
+- `_bmad-output/implementation-artifacts/sprint-status.yaml` (modified — S03.6 flipped to done)
+- `_bmad-output/implementation-artifacts/3-6-three-teaching-cards-below-drop.md` (this file — completion notes)
