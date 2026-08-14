@@ -424,4 +424,271 @@ describe('dropzone-empty-state (S03.5 empty-state copy from EXPERIENCE.md: headl
       expect(cardRule![0]).toMatch(/padding\s*:\s*var\(--space-base\)/);
     });
   });
+
+  /**
+   * S03.6 — Body prose for the three teaching cards (FR-7 vocabulary
+   * primer).
+   *
+   * S03.5 shipped the visible card surface (heading + <ul> of
+   * category names) but deferred the body prose that anchors the
+   * category list to the results page. S03.6 lands that body prose.
+   * Each card now reads "heading → body → list" — the editorial
+   * hierarchy. The three body-prose sentences are verbatim from the
+   * S03.6 spec (locked from FR-2 / FR-3 / FR-5 consequences):
+   *
+   *   - "What we detect": "Each anomaly is reported with its row,
+   *     column, the value, the rule that was broken, and a one-
+   *     sentence explanation." (the FR-2 anomaly derivation)
+   *   - "What we show you": "A 0–100 score with a red, amber, or
+   *     green band and a per-category breakdown across the four
+   *     values." (the FR-3 score format)
+   *   - "What you can do": "All toggles default off; the original
+   *     and the proposed cleaned version are shown side by side
+   *     before you confirm." (the FR-5 cleaning toggle default +
+   *     reversibility view)
+   *
+   * The body prose sits in a <p class="empty-state-card-lede">
+   * element between the <h3> heading and the <ul> of category
+   * names. The class name `.empty-state-card-lede` is consistent
+   * across all three cards. The prose is plain text (NOT inside
+   * <code>) — mono for data is reserved for the 17 category
+   * names. The prose is NOT inside <details> / <summary> — the
+   * interactive disclosure pattern is for E10 problem cards, not
+   * S03.6 teaching cards.
+   *
+   * 8 AC22a-AC22h describe blocks. The prior-story boundary pins
+   * (AC21a-AC21m from S03.5) are preserved unchanged.
+   */
+  describe('AC22a: body prose for "What we detect" card (FR-2 anomaly derivation)', () => {
+    it('App.svelte contains the locked verbatim body-prose sentence', () => {
+      // Verbatim from S03.6 spec AC1: "Each anomaly is reported
+      // with its row, column, the value, the rule that was broken,
+      // and a one-sentence explanation." No curly apostrophes
+      // (the sentence is ASCII-clean); no terminal period (the
+      // editorial voice allows terminal periods but the S03.6
+      // spec's locked copy uses one — pin character-for-character).
+      expect(appSource).toMatch(
+        /Each anomaly is reported with its row, column, the value, the rule that was broken, and a one-sentence explanation\./,
+      );
+    });
+    it('the body prose is a single <p class="empty-state-card-lede"> element', () => {
+      // Mirror the AC21b single-<p> pin: a regression that splits
+      // the body into multiple paragraphs (or nests <p> elements)
+      // fails the structural pin. The body is one declarative
+      // sentence, one <p>.
+      const ledeMatches = appSource.match(/<p[^>]*class\s*=\s*["']empty-state-card-lede["']/g);
+      expect(ledeMatches?.length ?? 0).toBeGreaterThanOrEqual(1);
+      expect(appSource).toMatch(/<p[^>]*class\s*=\s*["']empty-state-card-lede["'][^>]*>\s*Each anomaly is reported with its row, column, the value, the rule that was broken, and a one-sentence explanation\.\s*<\/p>/);
+    });
+    it('the "What we detect" body prose renders BEFORE the <ul> of FR-2 category names', () => {
+      // AC22f: within each card, the order is <h3> → <p> → <ul>.
+      // The body prose sits between the heading and the list.
+      const detectCardStart = appSource.indexOf('<h3>What we detect</h3>');
+      const detectListStart = appSource.indexOf('<li><code>duplicates</code></li>');
+      const detectBodyIdx = appSource.indexOf('Each anomaly is reported with its row');
+      expect(detectCardStart).toBeGreaterThan(-1);
+      expect(detectListStart).toBeGreaterThan(-1);
+      expect(detectBodyIdx).toBeGreaterThan(detectCardStart);
+      expect(detectBodyIdx).toBeLessThan(detectListStart);
+    });
+  });
+
+  describe('AC22b: body prose for "What we show you" card (FR-3 score format)', () => {
+    it('App.svelte contains the locked verbatim body-prose sentence', () => {
+      // Verbatim from S03.6 spec AC2: "A 0–100 score with a red,
+      // amber, or green band and a per-category breakdown across
+      // the four values." The en-dash in 0–100 is U+2013 (not
+      // U+2014); the test pins the exact character. The sentence
+      // uses no curly apostrophes.
+      expect(appSource).toMatch(
+        /A 0\u2013100 score with a red, amber, or green band and a per-category breakdown across the four values\./,
+      );
+    });
+    it('the body prose is a single <p class="empty-state-card-lede"> element', () => {
+      const showBodyIdx = appSource.indexOf('A 0\u2013100 score with a red, amber, or green band and a per-category breakdown across the four values.');
+      expect(showBodyIdx).toBeGreaterThan(-1);
+      // The body prose must be inside a <p class="empty-state-card-lede"> element.
+      // Find the nearest opening <p> tag before the body and verify the class.
+      const beforeBody = appSource.substring(0, showBodyIdx);
+      const pOpenIdx = beforeBody.lastIndexOf('<p ');
+      expect(pOpenIdx).toBeGreaterThan(-1);
+      const pOpenTag = appSource.substring(pOpenIdx, appSource.indexOf('>', pOpenIdx) + 1);
+      expect(pOpenTag).toMatch(/class\s*=\s*["']empty-state-card-lede["']/);
+    });
+    it('the "What we show you" body prose renders BEFORE the <ul> of FR-3 category names', () => {
+      const showCardStart = appSource.indexOf('<h3>What we show you</h3>');
+      const showListStart = appSource.indexOf('<li><code>completeness</code></li>');
+      const showBodyIdx = appSource.indexOf('A 0\u2013100 score with a red, amber, or green band');
+      expect(showCardStart).toBeGreaterThan(-1);
+      expect(showListStart).toBeGreaterThan(-1);
+      expect(showBodyIdx).toBeGreaterThan(showCardStart);
+      expect(showBodyIdx).toBeLessThan(showListStart);
+    });
+  });
+
+  describe('AC22c: body prose for "What you can do" card (FR-5 reversibility view)', () => {
+    it('App.svelte contains the locked verbatim body-prose sentence', () => {
+      // Verbatim from S03.6 spec AC3: "All toggles default off;
+      // the original and the proposed cleaned version are shown
+      // side by side before you confirm." Curly apostrophe NOT
+      // required (no "you're" / "don't" / etc. in this sentence);
+      // the curly apostrophe pin is for the second sentence of
+      // the FR-5 reversibility view prose. The em-dash is NOT
+      // used here — "side by side" is rendered with spaces, no
+      // hyphen, no em-dash.
+      expect(appSource).toMatch(
+        /All toggles default off; the original and the proposed cleaned version are shown side by side before you confirm\./,
+      );
+    });
+    it('the body prose is a single <p class="empty-state-card-lede"> element', () => {
+      const doBodyIdx = appSource.indexOf('All toggles default off; the original and the proposed cleaned version are shown side by side before you confirm.');
+      expect(doBodyIdx).toBeGreaterThan(-1);
+      const beforeBody = appSource.substring(0, doBodyIdx);
+      const pOpenIdx = beforeBody.lastIndexOf('<p ');
+      expect(pOpenIdx).toBeGreaterThan(-1);
+      const pOpenTag = appSource.substring(pOpenIdx, appSource.indexOf('>', pOpenIdx) + 1);
+      expect(pOpenTag).toMatch(/class\s*=\s*["']empty-state-card-lede["']/);
+    });
+    it('the "What you can do" body prose renders BEFORE the <ul> of FR-5 cleaning actions', () => {
+      const doCardStart = appSource.indexOf('<h3>What you can do</h3>');
+      const doListStart = appSource.indexOf('<li><code>dedupe</code></li>');
+      const doBodyIdx = appSource.indexOf('All toggles default off');
+      expect(doCardStart).toBeGreaterThan(-1);
+      expect(doListStart).toBeGreaterThan(-1);
+      expect(doBodyIdx).toBeGreaterThan(doCardStart);
+      expect(doBodyIdx).toBeLessThan(doListStart);
+    });
+  });
+
+  describe('AC22d: structural consistency — exactly three <p class="empty-state-card-lede"> elements', () => {
+    it('App.svelte contains exactly three <p class="empty-state-card-lede"> elements', () => {
+      // One body-prose paragraph per card. A regression that
+      // adds a fourth body-prose paragraph (e.g., a "Privacy"
+      // card that duplicates the page-level lede) would fail
+      // this pin. The count is load-bearing for the FR-7
+      // teaching surface.
+      const matches = appSource.match(/<p[^>]*class\s*=\s*["']empty-state-card-lede["']/g);
+      expect(matches?.length ?? 0).toBe(3);
+    });
+    it('each body-prose <p> is a single child (not nested)', () => {
+      // The body prose is one declarative sentence per card;
+      // the <p> element has no nested elements (no <code>,
+      // no <span>, no <strong>). Plain text only.
+      const matches = appSource.match(/<p[^>]*class\s*=\s*["']empty-state-card-lede["'][^>]*>[\s\S]*?<\/p>/g) ?? [];
+      expect(matches.length).toBe(3);
+      for (const match of matches) {
+        // Strip the opening <p ...> tag and closing </p>; the
+        // remaining content must be plain text (no nested tags).
+        const inner = match.replace(/<p[^>]*>/, '').replace(/<\/p>$/, '').trim();
+        expect(inner).not.toMatch(/<[a-zA-Z]/);
+      }
+    });
+  });
+
+  describe('AC22e: body prose is NOT inside <code> (mono for data, not for prose)', () => {
+    const bodySentences = [
+      'Each anomaly is reported with its row',
+      'A 0\u2013100 score with a red, amber, or green band',
+      'All toggles default off',
+    ];
+    for (const sentence of bodySentences) {
+      it(`the body prose "${sentence.substring(0, 20)}..." is plain text (NOT inside <code>)`, () => {
+        // The mono treatment is reserved for the 17 category
+        // names (per EXPERIENCE.md §Editorial voice "mono for
+        // data"). The body prose is prose, not data. A
+        // regression that wraps the body prose in <code>
+        // would break the editorial voice.
+        //
+        // Find the sentence in the source and verify the
+        // surrounding context is <p>, not <code>.
+        const idx = appSource.indexOf(sentence);
+        expect(idx).toBeGreaterThan(-1);
+        // Walk back to find the nearest enclosing tag.
+        const beforeSentence = appSource.substring(0, idx);
+        const lastCodeOpen = beforeSentence.lastIndexOf('<code>');
+        const lastPClose = beforeSentence.lastIndexOf('</p>');
+        const lastPOpen = beforeSentence.lastIndexOf('<p ');
+        // The nearest enclosing open tag must be <p>, not <code>.
+        // (lastPClose may be -1 if the sentence is the first
+        // content in its <p>; lastPOpen is the start of the
+        // current <p>.)
+        if (lastPOpen > -1) {
+          expect(lastPOpen).toBeGreaterThan(lastCodeOpen);
+          expect(lastPOpen).toBeGreaterThan(lastPClose);
+        }
+      });
+    }
+  });
+
+  describe('AC22f: body-prose position ordering — heading → body → list', () => {
+    it('"What we detect" card reads: <h3> → <p> → <ul>', () => {
+      const detectH3 = appSource.indexOf('<h3>What we detect</h3>');
+      const detectP = appSource.indexOf('Each anomaly is reported');
+      const detectUl = appSource.indexOf('<ul>', detectH3);
+      expect(detectH3).toBeGreaterThan(-1);
+      expect(detectP).toBeGreaterThan(detectH3);
+      expect(detectUl).toBeGreaterThan(detectP);
+    });
+    it('"What we show you" card reads: <h3> → <p> → <ul>', () => {
+      const showH3 = appSource.indexOf('<h3>What we show you</h3>');
+      const showP = appSource.indexOf('A 0\u2013100 score with a red, amber, or green band');
+      const showUl = appSource.indexOf('<ul>', showH3);
+      expect(showH3).toBeGreaterThan(-1);
+      expect(showP).toBeGreaterThan(showH3);
+      expect(showUl).toBeGreaterThan(showP);
+    });
+    it('"What you can do" card reads: <h3> → <p> → <ul>', () => {
+      const doH3 = appSource.indexOf('<h3>What you can do</h3>');
+      const doP = appSource.indexOf('All toggles default off');
+      const doUl = appSource.indexOf('<ul>', doH3);
+      expect(doH3).toBeGreaterThan(-1);
+      expect(doP).toBeGreaterThan(doH3);
+      expect(doUl).toBeGreaterThan(doP);
+    });
+  });
+
+  describe('AC22g: CSS rule for body prose — uses tokens (token discipline)', () => {
+    it('app.css defines .empty-state-card-lede with var(--graphite) + var(--size-data) + var(--space-base)', () => {
+      // The body prose's visual treatment uses tokens for
+      // color, font-size, and margin-block. AD-8 forbids hex
+      // literals; token-only discipline is preserved.
+      const cardLedeRule = appCssSource.match(/\.empty-state-card-lede\s*\{[^}]*\}/);
+      expect(cardLedeRule).not.toBeNull();
+      expect(cardLedeRule![0]).toMatch(/color\s*:\s*var\(--graphite\)/);
+      expect(cardLedeRule![0]).toMatch(/font-size\s*:\s*var\(--size-data\)/);
+      expect(cardLedeRule![0]).toMatch(/margin-block\s*:\s*0\s+var\(--space-base\)/);
+    });
+  });
+
+  describe('AC22h: zero hex literals + zero new forbidden source patterns (Privacy Baseline + AD-8)', () => {
+    it('App.svelte contains no hex color literal (AD-8 — preserved against S03.5)', () => {
+      expect(appSource).not.toMatch(/#[0-9a-fA-F]{3,8}\b/);
+    });
+    it('app.css contains no hex color literal (AD-8 — S03.6 adds .empty-state-card-lede; only tokens.css is the source of hex)', () => {
+      expect(appCssSource).not.toMatch(/#[0-9a-fA-F]{3,8}\b/);
+    });
+    const forbiddenPatterns: Array<[string, RegExp]> = [
+      ['fetch', /\bfetch\s*\(/],
+      ['XMLHttpRequest', /\bXMLHttpRequest\b/],
+      ['EventSource', /\bEventSource\b/],
+      ['WebSocket', /\bWebSocket\b/],
+      ['new EventSource(', /\bnew\s+EventSource\s*\(/],
+      ['sendBeacon', /\bsendBeacon\b/],
+      ['navigator.sendBeacon', /\bnavigator\s*\.\s*sendBeacon\b/],
+      ['new Function', /\bnew\s+Function\b/],
+      ['eval', /\beval\b/],
+      ['dynamic import()', /[^.\w]import\s*\(/],
+      ['FileReader', /\bFileReader\b/],
+      ['readAsText', /\breadAsText\b/],
+      ['readAsArrayBuffer', /\breadAsArrayBuffer\b/],
+    ];
+    for (const [label, regex] of forbiddenPatterns) {
+      it(`App.svelte source does NOT contain ${label}`, () => {
+        expect(appSource).not.toMatch(regex);
+      });
+      it(`app.css source does NOT contain ${label}`, () => {
+        expect(appCssSource).not.toMatch(regex);
+      });
+    }
+  });
 });

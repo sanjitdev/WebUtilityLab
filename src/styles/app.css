@@ -277,6 +277,30 @@ body {
   color: var(--ink);
 }
 
+/*
+ * Card body prose (S03.6) — one declarative sentence per teaching
+ * card that anchors the category-list enumeration to the results
+ * page. The card hierarchy reads "heading → body → list": the
+ * <h3> names the card, the <p class="empty-state-card-lede">
+ * explains what the categories mean in the results, and the
+ * <ul> enumerates the categories. The body prose shares the
+ * same graphite color + size-data font-size as the page-level
+ * `.empty-state-lede` (the FR-7 teaching voice is consistent
+ * across the page).
+ *
+ * The body prose is intentionally NOT inside `<details>` /
+ * `<summary>` — the teaching cards are static <section>
+ * elements. The interactive disclosure pattern is reserved for
+ * the E10 problem cards (per EXPERIENCE.md §Component Patterns
+ * line 56); the teaching cards are vocabulary primers with no
+ * affordance to surface.
+ */
+.empty-state-card-lede {
+  margin-block: 0 var(--space-base);
+  color: var(--graphite);
+  font-size: var(--size-data);
+}
+
 .empty-state-card ul {
   margin: 0;
   /* 1.25rem = --space-card-padding (a token!). The token is for

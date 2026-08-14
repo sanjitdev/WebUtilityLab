@@ -165,9 +165,28 @@
        <h3> heading + a <ul> of category names wrapped in <code>
        (mono for data per EXPERIENCE.md §Editorial voice). The 8 + 4
        + 5 names are the locked FR-2 / FR-3 / FR-5 categories. -->
+  <!-- S03.5: three teaching cards. Each card is a <section> with an
+       <h3> heading + a <ul> of category names wrapped in <code>
+       (mono for data per EXPERIENCE.md §Editorial voice). The 8 + 4
+       + 5 names are the locked FR-2 / FR-3 / FR-5 categories.
+
+       S03.6: each card now also has a <p class="empty-state-card-lede">
+       body-prose paragraph BETWEEN the <h3> heading and the <ul> of
+       category names. The body prose is one declarative sentence in
+       the editorial voice that anchors the category list to the
+       results page (FR-7 teaching surface): "What we detect" names
+       the anomaly derivation (row + column + value + rule + one-
+       sentence explanation); "What we show you" names the score
+       format (0–100 with red/amber/green band + per-category
+       breakdown); "What you can do" names the cleaning toggle
+       default (all OFF) + the reversibility view (original vs.
+       proposed side-by-side). The cards are static <section>
+       elements — no hover, no focus, no <details>/<summary>
+       (those patterns are reserved for E10 problem cards). -->
   <div class="empty-state-cards">
     <section class="empty-state-card">
       <h3>What we detect</h3>
+      <p class="empty-state-card-lede">Each anomaly is reported with its row, column, the value, the rule that was broken, and a one-sentence explanation.</p>
       <ul>
         <li><code>duplicates</code></li>
         <li><code>missing values</code></li>
@@ -181,6 +200,7 @@
     </section>
     <section class="empty-state-card">
       <h3>What we show you</h3>
+      <p class="empty-state-card-lede">A 0–100 score with a red, amber, or green band and a per-category breakdown across the four values.</p>
       <ul>
         <li><code>completeness</code></li>
         <li><code>validity</code></li>
@@ -190,6 +210,7 @@
     </section>
     <section class="empty-state-card">
       <h3>What you can do</h3>
+      <p class="empty-state-card-lede">All toggles default off; the original and the proposed cleaned version are shown side by side before you confirm.</p>
       <ul>
         <li><code>dedupe</code></li>
         <li><code>fill missing</code></li>
