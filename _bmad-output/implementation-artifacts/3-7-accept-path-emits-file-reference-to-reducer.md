@@ -200,16 +200,78 @@ so that **E05's reducer (S05.3a-S05.3c) has a typed boundary to consume (the `Ap
 
 ### Agent Model Used
 
-*(populated at implementation start)*
+Claude (Sonnet 4.8 + Opus 4.8 via Puku routing) — coderabbit via code-simplifier.
+
+### Status
+
+done — 2026-08-14
 
 ### Debug Log References
 
-*(populated at loop closure)*
+- `$state` rune cannot be used in a regular `.ts` file at module scope
+  with `const` binding (Svelte 5 compiler requirement). Fix: rename
+  `src/lib/reducer.ts` → `src/lib/reducer.svelte.ts`; switch from
+  `const state = $state(...)` to `let state = $state(...)` and expose
+  via a `get state()` getter on the returned object.
+
+- Test regex `/\bphase\s*:\s*['"]empty['"]\b/` had a trailing `\b`
+  word-boundary after the closing quote. `\b` requires a word-to-non-
+  word transition; between `'` and the following whitespace both
+  are non-word, so no boundary exists. Fix: drop the trailing `\b`.
+
+- AC23d handleAccept body extraction used a paren-walker that broke
+  on TypeScript return-type annotations (`: void`). The walker
+  advanced past the parameter's `)` (depth 0), then expected to find
+  `{` after whitespace, but found `: void` first. Fix: use a
+  signature-aware regex that consumes the parameter type AND
+  return type annotation in one match.
 
 ### Completion Notes List
 
-*(populated at loop closure)*
+- Shipped the typed boundary between Dropzone's accept path and
+  the reducer shell. `OnAcceptSource` is now the canonical
+  discriminated union in `src/lib/types.ts`; both Dropzone.svelte
+  and App.svelte import from it (no more per-module duplication).
+- `createReducer()` factory + `dispatch` + `$state` rune lands
+  via `src/lib/reducer.svelte.ts` (the `.svelte.ts` extension is
+  mandatory for rune support at module scope).
+- Dropzone.svelte: `<input onchange={handlePickerChange}>` binding
+  wires the picker change handler (S03.3's `void handlePickerChange;`
+  suppression line is removed).
+- App.svelte: `handleAccept` dispatches to the reducer BEFORE the
+  aria-live announcement (dispatch ordering is load-bearing).
+- 4 prior-story test files inverted boundary pins (dropzone,
+  dropzone-drag-paste, dropzone-file-cap, dropzone-aria-live).
+- 1 new test file (`tests/dropzone-accept.test.ts`) with 90+
+  assertions covering AC23a-AC23f INCLUDING runtime tests for
+  the reducer's dispatch behavior (initial empty state, drop
+  transition, paste transition with synthesised File shape, paste
+  with filename, oversize no-op, factory isolation across calls).
+- Docs: tightened App.svelte (past-tense S03.7 phrasing),
+  Dropzone.svelte (stale `src/lib/reducer.ts` reference), and
+  reducer.svelte.ts (inaccurate `default: return` claim; removed
+  in favor of accurate fall-through description; clarified the
+  destructure-footgun that breaks reactivity).
+- Forbidden patterns list extended with `navigator.clipboard`
+  (privacy-relevant for the paste path).
+- Review #1 (3 reviewers) + Review #2 (coderabbit) both passed.
+  Test count: 790/790. Production gate: clean.
 
 ### File List
 
-*(populated at loop closure)*
+NEW:
+- `src/lib/types.ts` (OnAcceptSource discriminated union)
+- `src/lib/reducer.svelte.ts` (createReducer() factory shell)
+- `tests/dropzone-accept.test.ts` (AC23a-AC23f coverage)
+
+MODIFIED:
+- `src/App.svelte` (handleAccept dispatches to reducer; imports
+  createReducer from `./lib/reducer.svelte` and OnAcceptSource from
+  `./lib/types`)
+- `src/components/Dropzone.svelte` (onchange binding on the file
+  input; onaccept prop type narrowed to OnAcceptSource; imports
+  the type from `../lib/types`)
+- `tests/dropzone.test.ts` (AC17e inverted: onchange IS present)
+- `tests/dropzone-drag-paste.test.ts` (AC18j inverted)
+- `tests/dropzone-file-cap.test.ts` (AC19g + AC19o inverted)
+- `tests/dropzone-aria-live.test.ts` (AC20b re-scoped to types.ts)
