@@ -406,34 +406,29 @@ describe('dropzone-drag-paste (S03.2 drag-and-drop + paste handlers, onaccept un
     }
   });
 
-  describe("AC18n: App.svelte still does NOT pass an onaccept callback (S03.7 boundary pin)", () => {
-    it('App.svelte <Dropzone /> element has no onaccept attribute', () => {
-      // The boundary pin: S03.2 ships the gesture surface; S03.7
-      // wires the reducer. A future contributor pre-wiring the
-      // callback in S03.2 trips here.
-      expect(appSource).not.toMatch(/<Dropzone\b[^>]*\bonaccept\b/);
+  describe("AC18n: App.svelte still does NOT pass an onaccept callback (S03.7 boundary pin; S03.4 inverted)", () => {
+    // S03.4 (aria-live announcement surface) is the FIRST story to
+    // wire the App.svelte <Dropzone onaccept={handleAccept} /> consumer.
+    // S03.2's AC18n asserted App.svelte renders <Dropzone /> bare
+    // (no onaccept); S03.3 preserved that bound; S03.4 INVERTS it.
+    // The block is preserved for per-story regression tracking —
+    // the assertions flip to the S03.4 reality. The positive
+    // pin lives at tests/dropzone-aria-live.test.ts AC20a.
+    it('App.svelte <Dropzone /> element DOES have an onaccept attribute (S03.4 inverted boundary)', () => {
+      expect(appSource).toMatch(/<Dropzone\b[^>]*\bonaccept\b/);
     });
-    it('App.svelte does not destructure or reference onaccept', () => {
-      // Belt-and-suspender: even a hypothetical {onaccept} consumer
-      // would trip here.
-      expect(appSource).not.toMatch(/\bonaccept\b/);
+    it('App.svelte DOES reference onaccept (S03.4 inverted boundary; handleAccept consumer)', () => {
+      expect(appSource).toMatch(/\bonaccept\b/);
     });
-    it('App.svelte <Dropzone /> element has no prop-shaped attribute at all (M4)', () => {
-      // The literal-`onaccept` checks above would be bypassed by a
-      // prop rename (`onAccept`, `accept`, `handler`, `onSource`,
-      // etc.). This scoped check captures the <Dropzone ...> opening
-      // tag and asserts it has no `={...}` attribute at all (only
-      // attributes without `=` are class/id/aria-* pass-throughs, but
-      // S03.2 ships <Dropzone /> bare so any new attribute is a
-      // boundary violation). Per S03.2 spec, App.svelte renders the
-      // component bare with NO attributes.
+    it('App.svelte <Dropzone /> element has a prop-shaped attribute (S03.4 inverted boundary; M4)', () => {
+      // S03.2 ships <Dropzone /> bare; S03.4 binds onaccept.
       const open = /<Dropzone\b[^>]*>/.exec(app);
       expect(open, '<Dropzone ...> element not found in App.svelte').not.toBeNull();
       const openingTag = open![0];
-      expect(
-        openingTag,
-        `<Dropzone ...> opening tag has a prop attribute: ${openingTag}`
-      ).toBe('<Dropzone />');
+      // The S03.4 inverted-boundary reality: the opening tag carries
+      // the onaccept attribute.
+      expect(openingTag).not.toBe('<Dropzone />');
+      expect(openingTag).toMatch(/\bonaccept\s*=\s*\{\s*handleAccept\s*\}/);
     });
   });
 

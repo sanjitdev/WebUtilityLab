@@ -173,3 +173,33 @@ body {
  * add its own media query when it lands. Removing the empty block
  * keeps the chrome CSS honest today.
  */
+
+/*
+ * Visually-hidden utility — S03.4 extracts the previously-component-
+ * scoped `.visually-hidden` rules from ThemeToggle.svelte (S02.3) and
+ * Dropzone.svelte (S03.1) into a single global source of truth. The
+ * pattern is the canonical WAI-ARIA "screen-reader-only" treatment:
+ * 1px clip rect, position absolute, zero interaction footprint. The
+ * class is applied to:
+ *   - ThemeToggle's theme-change announcement <span> (S02.3)
+ *   - Dropzone's hidden <input type="file"> (S03.1; the picker target
+ *     is positioned off-screen but remains in the DOM and focusable
+ *     via the dropzone button's .click())
+ *   - App.svelte's dropzone-accept <output> aria-live region (S03.4;
+ *     the announcement is screen-reader-only, never visible)
+ * S03.4's prior-story tests (dropzone.test.ts AC17e) still pin the
+ * class is applied to the right elements; the new test file
+ * dropzone-aria-live.test.ts AC20f pins the class is now defined here
+ * (not duplicated in the component scope).
+ */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

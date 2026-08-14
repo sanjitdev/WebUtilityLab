@@ -375,13 +375,36 @@ describe('dropzone-file-cap (S03.3 50 MB cap check before reading; oversize sign
     }
   });
 
-  describe('AC19m: App.svelte boundary pins', () => {
-    it('App.svelte does NOT pass an onaccept callback to <Dropzone>', () => {
-      // S03.7 wires the reducer consumer; S03.3 leaves the mount unchanged.
-      expect(app).not.toMatch(/<Dropzone\b[^>]*\bonaccept\b/);
+  describe('AC19m: App.svelte boundary pins (S03.3 boundary; S03.4 inverted)', () => {
+    // S03.4 (aria-live announcement surface) is the FIRST story to
+    // wire the App.svelte <Dropzone onaccept={...}> consumer — see
+    // tests/dropzone-aria-live.test.ts AC20a for the positive pin.
+    // The S03.3 boundary (App.svelte did NOT pass onaccept, App.svelte
+    // did NOT mention "oversize") is therefore INVERTED at the S03.4
+    // commit. This block records the S03.3 boundary as a HISTORICAL
+    // pin (the original assertion, preserved for diff-archeology
+    // value) but flips the runtime check to assert the S03.4
+    // reality — App.svelte DOES pass an onaccept callback (handleAccept
+    // in S03.4) and DOES mention "oversize" (in handleAccept's
+    // discriminated-union parameter type).
+    //
+    // Why not delete this block entirely? The per-story test surface
+    // is preserved across the E03 stories for regression tracking
+    // (see S03.2 AC18o / S03.4 AC20j "prior-story boundary pins
+    // preserved" pattern). The block stays; the assertion flips.
+    it('App.svelte DOES pass an onaccept callback to <Dropzone> (S03.4 inverted boundary)', () => {
+      // S03.3 boundary: app did NOT pass onaccept.
+      // S03.4 boundary: app DOES pass onaccept={handleAccept}.
+      // The S03.4 positive pin lives at tests/dropzone-aria-live.test.ts
+      // AC20a; this is the S03.3-block acknowledgment of the inversion.
+      expect(app).toMatch(/<Dropzone\b[^>]*\bonaccept\b/);
     });
-    it('App.svelte does NOT contain "oversize" (no premature reducer wiring)', () => {
-      expect(appSource).not.toMatch(/\boversize\b/);
+    it('App.svelte DOES mention "oversize" (S03.4 inverted boundary; handleAccept parameter union)', () => {
+      // S03.3 boundary: app did NOT mention "oversize" (premature reducer
+      // wiring check). S03.4 handleAccept's parameter type union includes
+      // `{ kind: 'oversize'; size: number; cap: number }` so App.svelte
+      // now mentions the keyword — the boundary is inverted.
+      expect(appSource).toMatch(/\boversize\b/);
     });
   });
 

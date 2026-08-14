@@ -263,15 +263,7 @@
     border-style: dashed;
     border-color: var(--accent);
   }
-  .visually-hidden {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: nowrap;
-    border: 0;
-  }
+  /* .visually-hidden removed in S03.4 — the class moved to
+     src/styles/app.css (the global source of truth). The hidden
+     <input> below still uses `class="visually-hidden"`. */
 </style>

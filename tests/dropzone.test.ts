@@ -368,12 +368,18 @@ describe('dropzone (S03.1 real <button> dropzone opens file picker)', () => {
       );
     });
     it('<Dropzone /> appears between <main and </main> in DOM order', () => {
-      // The positional pin: <Dropzone /> must live inside <main>, not
+      // The positional pin: <Dropzone ...> must live inside <main>, not
       // in <header> or <footer>. Use the comment-stripped view so the
       // documenting prose doesn't trip the positional check.
+      //
+      // S03.4 widened the regex from `<Dropzone\s*\/?>` (bare, S03.1-
+      // S03.3) to `<Dropzone\b[^>]*>` (allow attributes — S03.4 wires
+      // the onaccept consumer via `<Dropzone onaccept={handleAccept} />`).
+      // The positional invariant is unchanged: the dropzone is inside
+      // <main>. Only the literal form of the opening tag changed.
       const mainIdx = appSource.search(/<main\b/);
       const mainEndIdx = appSource.search(/<\/main>/);
-      const dropzoneIdx = appSource.search(/<Dropzone\s*\/?>/);
+      const dropzoneIdx = appSource.search(/<Dropzone\b[^>]*>/);
       expect(mainIdx).toBeGreaterThanOrEqual(0);
       expect(mainEndIdx).toBeGreaterThan(mainIdx);
       expect(dropzoneIdx).toBeGreaterThan(mainIdx);
