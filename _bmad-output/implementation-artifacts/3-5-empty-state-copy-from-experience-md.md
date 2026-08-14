@@ -1,9 +1,9 @@
 # Story 3.5: Empty-state copy from EXPERIENCE.md (S03.5)
 
-Status: ready-for-dev
+Status: done
 baseline_commit: c5b97f3 (S03.4 loop closure — aria-live region lands; structured Announcement discriminated union; sprint-status flipped to done; S03.5 picks up from here)
 review_loop_iteration: 1
-final_commit: <to be filled after push>
+final_commit: ee84b31 (S03.5 loop closure — empty-state content lands; dropzone id="dropzone" added; sprint-status flipped to done)
 
 > **Loop protocol (mandatory).** This story must pass Review #1 (3 parallel reviewers), Review #2 (coderabbit), and the production-readiness gate before being marked `done`. See `docs/loop-protocol.md`. `S03.5` lands the **visible empty-state surface** that the user sees on first paint — the locked JTBD sentence ("Drop a CSV to find out what's wrong with it."), the privacy signal ("We don't upload — this happens in your browser."), the file-format guardrails ("Files up to 50 MB, UTF-8, with or without a BOM."), the two CTAs ("Try the example" primary + "Browse files" secondary), and the three teaching cards ("What we detect" / "What we show you" / "What you can do"). S03.1 shipped the visual chrome + the picker-opening gesture; S03.2 wired drag-and-drop + paste handlers and exposed `onaccept`; S03.3 added the 50 MB cap check; S03.4 wired the aria-live announcement region; S03.5 now adds the **visible empty-state content** that sits above and below the dropzone. **S03.5 does NOT touch the reducer, the worker, or the parsing logic** — S03.7 owns the reducer wiring; S03.8 owns the "Try the example" example-CSV button; S03.9 owns the strict-brief formatter. S03.5 is purely the visible-content surface: prose, two CTAs (one is a real button without an action until S03.8; the other is the existing dropzone button), and three teaching cards. The visible content is rendered statically on first paint; the reducer-driven state transition (empty → active) lands in S03.7.
 
@@ -268,16 +268,129 @@ The fifth most likely finding: **The "Try the example" disabled button's accessi
 
 ### Agent Model Used
 
-TBD (filled at implementation time)
+claude-opus-4.8 (puku-cli router)
 
 ### Debug Log References
 
-TBD
+- `npm test` → 621/621 pass (556 prior + 65 new S03.5). The 65 new
+  tests cover AC21a-AC21k + AC21l (12 describe blocks). The per-
+  category test granularity in AC21h (8 categories), AC21i (4
+  categories), and AC21j (5 categories) = 17 per-category pins;
+  AC21k's forbidden-pattern scan = 13 patterns × 2 source files +
+  3 hex-literal pins = 29; AC21l = 4 prior-story pin preservation
+  checks; the remaining ACs have 1-3 each.
+- `npm run check` → svelte-check 0 errors + 1 pre-existing warning in
+  ThemeToggle.svelte (state_referenced_locally for `mode`; not
+  introduced by S03.5 — present before S03.5's commit). tsc 0 errors.
+- `npm run build` → 13.82 KB gz JS / 15.43 KB gz total / 0 source maps
+  after build-cleanup. S03.5 added ~0.5 KB to the JS bundle (the
+  static template prose + the three card markup blocks) + ~0.2 KB
+  to the CSS bundle (the .empty-state-card and .empty-state-cards
+  rules).
+- `npm run check:bundle` → under 200 KB gzipped budget.
+- `npm run audit:privacy` → 3 dist files / 27 forbidden hosts / 6
+  forbidden source calls / OK.
+- `npm run audit:behavior` → 3 allowed requests / 0 anomalous / 0
+  service workers / OK.
+- `npm run check:deps` → 42 packages scanned / 0 denylisted.
+- `npm run check:telemetry` → 91 packages scanned / 0 forbidden
+  patterns / 0 denylisted.
 
 ### Completion Notes List
 
-TBD
+- **Visible empty-state content landed.** The user sees, on first
+  paint: the JTBD-sentence headline (`<h2>`), the locked EXPERIENCE.md
+  lede (UTF-8 / 50 MB / BOM / privacy signal; curly apostrophe +
+  spaced em-dash), the two CTAs ("Try the example" disabled + "·" +
+  "Browse files" anchor), the dropzone (unchanged from S03.3), the
+  aria-live region (unchanged from S03.4), and the three teaching
+  cards (What we detect / What we show you / What you can do).
+  FR-9 ("privacy signal visible at the dropzone on first paint")
+  is realized: the lede is in view at the dropzone, no scrolling
+  required to read the claim.
+
+- **Locked verbatim prose from EXPERIENCE.md line 43.** The lede
+  string is rendered character-for-character: `Files up to 50 MB,
+  UTF-8, with or without a BOM. We don't upload — this happens in
+  your browser.` The U+2019 curly apostrophe and the U+2014 spaced
+  em-dash are pinned by the AC21b regex test — a regression that
+  uses ASCII apostrophe or em-dash without spaces fails the test.
+
+- **Three teaching cards with the locked FR-2 / FR-3 / FR-5 names.**
+  Each card is a `<section class="empty-state-card">` with an `<h3>`
+  heading + a `<ul>` of category names wrapped in `<code>` (mono
+  for data per EXPERIENCE.md §Editorial voice). The 8 + 4 + 5 names
+  are the verbatim FR-2 / FR-3 / FR-5 categories from the PRD. The
+  test pins each name individually (AC21h × 8, AC21i × 4, AC21j × 5)
+  — a regression that typos a category name (e.g., "missing-value"
+  with a hyphen) fails the test.
+
+- **Dropzone gets `id="dropzone"`.** S03.5 adds `id="dropzone"` to
+  the Dropzone's `<button>` so the AC21d "Browse files" anchor
+  smooth-scrolls to it. The `id="dropzone"` is on the BUTTON (not
+  the hidden `<input id="file-input">`); the two distinct elements
+  have distinct ids, no collision. SCSS-wise, the dropzone button
+  is unchanged aside from the new `id` attribute; the S03.1 /
+  S03.2 / S03.3 / S03.4 test pins do not assert any specific `id`
+  on the dropzone button, so the addition is non-conflicting.
+
+- **"Try the example" button is `disabled` + `aria-disabled="true"`.**
+  S03.5 renders the button as not-yet-wired (S03.8 will remove
+  `disabled` and bind the example-CSV handler). The explicit
+  `aria-disabled="true"` is belt-and-braces — WAI-ARIA says
+  `<button disabled>` already implies `aria-disabled="true"`, but
+  some user-agent default styles for `<button disabled>` can be
+  overridden by CSS, breaking the visual cue. The explicit
+  `aria-disabled` ensures the AT announcement is consistent
+  across browsers.
+
+- **"Browse files" is an anchor, not a second button.** The
+  secondary CTA is `<a href="#dropzone">Browse files</a>` — an
+  anchor that smooth-scrolls to the dropzone. The dropzone button
+  is already the primary file-picker affordance (S03.1); adding a
+  second `<button>` would have duplicated the gesture. The anchor
+  uses `scroll-behavior: smooth` (CSS) and the
+  `prefers-reduced-motion: reduce` override (CSS) for users who
+  opted out of motion.
+
+- **Editorial voice bound.** The headline is sentence case ("Drop
+  a CSV to find out what's wrong with it.", NOT "Drop a CSV To
+  Find Out What's Wrong With It."). The card headings are
+  sentence case ("What we detect", NOT "What We Detect"). The
+  category names are verbatim from FR-2 / FR-3 / FR-5 (no title
+  case, no marketing modifiers). The lede is verbatim from
+  EXPERIENCE.md line 43 (no rewriting, no extra punctuation).
+  Mono for data (`<code>` on the 8 + 4 + 5 category names).
+
+- **Privacy Baseline preserved.** Zero network calls. The empty-
+  state content is pure static markup; the `disabled` button
+  attribute is HTML-only; the smooth-scroll anchor is CSS-only.
+  `audit-privacy.mjs` stays green.
+
+- **No visible celebration.** The empty state is restrained per
+  the editorial posture: no marketing copy, no exclamation marks,
+  no rhetorical questions, no "Ready to get started?" filler.
+  The cards' body is a clean enumeration of the 8 + 4 + 5
+  categories the user will see in the results.
 
 ### File List
 
-TBD
+- `src/App.svelte` — MODIFIED. Adds empty-state content ABOVE
+  the dropzone (headline + lede + CTAs) and BELOW the dropzone
+  (three teaching cards). The `<main>` block grew from 16 lines
+  to ~70 lines (~50 lines net added).
+- `src/components/Dropzone.svelte` — MODIFIED. Adds `id="dropzone"`
+  to the dropzone `<button>`. 1 line changed (added the `id` attr).
+- `src/styles/app.css` — MODIFIED. Adds `.empty-state-headline`,
+  `.empty-state-lede`, `.empty-state-ctas`, `.empty-state-card`,
+  `.empty-state-card h3`, `.empty-state-card ul`,
+  `.empty-state-card li`, `.empty-state-cards` rules + the
+  responsive collapse at `@media (max-width: 720px)` + the
+  `html { scroll-behavior: smooth }` block + the
+  `prefers-reduced-motion` override. ~80 lines added.
+- `tests/dropzone-empty-state.test.ts` — NEW. ~340 lines. 12
+  describe blocks (AC21a-AC21k + AC21l prior-story preservation);
+  65 sub-assertions.
+- `_bmad-output/implementation-artifacts/3-5-empty-state-copy-from-experience-md.md` — this story file, updated with completion notes.
+- `_bmad-output/implementation-artifacts/sprint-status.yaml` —
+  `3-5-empty-state-copy-from-experience-md: done` (from `backlog`).
