@@ -55,9 +55,22 @@
   import Dropzone from './components/Dropzone.svelte';
   import { pasteSnippet } from './lib/aria-live';
 
-  // S03.4: the aria-live region is driven by this $state. Initial
-  // value is '' (empty) so the region is silent on first paint.
-  let liveAnnouncement = $state('');
+  // S03.4: the aria-live region is driven by this $state. The
+  // shape is a discriminated union: `null` = no announcement yet
+  // (silent on first paint); `{ kind: 'drop'; name }` = file name
+  // announcement; `{ kind: 'paste'; snippet }` = paste snippet
+  // announcement. Initial value is `null` (region silent). The
+  // `<output>` template below renders the structured shape —
+  // filename wrapped in `<code>` for the mono treatment per
+  // EXPERIENCE.md §Editorial voice "mono for data". The `<code>`
+  // is invisible inside the visually-hidden parent (no visual
+  // effect today) but the DOM is honest about the editorial
+  // treatment; a future visible banner inherits the structure.
+  type Announcement =
+    | null
+    | { kind: 'drop'; name: string }
+    | { kind: 'paste'; snippet: string };
+  let liveAnnouncement = $state<Announcement>(null);
 
   // S03.4: dropzone-accept consumer. Handles all three onaccept
   // kinds (drop, paste, oversize) but only announces on drop and
@@ -80,11 +93,11 @@
   ): void {
     if (source.kind === 'oversize') return;
     if (source.kind === 'drop') {
-      liveAnnouncement = 'File accepted: ' + source.file.name;
+      liveAnnouncement = { kind: 'drop', name: source.file.name };
       return;
     }
     // source.kind === 'paste'
-    liveAnnouncement = 'Text pasted: ' + pasteSnippet(source.text);
+    liveAnnouncement = { kind: 'paste', snippet: pasteSnippet(source.text) };
   }
 </script>
 
@@ -104,7 +117,15 @@
 
 <main id="main" tabindex="-1" class="page-main">
   <Dropzone onaccept={handleAccept} />
-  <output class="visually-hidden" aria-live="polite" aria-atomic="true">{liveAnnouncement}</output>
+  <output class="visually-hidden" aria-live="polite" aria-atomic="true">
+    {#if liveAnnouncement === null}
+      {''}
+    {:else if liveAnnouncement.kind === 'drop'}
+      File accepted: <code>{liveAnnouncement.name}</code>
+    {:else}
+      Text pasted: <code>{liveAnnouncement.snippet}</code>
+    {/if}
+  </output>
 </main>
 
 <footer class="page-footer">

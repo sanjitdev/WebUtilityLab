@@ -414,20 +414,33 @@ describe('dropzone-drag-paste (S03.2 drag-and-drop + paste handlers, onaccept un
     // The block is preserved for per-story regression tracking —
     // the assertions flip to the S03.4 reality. The positive
     // pin lives at tests/dropzone-aria-live.test.ts AC20a.
-    it('App.svelte <Dropzone /> element DOES have an onaccept attribute (S03.4 inverted boundary)', () => {
-      expect(appSource).toMatch(/<Dropzone\b[^>]*\bonaccept\b/);
+    //
+    // Review #1 (verification-gap) tightened the inverted assertions:
+    // the S03.2 boundary was tightened to "App.svelte does NOT mention
+    // onaccept at all"; the S03.4 inverted form asserts App.svelte
+    // does pass onaccept={handleAccept} (the exact callback name,
+    // not just any `onaccept` token — which would also match
+    // Dropzone's prop declaration).
+    it('App.svelte <Dropzone /> element DOES have onaccept={handleAccept} (S03.4 inverted boundary)', () => {
+      // Tightened: assert the EXACT binding form (not just any
+      // onaccept token). A regression that renamed the handler
+      // (e.g., `onFile`) or removed the attribute would fail this.
+      expect(appSource).toMatch(/<Dropzone\b[^>]*\bonaccept\s*=\s*\{\s*handleAccept\s*\}/);
     });
-    it('App.svelte DOES reference onaccept (S03.4 inverted boundary; handleAccept consumer)', () => {
-      expect(appSource).toMatch(/\bonaccept\b/);
+    it('App.svelte declares the handleAccept function (S03.4 inverted boundary; consumer)', () => {
+      // The handler exists in App.svelte's script block. (This is
+      // the AC20b positive pin, mirrored here for the boundary-
+      // inversion docblock.)
+      expect(appSource).toMatch(/\bfunction\s+handleAccept\s*\(/);
     });
-    it('App.svelte <Dropzone /> element has a prop-shaped attribute (S03.4 inverted boundary; M4)', () => {
-      // S03.2 ships <Dropzone /> bare; S03.4 binds onaccept.
+    it('App.svelte <Dropzone /> opening tag has onaccept={handleAccept} verbatim (S03.4 inverted boundary; M4)', () => {
+      // M4 prop-shape pin: capture the opening tag and assert the
+      // exact form (not just "has an attribute").
       const open = /<Dropzone\b[^>]*>/.exec(app);
       expect(open, '<Dropzone ...> element not found in App.svelte').not.toBeNull();
       const openingTag = open![0];
       // The S03.4 inverted-boundary reality: the opening tag carries
-      // the onaccept attribute.
-      expect(openingTag).not.toBe('<Dropzone />');
+      // the exact onaccept={handleAccept} binding.
       expect(openingTag).toMatch(/\bonaccept\s*=\s*\{\s*handleAccept\s*\}/);
     });
   });

@@ -377,34 +377,72 @@ describe('dropzone-file-cap (S03.3 50 MB cap check before reading; oversize sign
 
   describe('AC19m: App.svelte boundary pins (S03.3 boundary; S03.4 inverted)', () => {
     // S03.4 (aria-live announcement surface) is the FIRST story to
-    // wire the App.svelte <Dropzone onaccept={...}> consumer — see
-    // tests/dropzone-aria-live.test.ts AC20a for the positive pin.
-    // The S03.3 boundary (App.svelte did NOT pass onaccept, App.svelte
-    // did NOT mention "oversize") is therefore INVERTED at the S03.4
-    // commit. This block records the S03.3 boundary as a HISTORICAL
-    // pin (the original assertion, preserved for diff-archeology
-    // value) but flips the runtime check to assert the S03.4
-    // reality — App.svelte DOES pass an onaccept callback (handleAccept
-    // in S03.4) and DOES mention "oversize" (in handleAccept's
-    // discriminated-union parameter type).
+    // wire the App.svelte <Dropzone onaccept={handleAccept} /> consumer.
+    // S03.3's AC19m asserted App.svelte renders <Dropzone /> bare
+    // (no onaccept) AND App.svelte does not mention "oversize"
+    // (premature reducer wiring). S03.4 INVERTS both — App.svelte
+    // wires onaccept={handleAccept} (handleAccept's discriminated-
+    // union parameter type includes `{ kind: 'oversize'; size: number;
+    // cap: number }`).
     //
-    // Why not delete this block entirely? The per-story test surface
-    // is preserved across the E03 stories for regression tracking
-    // (see S03.2 AC18o / S03.4 AC20j "prior-story boundary pins
-    // preserved" pattern). The block stays; the assertion flips.
-    it('App.svelte DOES pass an onaccept callback to <Dropzone> (S03.4 inverted boundary)', () => {
-      // S03.3 boundary: app did NOT pass onaccept.
-      // S03.4 boundary: app DOES pass onaccept={handleAccept}.
-      // The S03.4 positive pin lives at tests/dropzone-aria-live.test.ts
-      // AC20a; this is the S03.3-block acknowledgment of the inversion.
-      expect(app).toMatch(/<Dropzone\b[^>]*\bonaccept\b/);
+    // Review #1 (verification-gap) tightened the inverted assertions:
+    // the original "App.svelte does pass onaccept" was a regex
+    // (`/\boversize\b/` etc.) that matched the prop-type DECLARATION
+    // in Dropzone.svelte, not just App.svelte's actual usage. The
+    // tightened form asserts the EXACT binding form (the literal
+    // `onaccept={handleAccept}`) and the OVERSIZE token appears
+    // in App.svelte's source (not just anywhere).
+    //
+    // Why preserve the block? The per-story test surface is preserved
+    // across the E03 stories for regression tracking (see S03.2 AC18o
+    // / S03.4 AC20j "prior-story boundary pins preserved" pattern).
+    // The block stays; the assertions flip.
+    it('App.svelte DOES pass onaccept={handleAccept} to <Dropzone> (S03.4 inverted boundary)', () => {
+      // Tightened: assert the EXACT binding form. The S03.3 form
+      // (`app.toMatch(/<Dropzone\b[^>]*\bonaccept\b/)`) is too
+      // permissive — it would match a future `<Dropzone onaccept={foo}>`
+      // with a renamed handler.
+      expect(app).toMatch(/<Dropzone\b[^>]*\bonaccept\s*=\s*\{\s*handleAccept\s*\}/);
     });
     it('App.svelte DOES mention "oversize" (S03.4 inverted boundary; handleAccept parameter union)', () => {
-      // S03.3 boundary: app did NOT mention "oversize" (premature reducer
-      // wiring check). S03.4 handleAccept's parameter type union includes
-      // `{ kind: 'oversize'; size: number; cap: number }` so App.svelte
-      // now mentions the keyword — the boundary is inverted.
+      // The S03.4 inverted boundary: handleAccept's parameter type
+      // union includes the oversize branch.
       expect(appSource).toMatch(/\boversize\b/);
+    });
+    it('App.svelte handleAccept has an explicit early-return on the oversize branch (S03.4 inverted boundary)', () => {
+      // Tightened: the S03.4 implementation's defensive no-op pattern.
+      // The "oversize" keyword alone is too permissive — it could
+      // appear in a comment without the defensive early-return.
+      const body = (() => {
+        const sigMatch = /function\s+handleAccept\s*\(/.exec(appSource);
+        if (!sigMatch) return '';
+        let i = sigMatch.index + sigMatch[0].length;
+        let depth = 1;
+        while (i < appSource.length && depth > 0) {
+          const ch = appSource[i];
+          if (ch === '(') depth++;
+          else if (ch === ')') depth--;
+          i++;
+        }
+        while (i < appSource.length && /\s/.test(appSource[i])) i++;
+        if (appSource[i] === ':') {
+          while (i < appSource.length && appSource[i] !== '{') i++;
+        }
+        if (appSource[i] !== '{') return '';
+        const bodyStart = i + 1;
+        let braceDepth = 1;
+        let j = bodyStart;
+        while (j < appSource.length && braceDepth > 0) {
+          const ch = appSource[j];
+          if (ch === '{') braceDepth++;
+          else if (ch === '}') braceDepth--;
+          if (braceDepth > 0) j++;
+        }
+        return appSource.slice(bodyStart, j);
+      })();
+      expect(body).toMatch(
+        /if\s*\(\s*source\.kind\s*===\s*['"]oversize['"]\s*\)\s*return\s*;/,
+      );
     });
   });
 
