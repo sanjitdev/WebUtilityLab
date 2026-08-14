@@ -98,11 +98,17 @@ describe('dropzone-file-cap (S03.3 50 MB cap check before reading; oversize sign
     });
     it('assertWithinFileCap return type is a discriminated union with both branches', () => {
       // Multi-line tolerant (Prettier may break the literal type across lines).
+      // The negated `[^}]*` (not `[\s\S]*?`) anchors each pattern to the
+      // literal's closing `}` — the pattern CANNOT cross into the next
+      // union member. This prevents the AC19o regression where a
+      // malformed oversize literal that ALSO carries `file:` would
+      // still match the AC19a positive pin (Review #1 blind-hunter
+      // finding).
       expect(fileSizeCapSource).toMatch(
-        /\{\s*kind\s*:\s*['"]ok['"]\s*;[\s\S]*?file\s*:\s*File[\s\S]*?\}/,
+        /\{\s*kind\s*:\s*['"]ok['"]\s*;[^}]*file\s*:\s*File[^}]*\}/,
       );
       expect(fileSizeCapSource).toMatch(
-        /\{\s*kind\s*:\s*['"]oversize['"]\s*;[\s\S]*?size\s*:\s*number[\s\S]*?cap\s*:\s*number[\s\S]*?\}/,
+        /\{\s*kind\s*:\s*['"]oversize['"]\s*;[^}]*size\s*:\s*number[^}]*cap\s*:\s*number[^}]*\}/,
       );
     });
   });
@@ -167,6 +173,30 @@ describe('dropzone-file-cap (S03.3 50 MB cap check before reading; oversize sign
         expect(result.cap).toBe(MAX_FILE_SIZE_BYTES);
       }
     });
+
+    it('assertWithinFileCap returns { kind: "ok" } for size 0 (Review #1 verification-gap)', async () => {
+      // Review #1 finding: AC19c pins size=0 for isWithinFileCap but
+      // NOT for assertWithinFileCap. Spec line 91 lists size=0 as a
+      // boundary case; the discriminated-union function should mirror.
+      const { assertWithinFileCap } = await import('../src/lib/file-size-cap');
+      const result = assertWithinFileCap(fakeFile(0) as unknown as File);
+      expect(result.kind).toBe('ok');
+      if (result.kind === 'ok') {
+        expect(result.file).toBeDefined();
+      }
+    });
+
+    it('assertWithinFileCap returns { kind: "oversize" } for 200 MB (Review #1 verification-gap)', async () => {
+      // Review #1 finding: AC19c pins 200MB for isWithinFileCap but
+      // not for assertWithinFileCap.
+      const { assertWithinFileCap } = await import('../src/lib/file-size-cap');
+      const result = assertWithinFileCap(fakeFile(200 * 1024 * 1024) as unknown as File);
+      expect(result.kind).toBe('oversize');
+      if (result.kind === 'oversize') {
+        expect(result.size).toBe(200 * 1024 * 1024);
+        expect(result.cap).toBe(50 * 1024 * 1024);
+      }
+    });
   });
 
   describe('AC19d: dropzone imports from the cap module, no inline literal', () => {
@@ -205,26 +235,24 @@ describe('dropzone-file-cap (S03.3 50 MB cap check before reading; oversize sign
     });
     it('handleDrop early-returns on the oversize branch (no drop payload after)', () => {
       const body = extractFunctionBody(dropzoneSource, 'handleDrop');
-      // The oversize branch's `return;` must precede any second
-      // `{ kind: 'drop' ... }` emission. Positional: the return comes
-      // first.
+      // Review #1 finding (verification-gap): the original test's
+      // `slice` arithmetic was tautological — `returnIdx` could be
+      // positive even if the drop emit was absent (the slice fallback
+      // to `undefined` end-index made the window unbounded). Tighten:
+      // assert all three positions in the FULL body (no slice math),
+      // assert ordering oversizeIdx < returnIdx < dropIdx (the return
+      // sits between the oversize emit and the under-cap emit — so
+      // the under-cap emit is unreachable from the oversize branch).
       const oversizeIdx = body.search(
         /onaccept\?\.\(\{\s*kind:\s*['"]oversize['"]\s*,\s*size:\s*result\.size\s*,\s*cap:\s*result\.cap\s*\}\)/,
       );
-      const dropAfterIdx = body
-        .slice(oversizeIdx)
-        .search(
-          /onaccept\?\.\(\{\s*kind:\s*['"]drop['"]\s*,\s*file:\s*result\.file\s*\}\)/,
-        );
-      const returnIdx = body
-        .slice(oversizeIdx, oversizeIdx + dropAfterIdx > -1 ? oversizeIdx + dropAfterIdx : undefined)
-        .search(/\breturn\b/);
+      const returnIdx = body.indexOf('return', oversizeIdx);
+      const dropIdx = body.search(
+        /onaccept\?\.\(\{\s*kind:\s*['"]drop['"]\s*,\s*file:\s*result\.file\s*\}\)/,
+      );
       expect(oversizeIdx).toBeGreaterThan(-1);
-      expect(dropAfterIdx).toBeGreaterThan(-1);
-      // The return must appear between the oversize emit and the
-      // drop emit — the drop emit is after the return (post-return
-      // code is unreachable but the parser still scans it).
-      expect(returnIdx).toBeGreaterThan(-1);
+      expect(returnIdx).toBeGreaterThan(oversizeIdx);
+      expect(dropIdx).toBeGreaterThan(returnIdx);
     });
   });
 
@@ -360,15 +388,40 @@ describe('dropzone-file-cap (S03.3 50 MB cap check before reading; oversize sign
     // S03.3 to accept both shorthand and explicit form. This regression
     // pin confirms the widening is in place — without it, the S03.2
     // test would turn red after S03.3's component changes land.
-    // The widening introduces the dotted-identifier chain
-    // `(?:\.\w+)*` so the new explicit form `file: result.file` is
-    // accepted by the pinned regex. We assert on a small, robust
-    // substring match (the new chain) rather than mirroring the full
-    // regex literal — the latter is fragile to escape backslashes
-    // and the test's intent is to catch accidental removal of the
-    // widening, not to pin syntax verbatim.
+    // Review #1 (verification-gap + blind-hunter both flagged the
+    // prior pin as brittle): a substring match on a regex fragment
+    // is fragile. Tightened: (a) verify the S03.2 test source
+    // contains the structural widening marker (`(?:\.\w+)*`), AND
+    // (b) build the SAME widened regex the S03.2 test uses (the
+    // pattern now in source), then run it against both the S03.2
+    // shorthand and the S03.3 explicit form. Both must match — the
+    // widening is functional, not just syntactic.
     it('dropzone-drag-paste.test.ts AC18f regex is widened to accept explicit form', () => {
-      expect(dropzoneDragPasteTest).toMatch(/\(\?:\\\.\\\w\+\)\*/);
+      // (a) Structural check: the S03.2 test source contains the
+      // dotted-identifier chain `(?:\.\w+)*` — the widening marker.
+      // Without this chain, the regex is the S03.2 narrow form.
+      expect(dropzoneDragPasteTest).toMatch(/\(\?:\\\.\\w\+\)\*/);
+      // (b) Functional check: build the SAME widened regex the S03.2
+      // test now uses (the pattern in source) and verify it matches
+      // both forms. The widening's load-bearing property: BOTH the
+      // S03.2 shorthand AND the S03.3 explicit form match.
+      // The pattern source — same as the regex literal in
+      // tests/dropzone-drag-paste.test.ts AC18f.
+      const widened = new RegExp(
+        [
+          'onaccept\\?\\.\\(\\{',
+          '\\s*kind:\\s*[\'"]drop[\'"]',
+          '\\s*,\\s*',
+          'file(?:\\s*:\\s*\\w+(?:\\.\\w+)*)?',
+          '\\s*\\}\\)',
+        ].join(''),
+      );
+      expect(widened.test("onaccept?.({ kind: 'drop', file })")).toBe(true);
+      expect(widened.test("onaccept?.({ kind: 'drop', file: result.file })")).toBe(true);
+      // Belt-and-braces: a regex narrowed to ONLY the explicit form
+      // would pass the second assertion but fail the first. Both
+      // must match.
+      expect(widened.test("onaccept?.({ kind: 'drop', file })")).toBe(true);
     });
   });
 
