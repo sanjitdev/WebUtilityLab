@@ -21,11 +21,15 @@
  * The `state` is a Svelte 5 `$state` rune-backed reactive value.
  * E05's S05.6 will swap this for a real `writable`-style API if
  * needed; for S03.7 the rune form is sufficient because the only
- * consumer (App.svelte) is a Svelte 5 component. The `state` is
- * NOT a Svelte store (`svelte/store`); it's a plain object whose
- * `state` property is wrapped in `$state`. The dispatch function
- * mutates `state` in place; Svelte's reactivity tracks the
- * re-assignment.
+ * consumer (App.svelte) is a Svelte 5 component. The factory
+ * closes over a `let` binding that is the rune-wrapped reactive
+ * value; the returned object exposes it via a `get` accessor so
+ * callers read the live proxy (DESTRUCTURING the returned object
+ * — `const { state } = createReducer()` — would snapshot the
+ * value at destructure time and break reactivity; the pattern is
+ * to keep the instance reference and read `instance.state` in
+ * property-access form). The dispatch function re-assigns `state`
+ * with a new value; Svelte's reactivity tracks the assignment.
  *
  * Privacy Baseline: the reducer does NOT read the file. The
  * `accept` action's `drop` branch stores the `File` reference;
@@ -36,11 +40,11 @@
  * gate (S03.7 — defense in depth).
  *
  * AD-5 (state machine): the union is discriminated by `phase`.
- * The compiler enforces exhaustive switches on `state.phase` and
- * `action.kind` (TypeScript's narrowing on the `kind` / `phase`
- * field — no `default` branch needed for type safety, but the
- * runtime still includes `default: return` for forward
- * compatibility with E05's widened action union).
+ * The runtime only handles `action.kind === 'accept'`; any other
+ * action kind is a silent no-op (the `if` falls through). E05's
+ * S05.3a will widen the action union with new kinds; the
+ * fall-through behaviour continues to be safe (the reducer
+ * ignores unknown actions until E05's branches are added).
  *
  * Out of scope for S03.7: reading the file (E06 S06.1), BOM
  * detection (E06 S06.3), full reducer (E05 S05.3a-S05.3c),

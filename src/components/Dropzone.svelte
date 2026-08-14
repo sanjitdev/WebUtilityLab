@@ -49,7 +49,7 @@
    *              `src/lib/types.ts`. The duplicated-parameter-type
    *              risk S03.4's docblock warned about is gone.
    *           3. S03.7 does NOT author the reducer (that's
-   *              `src/lib/reducer.ts` + App.svelte's dispatcher);
+   *              `src/lib/reducer.svelte.ts` + App.svelte's dispatcher);
    *              the dropzone's role here is the typed fan-out
    *              point. The reducer-shell captures the File
    *              reference without reading it.

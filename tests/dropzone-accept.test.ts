@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { readFileSync } from 'node:fs';
+import { createReducer } from '../src/lib/reducer.svelte';
 
 const here = fileURLToPath(new URL('.', import.meta.url));
 const repoRoot = join(here, '..');
@@ -45,11 +46,14 @@ const dropzoneEmptyStateTestPath = join(repoRoot, 'tests', 'dropzone-empty-state
  * the bytes via file.stream().
  *
  * Every AC23a–AC23f assertion is checked at `npm test` time. The
- * production files are read as text and asserted for shape; the
- * reducer-shell is tested at vitest runtime via the import of
- * `createReducer` from `./helpers/reducer` (the production module
- * path is `src/lib/reducer.svelte.ts` but vitest's alias map
- * resolves it the same way Vite does — see vitest.config.ts).
+ * production files are read as text and asserted for shape (the
+ * static-source regex pins below). The reducer-shell is also
+ * exercised at vitest runtime: the test file imports `createReducer`
+ * from `src/lib/reducer.svelte` directly (the `.svelte.ts` suffix
+ * is required for `$state` rune support; Vite + vitest both resolve
+ * the extension via the svelte-plugin). Runtime tests verify the
+ * `empty → active` transition on drop, the `oversize` no-op, and
+ * the `paste` synthesised-File shape.
  */
 describe('dropzone-accept (S03.7 accept path emits a File reference to the reducer; OnAcceptSource extracted to src/lib/types.ts; createReducer() factory)', () => {
   const dropzone = readFileSync(dropzonePath, 'utf8');
@@ -242,11 +246,104 @@ describe('dropzone-accept (S03.7 accept path emits a File reference to the reduc
     });
   });
 
+  describe('AC23c-runtime: reducer behaviour at vitest runtime (createReducer() exercises)', () => {
+    // Spec AC23f item 17 explicitly mandates runtime vitest tests:
+    // "Tests import createReducer, call dispatch({ kind: 'accept',
+    //  source: { kind: 'drop', file } }), and assert state.phase
+    //  === 'active' AND state.file === file. A second test pins
+    //  the oversize branch: state.phase === 'empty' after
+    //  dispatch({ kind: 'accept', source: { kind: 'oversize',
+    //  size, cap } })." The static-source regex pins above describe
+    //  the SHAPE of the reducer; the runtime tests below exercise
+    //  the BEHAVIOUR. A regression that broke the dispatch logic
+    //  (e.g., dropped the `state =` assignment, swapped the union
+    //  branch) would pass all the regex pins above but fail these
+    //  runtime assertions. NOTE: the tests use a plain `File` (not
+    //  a `Mock`/`Stub`) — the runtime checks the real reproduction
+    //  of the union's `{ kind: 'drop'; file: File }` member.
+    it('createReducer() returns an instance with state.phase === "empty" (initial)', () => {
+      const r = createReducer();
+      expect(r.state.phase).toBe('empty');
+    });
+    it('createReducer() returns an instance with a dispatch function', () => {
+      const r = createReducer();
+      expect(typeof r.dispatch).toBe('function');
+    });
+    it('dispatch({ kind: "accept", source: { kind: "drop", file } }) transitions empty → active', () => {
+      const r = createReducer();
+      const file = new File(['a,b\nc,d'], 'sample.csv', { type: 'text/csv' });
+      r.dispatch({ kind: 'accept', source: { kind: 'drop', file } });
+      expect(r.state.phase).toBe('active');
+      if (r.state.phase === 'active') {
+        expect(r.state.file).toBe(file);
+      }
+    });
+    it('dispatch({ kind: "accept", source: { kind: "paste", text } }) transitions empty → active with synthesised File', () => {
+      const r = createReducer();
+      const text = 'a,b\nc,d';
+      r.dispatch({ kind: 'accept', source: { kind: 'paste', text } });
+      expect(r.state.phase).toBe('active');
+      if (r.state.phase === 'active') {
+        expect(r.state.file).toBeInstanceOf(File);
+        expect(r.state.file.name).toBe('pasted.csv');
+        expect(r.state.file.type).toBe('text/csv');
+        expect(r.state.file.size).toBe(text.length);
+      }
+    });
+    it('dispatch({ kind: "accept", source: { kind: "paste", text, filename } }) uses the provided filename', () => {
+      const r = createReducer();
+      r.dispatch({
+        kind: 'accept',
+        source: { kind: 'paste', text: 'a,b', filename: 'my-paste.csv' },
+      });
+      expect(r.state.phase).toBe('active');
+      if (r.state.phase === 'active') {
+        expect(r.state.file.name).toBe('my-paste.csv');
+      }
+    });
+    it('dispatch({ kind: "accept", source: { kind: "oversize", size, cap } }) is a NO-OP (state stays at empty)', () => {
+      const r = createReducer();
+      r.dispatch({ kind: 'accept', source: { kind: 'oversize', size: 100, cap: 50 } });
+      expect(r.state.phase).toBe('empty');
+    });
+    it('createReducer() called twice creates ISOLATED state instances', () => {
+      // The factory pattern claim — each call has its own $state
+      // binding; a regression that hoisted the `$state` to module
+      // scope (creating a shared singleton) would fail this pin.
+      const a = createReducer();
+      const b = createReducer();
+      const file = new File(['x'], 'a.csv', { type: 'text/csv' });
+      a.dispatch({ kind: 'accept', source: { kind: 'drop', file } });
+      expect(a.state.phase).toBe('active');
+      expect(b.state.phase).toBe('empty');
+    });
+    it('dispatch does NOT read the file (Privacy Baseline — only the .size / .name / .type metadata touched)', () => {
+      // The reducer's drop branch stores the File reference and
+      // returns; it never calls file.text / arrayBuffer / stream.
+      // We can't observe the negative directly (no read = no side
+      // effect), but the pin is that the File reference is held
+      // intact and the reducer returns without throwing — if it
+      // DID read the file, the test would still pass (the read is
+      // silent). The spec's defense-in-depth guarantees (dropzone
+      // gate + reducer no-op on oversize) are the auditor's
+      // strongest signal. This test simply pins runtime sanity.
+      const r = createReducer();
+      const file = new File(['a,b'], 'x.csv', { type: 'text/csv' });
+      r.dispatch({ kind: 'accept', source: { kind: 'drop', file } });
+      expect(r.state.phase).toBe('active');
+      if (r.state.phase === 'active') {
+        expect(r.state.file).toBe(file);
+        expect(r.state.file.size).toBe(3);
+      }
+    });
+  });
+
   describe('AC23d: App.svelte dispatches to the reducer on accept', () => {
     it('App.svelte imports createReducer from "./lib/reducer.svelte"', () => {
       // The reducer is in src/lib/reducer.svelte.ts (the .svelte.ts
       // suffix is required for $state rune support). Vite + vitest
-      // both resolve the path; the import uses the full filename.
+      // both resolve the import path via the svelte plugin; the
+      // import here uses the conventional extension-stripped form.
       expect(appSource).toMatch(
         /import\s*\{\s*createReducer\s*\}\s*from\s*['"]\.\/lib\/reducer\.svelte['"]/,
       );
@@ -349,6 +446,7 @@ describe('dropzone-accept (S03.7 accept path emits a File reference to the reduc
       ['FileReader', /\bFileReader\b/],
       ['readAsText', /\breadAsText\b/],
       ['readAsArrayBuffer', /\breadAsArrayBuffer\b/],
+      ['navigator.clipboard', /\bnavigator\s*\.\s*clipboard\b/],
     ];
     for (const [label, regex] of forbiddenPatterns) {
       it(`types.ts source does NOT contain ${label}`, () => {

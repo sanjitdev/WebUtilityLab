@@ -32,11 +32,12 @@
    *
    * `handleAccept` is the FIRST onaccept consumer in the app
    * (S03.2 left the prop unbound; S03.3 preserved that bound;
-   * S03.4 inverts the boundary and wires the consumer). The
-   * discriminated-union parameter type mirrors Dropzone's
-   * `onaccept` prop type EXACTLY — the duplication is intentional
-   * for S03.4; S03.7's reducer will extract a shared `OnAcceptSource`
-   * type to `src/lib/` when the reducer lands.
+   * S03.4 inverts the boundary and wires the consumer).
+   * Discriminated-union parameter type is shared with Dropzone.svelte
+   * (S03.7 extracted the `OnAcceptSource` type to `src/lib/types.ts`;
+   * S03.4's docblock noted that the duplication was intentional for
+   * S03.4, and S03.7's reducer cross-story contract landed the
+   * extraction).
    *
    * `liveAnnouncement` is a `$state` rune (Svelte 5 reactivity).
    * Empty initial state means the region is silent on first paint;
