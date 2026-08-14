@@ -10,6 +10,7 @@ const dropzonePath = join(repoRoot, 'src', 'components', 'Dropzone.svelte');
 const themeTogglePath = join(repoRoot, 'src', 'components', 'ThemeToggle.svelte');
 const appCssPath = join(repoRoot, 'src', 'styles', 'app.css');
 const ariaLivePath = join(repoRoot, 'src', 'lib', 'aria-live.ts');
+const typesPath = join(repoRoot, 'src', 'lib', 'types.ts');
 const dropzoneTestPath = join(repoRoot, 'tests', 'dropzone.test.ts');
 const dropzoneDragPasteTestPath = join(repoRoot, 'tests', 'dropzone-drag-paste.test.ts');
 const dropzoneFileCapTestPath = join(repoRoot, 'tests', 'dropzone-file-cap.test.ts');
@@ -57,6 +58,7 @@ describe('dropzone-aria-live (S03.4 file-name reveal in aria-live region on acce
   const themeToggle = readFileSync(themeTogglePath, 'utf8');
   const appCss = readFileSync(appCssPath, 'utf8');
   const ariaLive = readFileSync(ariaLivePath, 'utf8');
+  const types = readFileSync(typesPath, 'utf8');
   const dropzoneTest = readFileSync(dropzoneTestPath, 'utf8');
   const dropzoneDragPasteTest = readFileSync(dropzoneDragPasteTestPath, 'utf8');
   const dropzoneFileCapTest = readFileSync(dropzoneFileCapTestPath, 'utf8');
@@ -120,21 +122,37 @@ describe('dropzone-aria-live (S03.4 file-name reveal in aria-live region on acce
     });
   });
 
-  describe('AC20b: App.svelte has a handleAccept function with all three onaccept kinds', () => {
+  describe('AC20b: App.svelte has a handleAccept function with all three onaccept kinds (S03.7 re-scopes to types.ts + import)', () => {
+    // S03.4 pinned the literal `kind: 'oversize'` token in App.svelte's
+    // source (the discriminated-union parameter type was duplicated
+    // between Dropzone.svelte and App.svelte). S03.7 extracts the
+    // union to `src/lib/types.ts` as `OnAcceptSource`; App.svelte's
+    // handleAccept now uses `source: OnAcceptSource` (the literal
+    // kind tokens live ONLY in types.ts). The pin re-scopes:
+    //   - App.svelte: imports `OnAcceptSource` AND declares handleAccept
+    //   - types.ts: contains the three `kind: '…'` literals
+    // The invariant is "handleAccept accepts all three kinds via the
+    // canonical type" — the type's literal members are still pinned,
+    // just in types.ts.
     it('App.svelte declares function handleAccept in the script block', () => {
       expect(appSource).toMatch(/\bfunction\s+handleAccept\s*\(/);
     });
-    it('handleAccept parameter type includes { kind: "drop" }', () => {
-      // The discriminated-union parameter type mirrors Dropzone's
-      // onaccept prop type exactly (intentional duplication per spec;
-      // S03.7 will extract a shared type to src/lib/).
-      expect(appSource).toMatch(/kind\s*:\s*['"]drop['"]/);
+    it('App.svelte imports OnAcceptSource from "./lib/types" (S03.7 type extraction)', () => {
+      expect(appSource).toMatch(
+        /import\s+type\s*\{\s*OnAcceptSource\s*\}\s*from\s*['"]\.\/lib\/types['"]/,
+      );
     });
-    it('handleAccept parameter type includes { kind: "paste" }', () => {
-      expect(appSource).toMatch(/kind\s*:\s*['"]paste['"]/);
+    it('handleAccept parameter uses OnAcceptSource (S03.7 typed parameter)', () => {
+      expect(appSource).toMatch(/\bfunction\s+handleAccept\s*\(\s*source\s*:\s*OnAcceptSource\s*\)/);
     });
-    it('handleAccept parameter type includes { kind: "oversize" }', () => {
-      expect(appSource).toMatch(/kind\s*:\s*['"]oversize['"]/);
+    it('types.ts OnAcceptSource union includes { kind: "drop" }', () => {
+      expect(types).toMatch(/kind\s*:\s*['"]drop['"]/);
+    });
+    it('types.ts OnAcceptSource union includes { kind: "paste" }', () => {
+      expect(types).toMatch(/kind\s*:\s*['"]paste['"]/);
+    });
+    it('types.ts OnAcceptSource union includes { kind: "oversize" }', () => {
+      expect(types).toMatch(/kind\s*:\s*['"]oversize['"]/);
     });
   });
 

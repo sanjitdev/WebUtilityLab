@@ -54,6 +54,18 @@
   import ThemeToggle from './components/ThemeToggle.svelte';
   import Dropzone from './components/Dropzone.svelte';
   import { pasteSnippet } from './lib/aria-live';
+  import { createReducer } from './lib/reducer.svelte';
+  import type { OnAcceptSource } from './lib/types';
+
+  // S03.7: the reducer-shell. `createReducer()` returns a fresh
+  // `{ state, dispatch }` instance; the factory pattern is chosen
+  // so each call creates an isolated state (no module-level
+  // singleton). The reducer holds the File reference in app
+  // memory without reading it; E06's parser will eventually
+  // subscribe and consume the bytes. S03.7 ships the
+  // `empty → active` happy-path transition only; E05's S05.3a-
+  // S05.3c will widen the state union and add the rest.
+  const reducer = createReducer();
 
   // S03.4: the aria-live region is driven by this $state. The
   // shape is a discriminated union: `null` = no announcement yet
@@ -73,10 +85,17 @@
     | { kind: 'paste'; snippet: string };
   let liveAnnouncement = $state<Announcement>(null);
 
-  // S03.4: dropzone-accept consumer. Handles all three onaccept
-  // kinds (drop, paste, oversize) but only announces on drop and
-  // paste. The oversize branch is a defensive no-op (S03.9 owns
-  // that surface; S03.4 stands up the announcement shell).
+  // S03.7: dropzone-accept consumer. The S03.4 surface (aria-live
+  // announcement) is preserved AND extended with a reducer
+  // dispatch — `reducer.dispatch({ kind: 'accept', source })`
+  // captures the File reference in `reducer.state`. The dispatch
+  // runs BEFORE the aria-live announcement: state must capture
+  // before the announcement so any race-condition regression that
+  // announces before the state transition fails the S03.7
+  // dispatch-ordering pin. The `OnAcceptSource` parameter type
+  // is imported from `./lib/types` (S03.7 cross-story contract
+  // with Dropzone.svelte — both modules share one canonical
+  // type, no duplication).
   //
   // Editorial voice (EXPERIENCE.md):
   //   - sentence case ("File accepted:", NOT "File Accepted:")
@@ -86,12 +105,8 @@
   //   - filename stays raw (the mono treatment is the <code>
   //     element wrapping the filename in the rendered DOM;
   //     see FUTURE refinement if visual banner lands)
-  function handleAccept(
-    source:
-      | { kind: 'drop'; file: File }
-      | { kind: 'paste'; text: string; filename?: string }
-      | { kind: 'oversize'; size: number; cap: number }
-  ): void {
+  function handleAccept(source: OnAcceptSource): void {
+    reducer.dispatch({ kind: 'accept', source });
     if (source.kind === 'oversize') return;
     if (source.kind === 'drop') {
       liveAnnouncement = { kind: 'drop', name: source.file.name };

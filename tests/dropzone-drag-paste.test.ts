@@ -340,19 +340,31 @@ describe('dropzone-drag-paste (S03.2 drag-and-drop + paste handlers, onaccept un
     });
   });
 
-  describe('AC18j: NO @change / onchange / addEventListener("change") in S03.2', () => {
-    // Per AC6: S03.7 wires the change handler. S03.2 is drag-drop +
-    // paste ONLY. Mirrors S03.1's AC17e pin applied to the same file.
-    it('Dropzone.svelte does NOT contain @change', () => {
+  describe('AC18j: NO @change / onchange / addEventListener("change") in S03.2 (S03.7 inverts the onchange pin)', () => {
+    // S03.2's scope: drag-drop + paste only; S03.7 wires the picker
+    // change handler. The S03.2 pin asserted "no onchange" — S03.7
+    // INVERTS it to "yes, the input has `onchange={handlePickerChange}`"
+    // (the binding is the S03.7 surface). The other three pins
+    // (@change, on:change, addEventListener("change")) stay
+    // inverted-S03.7-aware: the inline `@change` form is a Svelte 4
+    // syntax; `on:change` is also Svelte 4 syntax; Svelte 5 uses
+    // `onchange={...}`. `addEventListener("change")` is still
+    // forbidden (S03.7 uses the declarative form).
+    it('Dropzone.svelte does NOT contain @change (Svelte 4 syntax)', () => {
       expect(dropzoneSource).not.toMatch(/@change\b/);
     });
-    it('Dropzone.svelte does NOT contain on:change', () => {
+    it('Dropzone.svelte does NOT contain on:change (Svelte 4 syntax)', () => {
       expect(dropzoneSource).not.toMatch(/\bon\s*:\s*change\s*=/);
     });
-    it('Dropzone.svelte does NOT contain onchange=', () => {
-      expect(dropzoneSource).not.toMatch(/\bonchange\s*=/);
+    it('Dropzone.svelte DOES bind onchange={handlePickerChange} (S03.7 inverted pin)', () => {
+      // The S03.2 pin asserted "no onchange"; S03.7 inverts it.
+      // The binding is the S03.7 surface — the picker change
+      // handler is now wired.
+      expect(dropzoneSource).toMatch(
+        /<input\b[^>]*\bonchange\s*=\s*\{\s*handlePickerChange\s*\}/,
+      );
     });
-    it('Dropzone.svelte does NOT wire addEventListener("change", …)', () => {
+    it('Dropzone.svelte does NOT wire addEventListener("change", …) (declarative form preferred)', () => {
       expect(dropzoneSource).not.toMatch(/\baddEventListener\s*\(\s*['"]change['"]/);
     });
   });

@@ -1,7 +1,9 @@
 <script lang="ts">
   /**
-   * Dropzone (S03.3 — 50 MB cap gate; drag-and-drop + paste handlers
-   * from S03.2; visual chrome + picker-opening gesture from S03.1).
+   * Dropzone (S03.7 — onaccept type extracted to `src/lib/types.ts`;
+   * `<input onchange={handlePickerChange}>` binding lands; S03.3
+   * 50 MB cap gate; S03.2 drag-and-drop + paste handlers; S03.1
+   * visual chrome + picker-opening gesture).
    *
    * AD-9 (a11y): a real button element is the affordance. The hidden
    * file input underneath is the input primitive that the button
@@ -19,29 +21,46 @@
    *           onaccept callback without any size check. S03.3's
    *           reducer-side handler is the gate; S03.3 is the layer
    *           that enforces 50 MB."
-   *   S03.3 — THIS STORY. Adds the 50 MB cap gate. `handleDrop` now
-   *           routes through `assertWithinFileCap` (PRD FR-1) BEFORE
+   *   S03.3 — 50 MB cap gate. `handleDrop` and `handlePickerChange`
+   *           route through `assertWithinFileCap` (PRD FR-1) BEFORE
    *           invoking `onaccept`. The `onaccept` payload union is
    *           extended with `{ kind: 'oversize'; size: number;
    *           cap: number }` so downstream consumers (S03.7 reducer,
    *           S03.4 aria-live, S03.9 strict-brief) can fan out from
-   *           one signal. The paste branch is NOT size-checked at
-   *           this layer (paste carries text, not a File; the
-   *           worker's E06 S06.7 100 MB total-string-byte cap catches
-   *           truly excessive pastes at the parse layer). S03.3 also
-   *           declares `handlePickerChange` in the script block for
-   *           S03.7 to bind (the template binding lands in S03.7).
-   *           S03.3 does NOT modify App.svelte (AC19m boundary pin);
-   *           the mount stays `<Dropzone />` without `onaccept`.
+   *           one signal. S03.3 declares `handlePickerChange` in the
+   *           script block but does NOT bind it to the template —
+   *           the binding is S03.7's scope (this story).
+   *   S03.4 — aria-live region for the over-cap signal + drop /
+   *           paste announcements. App.svelte's `handleAccept`
+   *           consumer is the FIRST onaccept subscriber (S03.4
+   *           inverts the S03.3 boundary pin).
+   *   S03.5 — empty-state copy + headline + lede + CTAs.
+   *   S03.6 — three teaching cards with body prose.
+   *   S03.7 — THIS STORY. Three changes:
+   *           1. `<input onchange={handlePickerChange}>` binding
+   *              lands — the S03.3 placeholder suppression line
+   *              (`void handlePickerChange;`) is removed. This
+   *              closes the S03.3 cross-story contract ("S03.7
+   *              wires the picker change handler at the same time
+   *              it wires the reducer consumer").
+   *           2. The `onaccept` payload union is removed from the
+   *              component-local prop type; S03.7 imports the
+   *              canonical `OnAcceptSource` type from
+   *              `src/lib/types.ts`. The duplicated-parameter-type
+   *              risk S03.4's docblock warned about is gone.
+   *           3. S03.7 does NOT author the reducer (that's
+   *              `src/lib/reducer.ts` + App.svelte's dispatcher);
+   *              the dropzone's role here is the typed fan-out
+   *              point. The reducer-shell captures the File
+   *              reference without reading it.
    *
-   * Out of S03.3's scope: the aria-live region for the over-cap
-   * signal (S03.4), the empty-state copy + headline + lede (S03.5),
-   * the teaching cards (S03.6), the reducer consumer + picker binding
-   * (S03.7), the example CSV (S03.8), the strict-brief formatter
-   * (S03.9).
+   * Out of S03.7's scope: the reducer implementation (E05 S05.3a-
+   *      S05.3c); the file read (E06 S06.1); the example CSV
+   *      (S03.8); the strict-brief formatter (S03.9).
    *
-   * The CSS pre-wires the .is-dragover class (S03.1); S03.3 does not
-   * touch CSS — the cap check is a behavior change, not a visual one.
+   * The CSS pre-wires the .is-dragover class (S03.1); S03.7 does
+   * not touch CSS — the type extraction + binding are behavior
+   * changes, not visual ones.
    *
    * AD-7 / AD-8: zero hex literals, zero rgb(), all values via
    * var(--token). The component style block is scoped to this
@@ -49,6 +68,7 @@
    */
   import { onMount } from 'svelte';
   import { assertWithinFileCap } from '../lib/file-size-cap';
+  import type { OnAcceptSource } from '../lib/types';
 
   let fileInput: HTMLInputElement | undefined = $state();
 
@@ -69,12 +89,7 @@
   let {
     onaccept,
   }: {
-    onaccept?: (
-      source:
-        | { kind: 'drop'; file: File }
-        | { kind: 'paste'; text: string; filename?: string }
-        | { kind: 'oversize'; size: number; cap: number }
-    ) => void;
+    onaccept?: (source: OnAcceptSource) => void;
   } = $props();
 
   // S03.2: single boolean state driving the .is-dragover class toggle.
@@ -201,15 +216,6 @@
       window.removeEventListener('paste', handlePaste);
     };
   });
-
-  // S03.3: handlePickerChange is declared in S03.3 but the template
-  // binding (`<input onchange={handlePickerChange}>`) is wired in
-  // S03.7. The `void` reference below is an intentional use-statement
-  // that silences the svelte-check "declared but never read" warning
-  // until S03.7 lands. The `void` keyword makes the reference an
-  // expression statement rather than a real call — the function is
-  // still bound to nothing in S03.3. Remove this line in S03.7.
-  void handlePickerChange;
 </script>
 
 <button
@@ -231,6 +237,7 @@
   name="file"
   type="file"
   accept=".csv,text/csv"
+  onchange={handlePickerChange}
   bind:this={fileInput}
   class="visually-hidden"
   tabindex="-1"

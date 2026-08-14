@@ -209,14 +209,21 @@ describe('dropzone (S03.1 real <button> dropzone opens file picker)', () => {
     });
   });
 
-  describe('AC17e: NO file accept handler in S03.1 (scope-creep pin)', () => {
-    // Per AC6: S03.1 is purely the visual chrome + picker-opening gesture.
-    // No @change, no handleFile, no FileReader. S03.7 wires the change
-    // handler. This AC is the load-bearing pin against future scope drift.
-    it('Dropzone.svelte does NOT contain @change / on:change / onchange', () => {
-      expect(dropzoneSource).not.toMatch(/@change\b/);
-      expect(dropzoneSource).not.toMatch(/\bon\s*:\s*change\s*=/);
-      expect(dropzoneSource).not.toMatch(/\bonchange\s*=/);
+  describe('AC17e: NO file accept handler in S03.1 (scope-creep pin — S03.7 inverts)', () => {
+    // S03.1's scope: visual chrome + picker-opening gesture (no
+    // change handler). S03.7's scope: binds the change handler.
+    // The S03.1 pin asserted "no onchange" — S03.7 INVERTS it to
+    // "yes, the input has `onchange={handlePickerChange}`" while
+    // still preserving the scope-creep guard against (a) `handleFile`,
+    // (b) `onFile`, (c) `processFile`, (d) `FileReader`, (e)
+    // `readAsText`, (f) `readAsArrayBuffer` (S03.3-S03.7 do NOT
+    // introduce any of those — the reducer-shell + Dropzone binding
+    // are behavior changes, NOT file-reading changes; reading is
+    // E06's job).
+    it('Dropzone.svelte DOES bind onchange={handlePickerChange} on the <input> (S03.7 inverted)', () => {
+      expect(dropzoneSource).toMatch(
+        /<input\b[^>]*\bonchange\s*=\s*\{\s*handlePickerChange\s*\}/,
+      );
     });
     it('Dropzone.svelte does NOT contain handleFile / onFile / processFile', () => {
       expect(dropzoneSource).not.toMatch(/\bhandleFile\b/);

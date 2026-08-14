@@ -10,6 +10,7 @@ const fileSizeCapPath = join(repoRoot, 'src', 'lib', 'file-size-cap.ts');
 const appPath = join(repoRoot, 'src', 'App.svelte');
 const dropzoneTestPath = join(repoRoot, 'tests', 'dropzone.test.ts');
 const dropzoneDragPasteTestPath = join(repoRoot, 'tests', 'dropzone-drag-paste.test.ts');
+const typesPath = join(repoRoot, 'src', 'lib', 'types.ts');
 
 /**
  * S03.3 — Dropzone 50 MB cap gate test gate.
@@ -38,6 +39,7 @@ describe('dropzone-file-cap (S03.3 50 MB cap check before reading; oversize sign
   const app = readFileSync(appPath, 'utf8');
   const dropzoneTest = readFileSync(dropzoneTestPath, 'utf8');
   const dropzoneDragPasteTest = readFileSync(dropzoneDragPasteTestPath, 'utf8');
+  const types = readFileSync(typesPath, 'utf8');
 
   // Strip block + line + HTML comments so documenting comments don't
   // false-positive on forbidden-pattern scans. Mirrors S03.2's
@@ -266,19 +268,28 @@ describe('dropzone-file-cap (S03.3 50 MB cap check before reading; oversize sign
     });
   });
 
-  describe('AC19g: handlePickerChange declared but NOT bound to template', () => {
+  describe('AC19g: handlePickerChange declared AND bound to template (S03.7 inverted boundary)', () => {
+    // S03.3 declared the function but did NOT bind it (the binding
+    // was S03.7's scope, signalled via the `void handlePickerChange;`
+    // suppression line). S03.7 inverts BOTH pins: the function is
+    // still declared, AND the template binding now exists. The
+    // S03.3 placeholder suppression line is removed.
     it('dropzone declares handlePickerChange in the script block', () => {
       expect(dropzoneSource).toMatch(/\bfunction\s+handlePickerChange\s*\(/);
     });
-    it('dropzone does NOT bind onchange={handlePickerChange} on the <input type="file">', () => {
-      // S03.7 wires the template binding; S03.3 only declares the function.
-      // Use `dropzoneSource` (comment-stripped) so the S03.3 docstring's
-      // reference to the future `onchange={handlePickerChange}` binding
-      // (which mentions S03.7's wiring intent) does not false-positive
-      // on this negative look. The docstring is for humans, not for the
-      // structural test.
-      expect(dropzoneSource).not.toMatch(/\bonchange\s*=\s*\{\s*handlePickerChange\s*\}/);
-      expect(dropzoneSource).not.toMatch(/\bon:change\s*=\s*\{\s*handlePickerChange\s*\}/);
+    it('dropzone DOES bind onchange={handlePickerChange} on the <input type="file"> (S03.7 wiring)', () => {
+      // The S03.7 surface: the binding is the picker change handler.
+      // S03.3 only declared the function; S03.7 wires it.
+      expect(dropzoneSource).toMatch(
+        /<input\b[^>]*\bonchange\s*=\s*\{\s*handlePickerChange\s*\}/,
+      );
+    });
+    it('dropzone has NO `void handlePickerChange;` suppression line (S03.3 placeholder removed)', () => {
+      // S03.3 added `void handlePickerChange;` to silence svelte-check's
+      // "declared but never read" warning until S03.7 wired the binding.
+      // S03.7 removes the suppression line because the binding uses the
+      // function (svelte-check no longer warns).
+      expect(dropzoneSource).not.toMatch(/\bvoid\s+handlePickerChange\b/);
     });
     it('dropzone does NOT call addEventListener("change", ...) anywhere', () => {
       expect(dropzoneSource).not.toMatch(/\baddEventListener\s*\(\s*['"]change['"]/);
@@ -501,12 +512,16 @@ describe('dropzone-file-cap (S03.3 50 MB cap check before reading; oversize sign
     });
   });
 
-  describe('AC19o: oversize branch carries no File reference', () => {
-    it('the { kind: "oversize" } literal in onaccept union has no `file:` field', () => {
-      // Find the oversize literal type block by walking the union.
-      // The pattern: `{ kind: 'oversize'; size: number; cap: number }`
-      // — no `file` field inside the braces.
-      const oversizeMatch = dropzoneSource.match(
+  describe('AC19o: oversize branch carries no File reference (S03.7 re-scopes to types.ts)', () => {
+    // S03.3's pin regexed Dropzone.svelte's in-source union literal.
+    // S03.7 extracts the union to src/lib/types.ts (the
+    // `OnAcceptSource` type) — the literal no longer lives in
+    // Dropzone.svelte. The pin re-scopes to types.ts and asserts
+    // the oversize branch there has no `file:` field. E05's
+    // future reducer (S05.x) imports this exact type and relies
+    // on the invariant.
+    it('the { kind: "oversize" } literal in OnAcceptSource (types.ts) has no `file:` field', () => {
+      const oversizeMatch = types.match(
         /\{\s*kind\s*:\s*['"]oversize['"]\s*;[^}]*\}/,
       );
       expect(oversizeMatch).not.toBeNull();
