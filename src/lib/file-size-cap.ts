@@ -25,6 +25,21 @@
  * exactly is accepted (`assertWithinFileCap` returns `{ kind: 'ok' }`).
  * A file with `size === 50 MiB + 1` is rejected (`{ kind: 'oversize' }`).
  * This matches the PRD FR-1 phrasing "File up to 50MB is accepted".
+ *
+ * Consumer-side contract — IMPORTANT:
+ * This module guarantees `file.size` is the ONLY property touched.
+ * The `ok` branch returns the input `File` BY VALUE (the same
+ * reference, not a copy); the `oversize` branch carries NO `File`
+ * reference (only the size and cap metadata). Consumers MUST NOT
+ * call `.text()`, `.arrayBuffer()`, `.stream()`, or `.slice()` on
+ * the returned File — doing so would read the bytes and violate
+ * the spirit of the cap check.
+ *
+ * The picker accept path (see Dropzone.svelte's `handlePickerChange`)
+ * MUST reset `input.value = ''` after invoking the gate — without
+ * the reset, the user cannot re-pick the same file (the browser
+ * would see no change and skip the change event). The reset is
+ * load-bearing and happens on BOTH the ok and oversize branches.
  */
 
 /** The cap, in bytes. 50 MiB (mebibytes) = 50 × 1024 × 1024 = 52428800 bytes. */

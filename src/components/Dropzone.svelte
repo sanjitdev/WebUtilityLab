@@ -176,9 +176,9 @@
   // the consumer can rely on the File after the synchronous handler
   // returns. Setting `input.value` nulls `input.files`, but the
   // payload's File is already detached.
-  function handlePickerChange(event: Event): void {
-    const input = event.target as HTMLInputElement | null;
-    const file = input?.files?.[0];
+  function handlePickerChange(event: Event & { currentTarget: HTMLInputElement }): void {
+    const input = event.currentTarget;
+    const file = input.files?.[0];
     if (!file) return;
     const result = assertWithinFileCap(file);
     if (result.kind === 'oversize') {

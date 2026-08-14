@@ -157,10 +157,18 @@ describe('dropzone-file-cap (S03.3 50 MB cap check before reading; oversize sign
 
     it('assertWithinFileCap returns { kind: "ok" } at the boundary', async () => {
       const { assertWithinFileCap, MAX_FILE_SIZE_BYTES } = await import('../src/lib/file-size-cap');
-      const result = assertWithinFileCap(fakeFile(MAX_FILE_SIZE_BYTES) as unknown as File);
+      const input = fakeFile(MAX_FILE_SIZE_BYTES);
+      const result = assertWithinFileCap(input as unknown as File);
       expect(result.kind).toBe('ok');
       if (result.kind === 'ok') {
-        expect(result.file).toBeDefined();
+        // Review #2 (coderabbit) finding: the cap module's docblock
+        // promises "the `ok` branch carries the `File` by value
+        // (not by reference into `input.files`)". Pin identity
+        // preservation: the returned `file` MUST be the same
+        // reference as the input — a regression that wrapped the
+        // file in a new object (or returned a different File)
+        // would break S03.7's reducer contract.
+        expect(result.file).toBe(input as unknown as File);
       }
     });
 
@@ -179,10 +187,12 @@ describe('dropzone-file-cap (S03.3 50 MB cap check before reading; oversize sign
       // NOT for assertWithinFileCap. Spec line 91 lists size=0 as a
       // boundary case; the discriminated-union function should mirror.
       const { assertWithinFileCap } = await import('../src/lib/file-size-cap');
-      const result = assertWithinFileCap(fakeFile(0) as unknown as File);
+      const input = fakeFile(0);
+      const result = assertWithinFileCap(input as unknown as File);
       expect(result.kind).toBe('ok');
       if (result.kind === 'ok') {
-        expect(result.file).toBeDefined();
+        // Review #2 identity pin (same as the boundary test).
+        expect(result.file).toBe(input as unknown as File);
       }
     });
 
@@ -418,10 +428,15 @@ describe('dropzone-file-cap (S03.3 50 MB cap check before reading; oversize sign
       );
       expect(widened.test("onaccept?.({ kind: 'drop', file })")).toBe(true);
       expect(widened.test("onaccept?.({ kind: 'drop', file: result.file })")).toBe(true);
-      // Belt-and-braces: a regex narrowed to ONLY the explicit form
+      // Belt-and-braces: a regex that ONLY matches the explicit form
       // would pass the second assertion but fail the first. Both
       // must match.
       expect(widened.test("onaccept?.({ kind: 'drop', file })")).toBe(true);
+      // Deepening check (Review #2 coderabbit): the widening's
+      // `(?:\.\w+)*` chain accepts arbitrary-depth dotted identifiers,
+      // not just two-deep. A future contributor narrowing the chain
+      // to `(?:\.\w+)?` (exactly one dot) would fail this.
+      expect(widened.test("onaccept?.({ kind: 'drop', file: a.b.c })")).toBe(true);
     });
   });
 
