@@ -1,8 +1,9 @@
 # Story 3.8: Example CSV inlined at build time (S03.8)
 
-Status: ready-for-dev
+Status: done
 baseline_commit: 399b01a (S03.7 done — accept path emits a File reference to the reducer)
-review_loop_iteration: 0
+final_commit: 7ac626d (S03.8 Review #2: robust recursive rm + escape-fn export + publicDir pin)
+review_loop_iteration: 2 (Review #1 + Review #2 complete)
 
 > **Loop protocol (mandatory).** This story must pass Review #1 (3 parallel reviewers), Review #2 (coderabbit), and the production-readiness gate before being marked `done`. See `docs/loop-protocol.md`. `S03.8` is the **zero-network example-CSV landing**: the "Try the example" CTA in the empty-state becomes a real button that dispatches a synthesised `File` to the reducer. The fixture CSV lives in the source tree (`public/examples/sample.csv`) but the **deployed bundle never fetches it** — a build-time script (`scripts/inline-example.mjs`) reads the fixture once and emits a generated module (`src/lib/example-csv.generated.ts`) that bundles the CSV as a string constant. The deployed HTML carries the fixture inline; no `fetch` call, no `examples/sample.csv` URL in `dist/`.
 
@@ -106,8 +107,66 @@ so that **I can see what the tool does without uploading my own file, AND the pa
 
 ### Completion Notes List
 
-*(populated at loop closure)*
+*S03.8 closed 2026-08-14 after two review cycles. Two notable findings
+shaped the final shape of the story — both are documented in the
+post-mortem below so the E03 retrospective can fold them into the
+patterns we learned for E04+.*
+
+* **Review #1 (CRITICAL finding):** Vite's default `publicDir` behavior
+  copies `public/examples/sample.csv` verbatim into `dist/examples/sample.csv`.
+  The whole point of S03.8 was zero-network landing — the literal fixture
+  bytes shipping to the CDN would silently re-introduce the network surface
+  S03.8 was designed to remove. Fix: extended `scripts/build-cleanup.mjs`
+  with an `isExampleFixtureArtifact()` predicate + a new walker branch
+  that strips the entire `dist/examples/` subtree. The cleanup pass now
+  ships with a recursive-rm helper (`safeRmdirRecursive`) so even a
+  non-empty `examples/` directory is deleted regardless of contents.
+  The dist/ structure post-build is now `assets/ + index.html` only —
+  no `examples/` subtree, no `.map` files.
+
+* **Review #2 (architectural pattern):** the contract-test pattern for
+  a build-time script that has a pure internal function is fragile. The
+  initial test mirrored the escape rules in a copy-pasted function;
+  Review #2 raised the risk that a drift in the script could pass
+  silently. Fix: exported `escapeForTsStringLiteral` and
+  `escapeForTsStringSingle` from `scripts/inline-example.mjs` and
+  imported them directly in the test. Now any drift in the script flips
+  the round-trip test. Added `scripts/inline-example.d.mts` for TS
+  type declaration parity with the other build-time scripts.
+
+* **Defense in depth:** `vite.config.ts` now explicitly pins
+  `publicDir: 'public'` (Vite's default) with a comment explaining
+  why — and a test asserts the literal value. If a future contributor
+  flips publicDir to `static` or similar, the build-cleanup pass would
+  miss the relocated fixture and the test catches the drift.
+
+* **Test count growth:** 877 → 881 tests (+4 net). The new tests are
+  `tests/inline-example.test.ts` (23 tests, AC24b item 8 escape
+  round-trip), `tests/source-map-policy.test.ts` (+6 tests for the
+  `isExampleFixtureArtifact` predicate + S03.8 subtree removal),
+  `tests/dropzone-example.test.ts` (+10 tests for AC24f-extended
+  Privacy Baseline scan, AC24g re-export discipline, AC24h
+  bundle budget, and the actual subtree-walk for duplicates), plus
+  the new publicDir pin in `tests/source-map-policy.test.ts`.
+
+* **Production gate:** 881/881 tests pass; 0 svelte-check errors;
+  audit:privacy + audit:behavior + check:bundle all green;
+  `npm run build` leaves `dist/` with only `assets/` + `index.html`.
 
 ### File List
 
-*(populated at loop closure)*
+* `public/examples/sample.csv` (NEW, committed) — 521 B, 11 rows (header + 10 data), CRLF terminators, no BOM, 5 columns.
+* `scripts/inline-example.mjs` (NEW) — build-time inliner; reads the fixture, writes the generated module. Exports `escapeForTsStringLiteral` + `escapeForTsStringSingle` for round-trip tests.
+* `scripts/inline-example.d.mts` (NEW) — type declarations.
+* `scripts/build-cleanup.mjs` (MODIFIED) — added `isExampleFixtureArtifact()` predicate + `safeRmdirRecursive()` helper + walker branch that strips the `dist/examples/` subtree. CLI summary updated.
+* `scripts/build-cleanup.d.mts` (MODIFIED) — added type exports.
+* `vite.config.ts` (MODIFIED) — explicit `publicDir: 'public'` pin (defense in depth).
+* `src/lib/example-csv.generated.ts` (NEW, generated, gitignored) — `SAMPLE_CSV` + `SAMPLE_CSV_FILENAME` + `SAMPLE_CSV_MIME` constants.
+* `src/lib/example-csv.ts` (NEW, hand-authored) — `makeExampleFile()` helper.
+* `src/App.svelte` (MODIFIED) — `handleTryExample` click handler; `disabled` and `aria-disabled="true"` REMOVED from the button.
+* `package.json` (MODIFIED) — `inline-example` pre-hook in `dev`, `build`, `check`, `test`.
+* `.gitignore` (MODIFIED) — `src/lib/example-csv.generated.ts` added.
+* `tests/dropzone-example.test.ts` (NEW) — 58 tests across AC24a-AC24f + AC24f-runtime.
+* `tests/dropzone-empty-state.test.ts` (MODIFIED) — AC21c inverted: `disabled` absent, `aria-disabled` absent, `onclick={handleTryExample}` present.
+* `tests/inline-example.test.ts` (NEW) — 23 tests for AC24b item 8 escape round-trip.
+* `tests/source-map-policy.test.ts` (MODIFIED) — `isExampleFixtureArtifact` predicate coverage + `cleanDist()` S03.8 subtree removal tests + publicDir pin.
