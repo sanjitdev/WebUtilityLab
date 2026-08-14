@@ -139,11 +139,6 @@
        CTA, S03.8 wires it" affordance. The AC21c test pins BOTH
        attributes AND the absence of any handler binding. -->
   <h2 class="empty-state-headline">Drop a CSV to find out what's wrong with it.</h2>
-  <!-- S03.5: the lede is a SINGLE <p> element. The verbatim prose
-       from EXPERIENCE.md line 43 stays in one paragraph; a
-       regression that splits it into two <p> elements (e.g., one
-       for the file-format guardrails, one for the privacy signal)
-       fails the AC21b single-paragraph pin. -->
   <p class="empty-state-lede">Files up to 50 MB, UTF-8, with or without a BOM. We don’t upload — this happens in your browser.</p>
   <div class="empty-state-ctas">
     <button type="button" disabled aria-disabled="true">Try the example</button>

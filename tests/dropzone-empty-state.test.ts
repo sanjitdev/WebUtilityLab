@@ -405,7 +405,12 @@ describe('dropzone-empty-state (S03.5 empty-state copy from EXPERIENCE.md: headl
       // header can occlude it. The padding is the primary offset;
       // scroll-margin-top on the button itself is the secondary
       // (covered by the AC21f pin above).
-      expect(appCssSource).toMatch(/html\s*\{[^}]*scroll-padding-top\s*:/);
+      //
+      // The regex anchors on `\bhtml\s*\{` (bare element selector,
+      // not `*html` or `.xhtml` derivatives) so a future regression
+      // that attaches scroll-padding-top to a different element
+      // fails the pin.
+      expect(appCssSource).toMatch(/\bhtml\s*\{[^}]*scroll-padding-top\s*:/);
     });
     it('.empty-state-card uses var(--paper) + var(--rule) + var(--space-base) (token discipline)', () => {
       // Per review #1 should-fix: pin the card surface uses tokens

@@ -292,7 +292,7 @@ body {
   /* 0.25rem = quarter of --space-base. No --space-quarter token
      exists; the value is the editorial "snug list" cadence — the
      8/4/5 category names are tight but distinct lines. Same
-     rational as the ctas gap above. */
+     rationale as the ctas gap above. */
   margin-block: 0.25rem;
 }
 
@@ -319,10 +319,10 @@ body {
  * viewport so the anchor scrolled-into-view (the dropzone `<button
  * id="dropzone">`) sits BELOW the header chrome — without the
  * padding, the dropzone can land flush against the top edge and
- * the header can occlude it. The padding is gated on the SAME
- * reduced-motion media query as the scroll-behavior override so
- * users who opted out of motion get the same scroll-pad as the
- * default (positioning is independent of motion preference).
+ * the header can occlude it. The padding is unconditional (it
+ * applies in BOTH motion and reduced-motion modes) — positioning
+ * is independent of motion preference. Only `scroll-behavior`
+ * is gated by the reduced-motion override below.
  *
  * The dropzone button also carries `scroll-margin-top` (see
  * Dropzone.svelte's component-scoped <style>) as a second line of
