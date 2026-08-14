@@ -1,0 +1,11 @@
+id,name,email,status,signup_date
+1,Alice Patel,alice@example.com,active,2024-01-15
+2,Bob Chen,bob@example.com,active,2024-01-16
+3,Carol Diaz,carol@example.com,Active,2024-01-17
+4,Dan O'Brien,dan.example.com,active,2024-01-18
+5,Eve Nakamura,eve@example.com,active,2024-02-02
+6,Frank Mensah,frank@example.com,active,2024-02-03
+7,Alice Patel,alice@example.com,active,2024-01-15
+8,Grace Liu,,inactive,2024-02-10
+9,Henry Schwarz,henry@example.com,active,2024-02-15
+10,Iris Tanaka,iris@example.com,active,2024-02-20

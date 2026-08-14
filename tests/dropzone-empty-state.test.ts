@@ -111,51 +111,41 @@ describe('dropzone-empty-state (S03.5 empty-state copy from EXPERIENCE.md: headl
     });
   });
 
-  describe('AC21c: "Try the example" button is disabled + aria-disabled="true"', () => {
+  describe('AC21c: "Try the example" button is now a real button (S03.8 inverted)', () => {
     it('App.svelte contains a <button> with text "Try the example"', () => {
       expect(appSource).toMatch(
         /<button[^>]*type\s*=\s*["']button["'][^>]*>\s*Try the example\s*<\/button>/,
       );
     });
-    it('the Try the example button has the disabled attribute (S03.8 will wire the handler)', () => {
-      // The button is `disabled` in S03.5; S03.8 removes `disabled`
-      // and binds the example-CSV click handler. The pin verifies
-      // the S03.5 contract.
+    it('the Try the example button does NOT have the disabled attribute (S03.8 removed it)', () => {
+      // S03.5 had `disabled`; S03.8 removes it. The S03.5 contract
+      // is now inverted — the button is enabled.
       const match = appSource.match(
         /<button[^>]*type\s*=\s*["']button["'][^>]*>\s*Try the example\s*<\/button>/,
       );
       expect(match).not.toBeNull();
-      expect(match![0]).toMatch(/\bdisabled\b/);
+      expect(match![0]).not.toMatch(/\bdisabled\b/);
     });
-    it('the Try the example button has explicit aria-disabled="true" (belt-and-braces)', () => {
-      // WAI-ARIA says `aria-disabled="true"` on a `<button disabled>`
-      // is redundant (the `disabled` attribute already implies it),
-      // but S03.5 keeps both for cross-browser consistency. Rationale
-      // documented in App.svelte's template-comment docblock.
+    it('the Try the example button does NOT have aria-disabled="true" (S03.8 removed it)', () => {
+      // S03.5 had `aria-disabled="true"`; S03.8 removes it. The
+      // button is now fully enabled so the redundant ARIA hint
+      // is gone.
       const match = appSource.match(
         /<button[^>]*type\s*=\s*["']button["'][^>]*>\s*Try the example\s*<\/button>/,
       );
       expect(match).not.toBeNull();
-      expect(match![0]).toMatch(/aria-disabled\s*=\s*["']true["']/);
+      expect(match![0]).not.toMatch(/aria-disabled\s*=\s*["']true["']/);
     });
-    it('the Try the example button has NO event handler binding (S03.8 wires it)', () => {
-      // Per review #1 verification-gap #3: the button is
-      // `disabled` in S03.5; it must NOT carry a click handler
-      // binding (no `onclick`, no `on:click`, no
-      // `on:click={noop}`, no inline `addEventListener`). The
-      // contract is "the affordance exists; S03.8 wires the
-      // handler" — a regression that adds a no-op handler while
-      // keeping `disabled` would pass the disabled pin but break
-      // the S03.5/S03.8 contract.
+    it('the Try the example button has onclick={handleTryExample} binding (S03.8 wires it)', () => {
+      // S03.5 had no click handler; S03.8 binds
+      // `onclick={handleTryExample}`. The handler is defined
+      // inside App.svelte's <script> block and calls
+      // `handleAccept({ kind: 'drop', file: makeExampleFile() })`.
       const match = appSource.match(
         /<button[^>]*type\s*=\s*["']button["'][^>]*>\s*Try the example\s*<\/button>/,
       );
       expect(match).not.toBeNull();
-      const buttonTag = match![0];
-      // Svelte 5 + Svelte 4 + native event-attribute surface.
-      expect(buttonTag).not.toMatch(/\bonclick\s*=/);
-      expect(buttonTag).not.toMatch(/\bon:click\s*=/);
-      expect(buttonTag).not.toMatch(/\bon:click\b/);
+      expect(match![0]).toMatch(/\bonclick\s*=\s*\{\s*handleTryExample\s*\}/);
     });
   });
 

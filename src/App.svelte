@@ -57,6 +57,7 @@
   import { pasteSnippet } from './lib/aria-live';
   import { createReducer } from './lib/reducer.svelte';
   import type { OnAcceptSource } from './lib/types';
+  import { makeExampleFile } from './lib/example-csv';
 
   // S03.7: the reducer-shell. `createReducer()` returns a fresh
   // `{ state, dispatch }` instance; the factory pattern is chosen
@@ -116,6 +117,22 @@
     // source.kind === 'paste'
     liveAnnouncement = { kind: 'paste', snippet: pasteSnippet(source.text) };
   }
+
+  // S03.8: "Try the example" click handler. Routes through
+  // handleAccept with the synthesised File from the inlined CSV
+  // (built at build time by scripts/inline-example.mjs from
+  // public/examples/sample.csv). The File is shaped identically
+  // to a real drop — the reducer's drop branch (S03.7) holds the
+  // reference and the aria-live announcement fires via the
+  // existing handleAccept path. Reusing handleAccept avoids
+  // duplicating the dispatch + announcement logic; the example
+  // CSV is just another drop as far as the state machine is
+  // concerned. The Privacy Baseline holds: the fixture is bundled
+  // inline (no fetch, no network IO); the deployed HTML does not
+  // reference public/examples/sample.csv.
+  function handleTryExample(): void {
+    handleAccept({ kind: 'drop', file: makeExampleFile() });
+  }
 </script>
 
 <a class="skip-link" href="#main">Skip to main content</a>
@@ -139,25 +156,19 @@
        → results); S03.5 ships the static visible content per
        EXPERIENCE.md §Information Architecture.
 
-       "Try the example" is `disabled` + `aria-disabled="true"` with
-       NO event handler binding (S03.8 wires the click handler;
-       see AC21c test for the no-handler pin). The disabled +
-       aria-disabled redundancy is intentional:
-         - `disabled` makes the button un-clickable AND unfocusable
-           in HTML; the user cannot tab to it.
-         - `aria-disabled="true"` is belt-and-braces for AT users
-           — some browsers announce the disabled state via the
-           attribute; the explicit ARIA attribute ensures the
-           announcement is consistent regardless of CSS overrides
-           to the user-agent default `:disabled` styling.
-       S03.8 will remove `disabled` and bind the example-CSV click
-       handler; until then, the button is the static "this is the
-       CTA, S03.8 wires it" affordance. The AC21c test pins BOTH
-       attributes AND the absence of any handler binding. -->
+       "Try the example" (S03.8): a real button now. The
+       `disabled` and `aria-disabled="true"` attributes were
+       REMOVED (S03.8 landed the wiring); the button is focusable
+       AND clickable. Click handler `handleTryExample` calls
+       `handleAccept({ kind: 'drop', file: makeExampleFile() })`
+       which routes through the S03.7 reducer — the example CSV
+       is shaped identically to a real drop. The fixture is
+       bundled inline (Privacy Baseline: PRD FR-23); no fetch,
+       no public/examples/sample.csv URL in dist/. -->
   <h2 class="empty-state-headline">Drop a CSV to find out what's wrong with it.</h2>
   <p class="empty-state-lede">Files up to 50 MB, UTF-8, with or without a BOM. We don’t upload — this happens in your browser.</p>
   <div class="empty-state-ctas">
-    <button type="button" disabled aria-disabled="true">Try the example</button>
+    <button type="button" onclick={handleTryExample}>Try the example</button>
     <span aria-hidden="true">·</span>
     <a href="#dropzone">Browse files</a>
   </div>

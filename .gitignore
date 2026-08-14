@@ -72,3 +72,9 @@ graphify-out/.graphify_labels.json.sig
 graphify-out/.graphify_analysis.json
 graphify-out/.graphify_clusters.json
 graphify-out/graph.html
+
+# Generated modules (S03.8) — built by scripts/inline-example.mjs from
+# public/examples/sample.csv. Contributors regenerate the module on
+# every dev/build/test invocation; committing it would create noisy
+# merge conflicts across contributor branches.
+src/lib/example-csv.generated.ts
