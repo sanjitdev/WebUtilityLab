@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { cleanDist, isMapArtifact, walk } from '../scripts/build-cleanup.mjs';
+import { cleanDist, isMapArtifact, isExampleFixtureArtifact, walk } from '../scripts/build-cleanup.mjs';
 import { isSourceMapArtifact } from '../scripts/audit-privacy.mjs';
 
 // One tempdir per test, cleaned up in `afterEach`. Using `mkdtempSync`
@@ -75,6 +75,32 @@ describe('source-map policy (AD source-map + E01 S01.3)', () => {
       expect(isMapArtifact('foo.css')).toBe(false);
       expect(isMapArtifact('foo.json')).toBe(false);
       expect(isMapArtifact('manifest.json')).toBe(false);
+    });
+  });
+
+  describe('build-cleanup.mjs · isExampleFixtureArtifact (S03.8)', () => {
+    it('flags the `examples` directory basename (case-insensitive)', () => {
+      expect(isExampleFixtureArtifact('examples')).toBe(true);
+      expect(isExampleFixtureArtifact('Examples')).toBe(true);
+      expect(isExampleFixtureArtifact('EXAMPLES')).toBe(true);
+    });
+    it('flags the `examples/sample.csv` file (with forward-slash path)', () => {
+      expect(isExampleFixtureArtifact('examples/sample.csv')).toBe(true);
+    });
+    it('flags the `examples/sample.csv` file (with Windows backslashes)', () => {
+      // The walker routes the file via path.join which on Windows
+      // produces backslashes. The predicate normalizes before
+      // matching so backslash-paths still hit the cleanup branch.
+      expect(isExampleFixtureArtifact('dist\\examples\\sample.csv')).toBe(true);
+      expect(isExampleFixtureArtifact('C:\\repo\\dist\\examples\\sample.csv')).toBe(true);
+    });
+    it('flags absolute paths ending in /examples/sample.csv', () => {
+      expect(isExampleFixtureArtifact('/var/www/dist/examples/sample.csv')).toBe(true);
+    });
+    it('does NOT flag unrelated files', () => {
+      expect(isExampleFixtureArtifact('assets/index.js')).toBe(false);
+      expect(isExampleFixtureArtifact('sample.csv')).toBe(false);
+      expect(isExampleFixtureArtifact('public/example.csv')).toBe(false);
     });
   });
 
@@ -192,6 +218,34 @@ describe('source-map policy (AD source-map + E01 S01.3)', () => {
       expect(existsSync(join(dir, 'index.css'))).toBe(true);
       expect(existsSync(join(dir, 'assets', 'nested.js'))).toBe(true);
       expect(existsSync(join(dir, 'index.js.map'))).toBe(false);
+    });
+
+    // S03.8 Privacy Baseline: the example CSV that Vite copies into
+    // dist/examples/ must be stripped post-build so the literal fixture
+    // bytes never reach the CDN. This is the runtime pin on the
+    // build-cleanup pass — if a future change to the walker routes the
+    // `examples` subtree through the `kept` branch, this test fails.
+    it('cleanDist() removes dist/examples/ and its contents (S03.8)', () => {
+      const dir = makeTempdir();
+      // Simulate Vite's publicDir behavior: a `examples` directory
+      // with the sample fixture, plus an `assets` directory with
+      // real JS that MUST survive the cleanup.
+      mkdirSync(join(dir, 'examples'));
+      writeFileSync(join(dir, 'examples', 'sample.csv'), 'id,name\n1,Alice\n');
+      mkdirSync(join(dir, 'assets'));
+      writeFileSync(join(dir, 'assets', 'index.js'), 'console.log(1)');
+      writeFileSync(join(dir, 'assets', 'index.js.map'), '{"version":3}');
+
+      cleanDist(dir);
+
+      // The example CSV AND its directory are gone.
+      expect(existsSync(join(dir, 'examples'))).toBe(false);
+      expect(existsSync(join(dir, 'examples', 'sample.csv'))).toBe(false);
+      // The real JS bundle survives (the cleanup pass only strips
+      // source-maps and the S03.8 examples subtree).
+      expect(existsSync(join(dir, 'assets', 'index.js'))).toBe(true);
+      // The .map source-map is also stripped (existing behavior).
+      expect(existsSync(join(dir, 'assets', 'index.js.map'))).toBe(false);
     });
   });
 

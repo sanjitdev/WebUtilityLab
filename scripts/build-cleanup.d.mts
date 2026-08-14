@@ -9,6 +9,8 @@
 
 export function isMapArtifact(name: string): boolean;
 
+export function isExampleFixtureArtifact(name: string): boolean;
+
 export function safeUnlink(full: string, removed: string[]): void;
 
 export function safeRmdir(full: string, removed: string[]): void;

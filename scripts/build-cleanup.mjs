@@ -1,7 +1,9 @@
 #!/usr/bin/env node
 /**
  * build-cleanup — post-Vite build pass that removes any `.map` files
- * (and `.map`-named directories) Rollup emitted into `dist/`.
+ * (and `.map`-named directories) Rollup emitted into `dist/`, AND the
+ * `dist/examples/` subtree that Vite's default publicDir copies
+ * verbatim from `public/examples/`.
  *
  * Story 1.1 source-map policy (E01 S01.3 ship gate): `find dist -name
  * '*.map' | wc -l` MUST equal zero. The `build.sourcemap = 'hidden'`
@@ -11,6 +13,13 @@
  * Rather than fight the Vite emitter across versions, we delete the
  * maps after Vite finishes. Maps live only on the maintainer's build
  * machine; they never reach the CDN.
+ *
+ * S03.8 Privacy Baseline: Vite copies `public/examples/sample.csv`
+ * into `dist/examples/sample.csv` by default. The fixture is bundled
+ * inline as a TS string constant (no fetch at runtime); the dist copy
+ * would ship the literal bytes to the CDN and re-introduce the network
+ * surface S03.8 removed. Build-cleanup strips the entire `dist/examples/`
+ * subtree.
  *
  * Robustness:
  *   - try/catch around unlinkSync with one retry after a short delay
@@ -55,6 +64,32 @@ export function isMapArtifact(name) {
     lower.endsWith('.js.map') ||
     lower.endsWith('.css.map') ||
     lower.endsWith('.map.json')
+  );
+}
+
+/**
+ * S03.8: predicate for the example CSV that Vite's default publicDir
+ * behavior copies verbatim to dist/examples/sample.csv. The fixture is
+ * bundled inline (no fetch at runtime) per the Privacy Baseline; the
+ * literal copy in dist/ would ship the fixture bytes to the CDN and
+ * silently re-introduce the network surface that S03.8 was designed to
+ * remove. Build-cleanup strips this directory after Vite emits.
+ *
+ * Returns true for any file under `dist/examples/`, irrespective of
+ * basename — the whole subtree is dropped (it has no other purpose;
+ * the fixture's only destination is the inlined TS constant).
+ *
+ * The argument is normalized to forward slashes before the predicate
+ * check so Windows paths (backslashes from `path.join`) match the
+ * `/examples/sample.csv` suffix.
+ */
+export function isExampleFixtureArtifact(name) {
+  const normalized = String(name).replace(/\\/g, '/').toLowerCase();
+  return (
+    normalized === 'examples' ||
+    normalized === 'examples/sample.csv' ||
+    normalized.endsWith('/examples') ||
+    normalized.endsWith('/examples/sample.csv')
   );
 }
 
@@ -132,10 +167,23 @@ export function walk(dir, seen, removed, kept) {
         // Try rmdir first; if it has .map contents, recurse to clean them.
         walk(full, seen, removed, kept);
         safeRmdir(full, removed);
+      } else if (isExampleFixtureArtifact(entry)) {
+        // S03.8: Vite's default publicDir copies public/examples/sample.csv
+        // into dist/examples/sample.csv. The fixture is bundled inline via
+        // scripts/inline-example.mjs (S03.8); the dist/ copy would re-introduce
+        // the network surface that S03.8 was designed to remove. Recurse into
+        // the subtree to strip the file (so the subsequent rmdir succeeds),
+        // then remove the now-empty directory.
+        walk(full, seen, removed, kept);
+        safeRmdir(full, removed);
       } else {
         walk(full, seen, removed, kept);
       }
     } else if (isMapArtifact(entry)) {
+      safeUnlink(full, removed);
+    } else if (isExampleFixtureArtifact(full)) {
+      // S03.8: file-mode paranoia for the flat-layout case
+      // (public/examples/foo.csv → dist/examples/foo.csv with no nested dir).
       safeUnlink(full, removed);
     } else {
       kept.push(full);
@@ -183,7 +231,7 @@ if (isMainEntry()) {
   const { removed } = cleanDist(distDir);
 
   console.log(
-    `[build-cleanup] removed ${removed.length} source-map artifact(s) from dist/`,
+    `[build-cleanup] removed ${removed.length} source-map / example-fixture artifact(s) from dist/`,
   );
   if (removed.length > 0) {
     for (const f of removed) console.log(`  - ${f}`);
