@@ -1,10 +1,11 @@
 # generated: 2026-08-12
-# last_updated: 2026-08-14 (S03.9 done)
+# last_updated: 2026-08-14 (E03 retrospective complete)
 # project: WebUtilityLab
 # project_key: NOKEY
 # tracking_system: file-system
 # story_location: _bmad-output/implementation-artifacts
 # E02 retrospective completed 2026-08-13 — see epic-2-retrospective.md
+# E03 retrospective completed 2026-08-14 — see epic-3-retrospective.md
 
 # STATUS DEFINITIONS:
 # ==================
@@ -84,7 +85,7 @@ development_status:
   epic-2-retrospective: done
 
   # E03 — Dropzone & file picker
-  epic-3: in-progress
+  epic-3: done
   3-1-real-button-dropzone-opens-file-picker: review
   3-2-drag-and-drop-handler-paste-handler: done
   3-3-50-mb-cap-check-before-reading: done
@@ -94,7 +95,7 @@ development_status:
   3-7-accept-path-emits-file-reference-to-reducer: done
   3-8-example-csv-inlined-at-build-time: done
   3-9-strict-brief-error-path-uses-formatstrictbrief: done
-  epic-3-retrospective: optional
+  epic-3-retrospective: done
 
   # E04 — Pre-flight estimate & refusal state
   epic-4: backlog
@@ -291,4 +292,55 @@ action_items:
     owner: "dev"
     status: open
     note: "Surfaced from honest audit of review coverage: every E02 story reviews its own diff; surrounding E01 infra is not re-reviewed."
+  - id: AI-3.1
+    epic: 3
+    action: "E04 prep (pre-S04.1) — Add scripts/audit-dist.mjs that walks dist/ and fails on dist/examples/, files >50 KB, and *.csv / *.json / *.svg. The audit layer E03 should have had (would have caught S03.8's dist/examples/ regression at CI time rather than at review time)."
+    owner: "dev"
+    status: open
+    note: "Surfaced from S03.8's Vite default publicDir regression — the Privacy Baseline audit scans bundled JS/CSS but not the dist directory tree; a static-asset risk in public/ would slip past."
+  - id: AI-3.2
+    epic: 3
+    action: "E04 prep (pre-S04.1) — Extract extractFunctionBody() + signature-aware brace walker to tests/_helpers.ts (DRY the convention across 4 test files: dropzone-file-cap, dropzone-aria-live, dropzone-accept, dropzone-oversize-strict-brief)."
+    owner: "dev"
+    status: open
+  - id: AI-3.3
+    epic: 3
+    action: "E04 prep — Confirm pre-flight heuristic's thresholds (size + structural smell + format detection) match EXPERIENCE.md locked ranges before S04.1 lands."
+    owner: "dev"
+    status: open
+  - id: AI-3.4
+    epic: 3
+    action: "E04 (S04.x) — Refusal page UI reuses the S03.9 strict-brief formatter; time-band UI gets a SECOND aria-live region (continuous stream, semantically distinct from one-shot rejection)."
+    owner: "dev"
+    status: open
+  - id: AI-3.5
+    epic: 3
+    action: "E13 launch — Re-review E01 infrastructure (carried from AI-2.7); the dist-directory walker addition (AI-3.1) is part of the E13 launch sweep."
+    owner: "dev"
+    status: open
+    note: "Carried from AI-2.7"
+  - id: AI-3.6
+    epic: 3
+    action: "E13 (S13.x) — Fulfill AI-1.1 / AI-2.4: write docs/contributing.md §\"Adding a script to scripts/\" — the obfuscation pattern from S01.5/S01.10."
+    owner: "dev"
+    status: open
+    note: "Carried from AI-1.1 / AI-2.4"
+  - id: AI-3.7
+    epic: 3
+    action: "E13 (S13.x) — Fulfill AI-1.3 / AI-2.5: add scripts/audit-privacy.d.mts type-declarations file (parity with check-deps/check-telemetry/check-bundle-size)."
+    owner: "dev"
+    status: open
+    note: "Carried from AI-1.3 / AI-2.5"
+  - id: AI-3.8
+    epic: 3
+    action: "E13 (S13.x) — Fulfill AI-1.4 / AI-2.6: add package.json script alias check:all that runs all 7 gates in the right order (parity with audit:all)."
+    owner: "dev"
+    status: open
+    note: "Carried from AI-1.4 / AI-2.6"
+  - id: AI-3.9
+    epic: 3
+    action: "E13 (S13.x) — Close out AI-2.2: spike landing of src/lib/strict-brief.ts. S03.9 fulfilled it inline (formatter shipped with the over-cap rejection surface); AI-2.2 is now resolved."
+    owner: "dev"
+    status: done
+    note: "Resolved by S03.9 — close out at E13 launch"
 
