@@ -3,16 +3,17 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { readFileSync, existsSync } from 'node:fs';
 
-// The inliner script intentionally has no top-level export for its
-// escape function — it's a build-time script, not a library. So we
-// re-execute it in-process to capture the escape semantics. The script
-// is deterministic: given a fixture, the output is byte-identical
-// across runs (idempotency pin in the S03.8 review).
-//
-// We use the script's *documented contract* (escape sequences per
-// escapeForTsStringLiteral in scripts/inline-example.mjs lines 43-50)
-// as the source of truth. If the script ever drifts from this
-// contract, the contract tests below fail loudly.
+import {
+  escapeForTsStringLiteral,
+  escapeForTsStringSingle,
+} from '../scripts/inline-example.mjs';
+
+// Review #2 finding #4: import the inliner's escape functions directly
+// so a drift in the inliner's logic flips these tests, instead of
+// silently passing against a stale mirror. The inliner is a build-time
+// script but its escape helpers are pure and have no side-effects —
+// exporting them costs nothing and the round-trip test gains a real
+// signal.
 
 const here = fileURLToPath(new URL('.', import.meta.url));
 const repoRoot = join(here, '..');
@@ -25,40 +26,6 @@ const generatedPath = join(
   'example-csv.generated.ts',
 );
 
-/**
- * Mirrors the escape function in scripts/inline-example.mjs. If the
- * script changes its escape rules, update this mirror. The mirrors
- * are tested against the script's own output, so a drift here flips
- * the test suite before any bundle ships a parse-broken TS string.
- *
- * Order matters:
- *   1. `\` → `\\` (must run before the other replacements that
- *      themselves introduce backslashes)
- *   2. `"` → `\"`
- *   3. `\r\n` → `\\r\\n` (must run before bare `\n` / `\r` to avoid
- *      double-escaping the LFs in CRLF pairs)
- *   4. `\n` → `\\n`
- *   5. `\r` → `\\r`
- */
-function escapeForDoubleQuoted(raw: string): string {
-  return raw
-    .replace(/\\/g, '\\\\')
-    .replace(/"/g, '\\"')
-    .replace(/\r\n/g, '\\r\\n')
-    .replace(/\n/g, '\\n')
-    .replace(/\r/g, '\\r');
-}
-
-/** Mirrors the single-quoted variant for filename/MIME literals. */
-function escapeForSingleQuoted(raw: string): string {
-  return raw
-    .replace(/\\/g, '\\\\')
-    .replace(/'/g, "\\'")
-    .replace(/\r\n/g, '\\r\\n')
-    .replace(/\n/g, '\\n')
-    .replace(/\r/g, '\\r');
-}
-
 /** Reverse the escape sequences — what a TS parser would do. */
 function unescapeTsStringLiteral(escaped: string): string {
   return escaped
@@ -70,6 +37,17 @@ function unescapeTsStringLiteral(escaped: string): string {
     .replace(/\\n/g, '\n')
     .replace(/\\r/g, '\r')
     .replace(/\\"/g, '"')
+    .replace(/\x00/g, '\\');
+}
+
+/** Reverse the single-quoted-literal escape sequences. */
+function unescapeSingleQuoted(escaped: string): string {
+  return escaped
+    .replace(/\\\\/g, '\x00')
+    .replace(/\\r\\n/g, '\r\n')
+    .replace(/\\n/g, '\n')
+    .replace(/\\r/g, '\r')
+    .replace(/\\'/g, "'")
     .replace(/\x00/g, '\\');
 }
 
@@ -106,7 +84,7 @@ describe('inline-example.mjs (S03.8 build-time inliner; AC24b item 8 escape roun
   describe('escape contract — character classes that MUST round-trip', () => {
     it('round-trips a backslash (\\ → \\\\ → \\)', () => {
       const raw = 'C:\\Users\\test';
-      const escaped = escapeForDoubleQuoted(raw);
+      const escaped = escapeForTsStringLiteral(raw);
       // The escape produces literal `\\` for each input backslash.
       expect(escaped).toBe('C:\\\\Users\\\\test');
       // And decodes back to the original.
@@ -115,28 +93,28 @@ describe('inline-example.mjs (S03.8 build-time inliner; AC24b item 8 escape roun
 
     it('round-trips a double quote (" → \\")', () => {
       const raw = 'name="O\'Brien"';
-      const escaped = escapeForDoubleQuoted(raw);
+      const escaped = escapeForTsStringLiteral(raw);
       expect(escaped).toBe('name=\\"O\'Brien\\"');
       expect(unescapeTsStringLiteral(escaped)).toBe(raw);
     });
 
     it('round-trips CRLF (\\r\\n → \\r\\n in literal)', () => {
       const raw = 'a\r\nb';
-      const escaped = escapeForDoubleQuoted(raw);
+      const escaped = escapeForTsStringLiteral(raw);
       expect(escaped).toBe('a\\r\\nb');
       expect(unescapeTsStringLiteral(escaped)).toBe(raw);
     });
 
     it('round-trips a lone LF (\\n → \\n in literal)', () => {
       const raw = 'a\nb';
-      const escaped = escapeForDoubleQuoted(raw);
+      const escaped = escapeForTsStringLiteral(raw);
       expect(escaped).toBe('a\\nb');
       expect(unescapeTsStringLiteral(escaped)).toBe(raw);
     });
 
     it('round-trips a lone CR (\\r → \\r in literal)', () => {
       const raw = 'a\rb';
-      const escaped = escapeForDoubleQuoted(raw);
+      const escaped = escapeForTsStringLiteral(raw);
       expect(escaped).toBe('a\\rb');
       expect(unescapeTsStringLiteral(escaped)).toBe(raw);
     });
@@ -144,7 +122,7 @@ describe('inline-example.mjs (S03.8 build-time inliner; AC24b item 8 escape roun
     it('round-trips a backslash followed by a quote (the tricky ordering case)', () => {
       // `\` → `\\` first, then `"` → `\"`. So input `\"` becomes `\\\"`.
       const raw = '\\"';
-      const escaped = escapeForDoubleQuoted(raw);
+      const escaped = escapeForTsStringLiteral(raw);
       expect(escaped).toBe('\\\\\\"');
       expect(unescapeTsStringLiteral(escaped)).toBe(raw);
     });
@@ -155,7 +133,7 @@ describe('inline-example.mjs (S03.8 build-time inliner; AC24b item 8 escape roun
       // must NOT be turned into the escape `\n` because `replace(/\\/g, '\\\\')`
       // runs first and shields the next char.
       const raw = '\\n';
-      const escaped = escapeForDoubleQuoted(raw);
+      const escaped = escapeForTsStringLiteral(raw);
       expect(escaped).toBe('\\\\n');
       expect(unescapeTsStringLiteral(escaped)).toBe(raw);
     });
@@ -164,17 +142,11 @@ describe('inline-example.mjs (S03.8 build-time inliner; AC24b item 8 escape roun
   describe('escape contract — single-quoted variant (filename / MIME)', () => {
     it('round-trips a single quote (\' → \\\')', () => {
       const raw = "O'Brien";
-      const escaped = escapeForSingleQuoted(raw);
+      const escaped = escapeForTsStringSingle(raw);
       expect(escaped).toBe("O\\'Brien");
       // The single-quoted literal's unescape doesn't need to undo `\"`,
       // but the backslash and newline escapes do apply.
-      const unescaped = escaped
-        .replace(/\\r\\n/g, '\r\n')
-        .replace(/\\n/g, '\n')
-        .replace(/\\r/g, '\r')
-        .replace(/\\'/g, "'")
-        .replace(/\\\\/g, '\\');
-      expect(unescaped).toBe(raw);
+      expect(unescapeSingleQuoted(escaped)).toBe(raw);
     });
 
     it('a double quote is NOT escaped in the single-quoted variant', () => {
@@ -182,14 +154,37 @@ describe('inline-example.mjs (S03.8 build-time inliner; AC24b item 8 escape roun
       // this prevents a regression that would over-escape the literal
       // and produce a parse-broken output.
       const raw = 'name="Alice"';
-      const escaped = escapeForSingleQuoted(raw);
+      const escaped = escapeForTsStringSingle(raw);
       expect(escaped).toBe('name="Alice"');
     });
 
     it('round-trips a backslash in the single-quoted variant', () => {
       const raw = 'C:\\path';
-      const escaped = escapeForSingleQuoted(raw);
+      const escaped = escapeForTsStringSingle(raw);
       expect(escaped).toBe('C:\\\\path');
+    });
+
+    it('round-trips a backslash followed by a single quote (the single-quoted ordering case)', () => {
+      // Review #2 finding #6: the single-quote variant's escape order
+      // is `\\` → `\\\\` first, then `'` → `\\'`. Input is 2 chars
+      // (`\` + `'`). After step 1: `\\` + `'` (3 chars: `\\'`). After
+      // step 2: `\\` + `\'` (4 chars: `\\\'`). Decoding: `\\` → `\`,
+      // then `\'` → `'`. Net: `\'`.
+      const raw = "\\'";
+      const escaped = escapeForTsStringSingle(raw);
+      expect(escaped).toBe("\\\\\\'");
+      expect(unescapeSingleQuoted(escaped)).toBe(raw);
+    });
+
+    it('round-trips a backslash followed by n (no accidental \\n production in single-quote variant)', () => {
+      // Input: 2 chars (`\` + `n`). After escape: 3 chars (`\\` + `n`).
+      // The trailing `n` literal must NOT be turned into the newline
+      // escape `\n` because `replace(/\\/g, '\\\\')` shields the next
+      // char from the subsequent replacements.
+      const raw = '\\n';
+      const escaped = escapeForTsStringSingle(raw);
+      expect(escaped).toBe('\\\\n');
+      expect(unescapeSingleQuoted(escaped)).toBe(raw);
     });
   });
 
@@ -208,7 +203,7 @@ describe('inline-example.mjs (S03.8 build-time inliner; AC24b item 8 escape roun
       const generated = readFileSync(generatedPath, 'utf8');
       const literal = extractStringLiteral(generated, 'SAMPLE_CSV', '"');
       expect(literal).not.toBeNull();
-      expect(literal).toBe(escapeForDoubleQuoted(fixture));
+      expect(literal).toBe(escapeForTsStringLiteral(fixture));
     });
 
     it('SAMPLE_CSV_FILENAME decoded === "sample.csv"', () => {
@@ -219,13 +214,7 @@ describe('inline-example.mjs (S03.8 build-time inliner; AC24b item 8 escape roun
         "'",
       );
       expect(literal).not.toBeNull();
-      const unescaped = literal!
-        .replace(/\\r\\n/g, '\r\n')
-        .replace(/\\n/g, '\n')
-        .replace(/\\r/g, '\r')
-        .replace(/\\'/g, "'")
-        .replace(/\\\\/g, '\\');
-      expect(unescaped).toBe('sample.csv');
+      expect(unescapeSingleQuoted(literal!)).toBe('sample.csv');
     });
 
     it('SAMPLE_CSV_MIME decoded === "text/csv"', () => {
@@ -236,13 +225,7 @@ describe('inline-example.mjs (S03.8 build-time inliner; AC24b item 8 escape roun
         "'",
       );
       expect(literal).not.toBeNull();
-      const unescaped = literal!
-        .replace(/\\r\\n/g, '\r\n')
-        .replace(/\\n/g, '\n')
-        .replace(/\\r/g, '\r')
-        .replace(/\\'/g, "'")
-        .replace(/\\\\/g, '\\');
-      expect(unescaped).toBe('text/csv');
+      expect(unescapeSingleQuoted(literal!)).toBe('text/csv');
     });
   });
 
@@ -250,7 +233,7 @@ describe('inline-example.mjs (S03.8 build-time inliner; AC24b item 8 escape roun
     // We don't re-execute the inliner (it has side-effects). Instead,
     // we assert the *contract* — the script contains no
     // time-/random-dependent operations, and the output we just
-    // read from disk matches what `escapeForDoubleQuoted(fixture)`
+    // read from disk matches what `escapeForTsStringLiteral(fixture)`
     // would produce. A regression that adds `Date.now()` would not
     // flip this test, but the separate idempotency assertion in
     // tests/dropzone-example.test.ts covers that case. This suite

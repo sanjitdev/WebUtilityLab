@@ -247,6 +247,33 @@ describe('source-map policy (AD source-map + E01 S01.3)', () => {
       // The .map source-map is also stripped (existing behavior).
       expect(existsSync(join(dir, 'assets', 'index.js.map'))).toBe(false);
     });
+
+    // Review #2 finding #3: a future story that adds a non-fixture file
+    // to public/examples/ (e.g. a fixture landing page) would NOT be
+    // stripped by the .map-style recurse-then-rmdir pattern because
+    // safeRmdir silently swallows non-empty-dir errors. The fix uses
+    // rmSync(full, { recursive: true, force: true }) which deletes the
+    // whole subtree regardless of contents. This test pins the
+    // recursive-rm behavior.
+    it('cleanDist() removes dist/examples/ even when it contains non-fixture files', () => {
+      const dir = makeTempdir();
+      mkdirSync(join(dir, 'examples'));
+      // Seed: the fixture CSV PLUS a non-fixture file (simulating a
+      // future fixture landing page or stray file).
+      writeFileSync(join(dir, 'examples', 'sample.csv'), 'id,name\n1,Alice\n');
+      writeFileSync(join(dir, 'examples', 'index.html'), '<html></html>');
+      mkdirSync(join(dir, 'examples', 'sub'));
+      writeFileSync(join(dir, 'examples', 'sub', 'data.json'), '{}');
+
+      cleanDist(dir);
+
+      // The whole subtree is gone — directory AND all files (including
+      // the non-fixture index.html and the nested sub/data.json).
+      expect(existsSync(join(dir, 'examples'))).toBe(false);
+      expect(existsSync(join(dir, 'examples', 'sample.csv'))).toBe(false);
+      expect(existsSync(join(dir, 'examples', 'index.html'))).toBe(false);
+      expect(existsSync(join(dir, 'examples', 'sub', 'data.json'))).toBe(false);
+    });
   });
 
   describe('audit-privacy.mjs · isSourceMapArtifact', () => {
@@ -286,6 +313,24 @@ describe('source-map policy (AD source-map + E01 S01.3)', () => {
       // `sourcemap: true` or removes the line flips this assertion loud.
       // Accept either single or double quotes around `hidden`.
       expect(text).toMatch(/sourcemap\s*:\s*['"]hidden['"]/);
+    });
+
+    // S03.8 Review #2 finding #2: scripts/build-cleanup.mjs hard-codes
+    // `dist/examples/` as the location Vite copies the publicDir fixture
+    // into. If a future contributor flips publicDir to 'static' (or any
+    // non-default value), the fixture would land somewhere else and the
+    // cleanup pass would silently miss it — re-introducing the Privacy
+    // Baseline regression we just fixed. The pin: `publicDir: 'public'`
+    // must remain explicit in vite.config.ts.
+    it('declares publicDir: "public" (so build-cleanup strips dist/examples/)', () => {
+      const here = fileURLToPath(new URL('.', import.meta.url));
+      const repoRoot = join(here, '..');
+      const configPath = join(repoRoot, 'vite.config.ts');
+      const text = readFileSync(configPath, 'utf8');
+
+      // Pin both: (a) the line is present, (b) it carries the literal
+      // value `'public'`. Removing either flips the assertion loud.
+      expect(text).toMatch(/publicDir\s*:\s*['"]public['"]/);
     });
   });
 

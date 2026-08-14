@@ -44,6 +44,7 @@ import {
   statSync,
   unlinkSync,
   rmdirSync,
+  rmSync,
   existsSync,
   realpathSync,
 } from 'node:fs';
@@ -131,6 +132,32 @@ export function safeRmdir(full, removed) {
 }
 
 /**
+ * S03.8 (Review #2 finding #3): the `examples/` subtree must be removed
+ * in full — including any non-fixture files that might land there in a
+ * future story (e.g. a fixture landing page). `safeRmdir` (the .map-era
+ * helper) only handles empty directories; using it on a non-empty
+ * examples/ would silently leave the directory in place because
+ * `rmdirSync` throws on non-empty and `safeRmdir` swallows the error.
+ *
+ * `rmSync(full, { recursive: true })` (Node ≥ 14.14) deletes the
+ * directory and every file/dir beneath it. The recurse-then-rmdir
+ * pattern from the .map branch is replaced here: we don't bother
+ * enumerating contents because the whole subtree is being deleted
+ * regardless of its file type. The Privacy Baseline intent is
+ * "everything under dist/examples/ is gone, by force."
+ */
+export function safeRmdirRecursive(full, removed) {
+  try {
+    rmSync(full, { recursive: true, force: true });
+    removed.push(full + '/');
+  } catch (err) {
+    console.warn(
+      `[build-cleanup] could not recursively remove ${full} (${err.code ?? err.message})`,
+    );
+  }
+}
+
+/**
  * Recursively walk `dir`, removing every `.map` artifact. Collects the
  * removed paths into `removed` and the kept paths into `kept`.
  *
@@ -168,14 +195,16 @@ export function walk(dir, seen, removed, kept) {
         walk(full, seen, removed, kept);
         safeRmdir(full, removed);
       } else if (isExampleFixtureArtifact(entry)) {
-        // S03.8: Vite's default publicDir copies public/examples/sample.csv
-        // into dist/examples/sample.csv. The fixture is bundled inline via
-        // scripts/inline-example.mjs (S03.8); the dist/ copy would re-introduce
-        // the network surface that S03.8 was designed to remove. Recurse into
-        // the subtree to strip the file (so the subsequent rmdir succeeds),
-        // then remove the now-empty directory.
-        walk(full, seen, removed, kept);
-        safeRmdir(full, removed);
+        // S03.8 (Review #2 finding #3): the examples subtree must be
+        // deleted in full. A future story that adds a non-fixture file
+        // here (e.g. a fixture landing page) would survive the .map-style
+        // recurse-then-rmdir pattern because `safeRmdir` swallows
+        // non-empty-dir errors silently. Use a recursive rm to guarantee
+        // the directory is gone regardless of contents.
+        safeRmdirRecursive(full, removed);
+        // Don't recurse into the subtree — every file inside is going to
+        // be deleted by the recursive rm above. Recursing would
+        // double-report the contents in `removed` for no benefit.
       } else {
         walk(full, seen, removed, kept);
       }

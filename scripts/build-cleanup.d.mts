@@ -15,6 +15,8 @@ export function safeUnlink(full: string, removed: string[]): void;
 
 export function safeRmdir(full: string, removed: string[]): void;
 
+export function safeRmdirRecursive(full: string, removed: string[]): void;
+
 export function walk(
   dir: string,
   seen: Set<string>,

@@ -87,15 +87,36 @@ describe('dropzone-example (S03.8 example CSV inlined at build time; "Try the ex
       expect(columns).toBeGreaterThanOrEqual(4);
       expect(columns).toBeLessThanOrEqual(6);
     });
-    it('the fixture is the SINGLE source of truth (no duplicates)', () => {
+    it('the fixture is the SINGLE source of truth (no duplicates in src/)', () => {
       // AC24a item 2: only ONE sample.csv in the source tree.
-      // Grep for any other CSV-shaped files that duplicate the
-      // fixture. (The generated module lives at
-      // src/lib/example-csv.generated.ts which is gitignored and
-      // contains the literal string — excluded.)
-      // Simple regression check: no second sample.csv file.
-      const normalized = fixturePath.replace(/\\/g, '/');
-      expect(normalized.endsWith('public/examples/sample.csv')).toBe(true);
+      // Walk src/ recursively for any `sample.csv` files. The fixture
+      // at public/examples/sample.csv is the canonical source of
+      // truth — a regression that hand-copies the fixture into a
+      // second location (e.g. for a "tiny test" variant) would
+      // surface here as a duplicate. (Review #2 finding #10: the
+      // previous test only asserted the canonical path; this walks
+      // the tree.)
+      const skipDirs = new Set(['node_modules', 'dist', '.git', 'coverage']);
+      const found: string[] = [];
+      function walkForSampleCsv(dir: string): void {
+        if (!existsSync(dir)) return;
+        for (const entry of readdirSync(dir, { withFileTypes: true })) {
+          if (entry.isDirectory()) {
+            if (!skipDirs.has(entry.name)) walkForSampleCsv(join(dir, entry.name));
+          } else if (entry.isFile() && entry.name === 'sample.csv') {
+            found.push(join(dir, entry.name).replace(/\\/g, '/'));
+          }
+        }
+      }
+      walkForSampleCsv(repoRoot);
+      // Exactly one sample.csv — the canonical fixture. (The generated
+      // module doesn't have a `.csv` extension so it never matches.)
+      expect(found).toEqual([
+        join(repoRoot, 'public', 'examples', 'sample.csv').replace(
+          /\\/g,
+          '/',
+        ),
+      ]);
     });
   });
 
@@ -478,17 +499,29 @@ describe('dropzone-example (S03.8 example CSV inlined at build time; "Try the ex
     // bundle as a whole, not the diff (the diff is noisy across
     // S03.7 + S03.8 + future stories). The ceiling is generous to
     // avoid spurious flips on minor Vite/Rollup version bumps.
-    it('dist/ has at most 2 bundle files (index.html + 1 JS + 1 CSS)', () => {
+    it('dist/ total bundle size is under a generous budget (S03.8 surface growth)', () => {
+      // Review #2 finding #7: a file-count pin (≤ 1 JS, ≤ 1 CSS) is too
+      // tight — E05's worker (per `vite.config.ts:15-18 worker.format: 'es'`)
+      // will legitimately code-split into additional chunks. A file-count
+      // pin would flip at that point and force a release-blocking test
+      // edit. Instead we pin a total-size ceiling that's independent of
+      // chunk count. The 250 KB ceiling is 25× the current 43.91 KB
+      // (raw) total — generous enough to absorb Vite version bumps and
+      // a worker chunk, tight enough to catch a regression that drags
+      // an actual CSV byte-stream into the bundle.
       if (!existsSync(distPath)) return;
+      let totalBytes = 0;
       const indexHtml = readFileSync(distIndexPath, 'utf8');
       expect(indexHtml).toBeTruthy();
-      const assets = existsSync(distAssetsPath)
-        ? readdirSync(distAssetsPath)
-        : [];
-      const jsCount = assets.filter((f) => f.endsWith('.js')).length;
-      const cssCount = assets.filter((f) => f.endsWith('.css')).length;
-      expect(jsCount).toBeLessThanOrEqual(1);
-      expect(cssCount).toBeLessThanOrEqual(1);
+      totalBytes += indexHtml.length;
+      if (existsSync(distAssetsPath)) {
+        for (const f of readdirSync(distAssetsPath)) {
+          if (f.endsWith('.js') || f.endsWith('.css')) {
+            totalBytes += readFileSync(join(distAssetsPath, f), 'utf8').length;
+          }
+        }
+      }
+      expect(totalBytes).toBeLessThan(250 * 1024);
     });
   });
 

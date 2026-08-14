@@ -8,6 +8,16 @@ import { svelte } from '@sveltejs/vite-plugin-svelte';
 // Story 1.1 acceptance: `find dist -name '*.map' | wc -l` MUST equal 0.
 export default defineConfig({
   plugins: [svelte()],
+  // S03.8 (Review #2 finding #2): pin `publicDir: 'public'` (Vite's
+  // default). scripts/build-cleanup.mjs hard-codes the `examples/`
+  // subtree for stripping because Vite's default publicDir copies
+  // public/examples/sample.csv into dist/examples/sample.csv. If a
+  // future story flips publicDir to e.g. 'static', the fixture would
+  // land at dist/sample.csv instead of dist/examples/sample.csv — and
+  // the cleanup pass would miss it. The test
+  // `tests/source-map-policy.test.ts` pins this value so a silent
+  // config drift fails CI.
+  publicDir: 'public',
   // AD-3 worker boundary: pre-wire Vite's worker config so E05's
   // `?worker` import and `new Worker(new URL(..., import.meta.url), { type: 'module' })`
   // use ES module format (code-splitting friendly, Playwright-friendly)

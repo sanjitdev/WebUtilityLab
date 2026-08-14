@@ -39,8 +39,13 @@ const generatedPath = join(
  * literal. Backslashes are doubled, lone `"` are escaped, and all
  * raw newlines become `\n` (the literal escape). The original byte
  * sequence round-trips through a TS parser unchanged.
+ *
+ * Exported for Vitest round-trip tests (Review #2 finding #4):
+ * importing the function directly from the inliner source means a
+ * drift in the inliner's escape logic flips the test, instead of the
+ * test silently passing against a stale mirror copy.
  */
-function escapeForTsStringLiteral(raw) {
+export function escapeForTsStringLiteral(raw) {
   return raw
     .replace(/\\/g, '\\\\') // backslash → \\
     .replace(/"/g, '\\"') // " → \"
@@ -49,7 +54,7 @@ function escapeForTsStringLiteral(raw) {
     .replace(/\r/g, '\\r'); // lone CR → \r
 }
 
-function escapeForTsStringSingle(raw) {
+export function escapeForTsStringSingle(raw) {
   // For single-quoted literals: only ' and \ need escaping.
   return raw
     .replace(/\\/g, '\\\\')
